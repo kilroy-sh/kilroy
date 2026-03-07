@@ -6,7 +6,7 @@
 |-------|--------|---------------|
 | 1. Scaffolding | Done | `dfe8c0f` on main |
 | 2. Server + API | Done | `dfe8c0f` on main |
-| 3. MCP adapter | TODO | |
+| 3. MCP adapter | Done | `5d6ed71` on main |
 | 4. CLI | TODO | |
 | 5. Web UI | TODO | |
 | 6. Plugin | TODO | |
