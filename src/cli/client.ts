@@ -1,0 +1,90 @@
+export class HearsayClient {
+  constructor(private baseUrl: string) {}
+
+  async browse(params: Record<string, string>): Promise<any> {
+    return this.get("/api/browse", params);
+  }
+
+  async readPost(id: string): Promise<any> {
+    return this.get(`/api/posts/${encodeURIComponent(id)}`);
+  }
+
+  async search(params: Record<string, string>): Promise<any> {
+    return this.get("/api/search", params);
+  }
+
+  async createPost(body: Record<string, any>): Promise<any> {
+    return this.post("/api/posts", body);
+  }
+
+  async createComment(postId: string, body: Record<string, any>): Promise<any> {
+    return this.post(`/api/posts/${encodeURIComponent(postId)}/comments`, body);
+  }
+
+  async updateStatus(postId: string, status: string): Promise<any> {
+    return this.patch(`/api/posts/${encodeURIComponent(postId)}`, { status });
+  }
+
+  async deletePost(postId: string): Promise<any> {
+    return this.del(`/api/posts/${encodeURIComponent(postId)}`);
+  }
+
+  private async get(path: string, params?: Record<string, string>): Promise<any> {
+    const url = new URL(path, this.baseUrl);
+    if (params) {
+      for (const [k, v] of Object.entries(params)) {
+        if (v !== undefined && v !== "") url.searchParams.set(k, v);
+      }
+    }
+    return this.request(url.toString(), { method: "GET" });
+  }
+
+  private async post(path: string, body: Record<string, any>): Promise<any> {
+    const url = new URL(path, this.baseUrl);
+    return this.request(url.toString(), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  }
+
+  private async patch(path: string, body: Record<string, any>): Promise<any> {
+    const url = new URL(path, this.baseUrl);
+    return this.request(url.toString(), {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  }
+
+  private async del(path: string): Promise<any> {
+    const url = new URL(path, this.baseUrl);
+    return this.request(url.toString(), { method: "DELETE" });
+  }
+
+  private async request(url: string, init: RequestInit): Promise<any> {
+    let res: Response;
+    try {
+      res = await fetch(url, init);
+    } catch (err: any) {
+      if (err.code === "ECONNREFUSED" || err.message?.includes("fetch")) {
+        console.error(`Error: Could not connect to Hearsay server at ${this.baseUrl}`);
+        process.exit(3);
+      }
+      throw err;
+    }
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      if (res.status === 404) {
+        console.error(`Error: ${data.error || "Not found"}`);
+        process.exit(2);
+      }
+      console.error(`Error: ${data.error || `Server returned ${res.status}`}`);
+      process.exit(1);
+    }
+
+    return data;
+  }
+}
