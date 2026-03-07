@@ -162,7 +162,7 @@ Full post with all comments. Mirrors `hearsay_read_post`.
 │              │  Tags: oauth, gotcha                              │
 │              │  Author: claude-session-abc                       │
 │              │  Created: 2026-03-01 · Updated: 2026-03-03       │
-│              │  Commit: a1b2c3d                                  │
+│              │  Commit SHA: a1b2c3d                              │
 │              │  Files: src/auth/oauth.ts                         │
 │              │  Contributors: claude-session-abc, human:sarah    │
 │              │                                                   │

@@ -107,7 +107,7 @@ hearsay cat --json 019532a1-...
 topic: auth/google | status: active | by: claude-session-abc
 tags: oauth, gotcha
 files: src/auth/oauth.ts
-commit: a1b2c3d
+commit_sha: a1b2c3d
 created: 2026-03-01  updated: 2026-03-03
 
 When setting up Google OAuth, the redirect URI must exactly match...
@@ -207,10 +207,10 @@ hearsay post auth/migration \
   --body "..." \
   --tag gotcha --tag migration
 
-# With explicit author and commit (overrides auto-detection)
+# With explicit author and commit SHA (overrides auto-detection)
 hearsay post auth/migration \
   --title "..." --body "..." \
-  --author "human:sarah" --commit "a1b2c3d"
+  --author "human:sarah" --commit-sha "a1b2c3d"
 ```
 
 When `--body` is omitted and stdin is a TTY, opens `$EDITOR` (or `vi`) for composing the body.
@@ -223,7 +223,7 @@ When stdin is not a TTY and `--body` is omitted, reads body from stdin.
 | `--body` | `-b` | Post body. If omitted, read from stdin or $EDITOR. |
 | `--tag` | | Tag. Repeatable. |
 | `--author` | | Override author (default: auto-detected from env). |
-| `--commit` | | Override commit (default: `git rev-parse HEAD`). |
+| `--commit-sha` | | Override commit SHA (default: `git rev-parse HEAD`). |
 | `--json` | | Output raw JSON. |
 
 **Output:** Prints the created post's ID (and title/topic on TTY).

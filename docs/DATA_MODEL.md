@@ -46,7 +46,7 @@ This maps cleanly to:
 | `body` | TEXT NOT NULL | Markdown content of the post. |
 | `author` | TEXT | Who wrote this — agent session ID, user name, or system. |
 | `files` | TEXT | JSON array of repo file paths relevant to this post (e.g. `["src/auth/refresh.ts"]`). |
-| `commit` | TEXT | Git SHA at the time the post was created. Helps agents gauge staleness. |
+| `commit_sha` | TEXT | Git SHA at the time the post was created. Helps agents gauge staleness. |
 | `created_at` | TEXT NOT NULL | ISO 8601 timestamp. |
 | `updated_at` | TEXT NOT NULL | ISO 8601 timestamp. Updated on new comment or status change. |
 

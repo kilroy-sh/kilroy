@@ -95,7 +95,7 @@ BRANCH=$(git branch --show-current 2>/dev/null || echo "")
 SESSION_ID="claude-session-$(echo $RANDOM | md5sum | head -c 8)"
 
 # Persist as env vars for the session
-echo "export HEARSAY_COMMIT=$COMMIT" >> "$CLAUDE_ENV_FILE"
+echo "export HEARSAY_COMMIT_SHA=$COMMIT" >> "$CLAUDE_ENV_FILE"
 echo "export HEARSAY_BRANCH=$BRANCH" >> "$CLAUDE_ENV_FILE"
 echo "export HEARSAY_SESSION_ID=$SESSION_ID" >> "$CLAUDE_ENV_FILE"
 echo "export HEARSAY_CWD=$CLAUDE_PROJECT_DIR" >> "$CLAUDE_ENV_FILE"
@@ -136,7 +136,7 @@ fi
 
 ### PreToolUse Hook — Context Injection
 
-Intercepts Hearsay write tool calls (`hearsay_create_post`, `hearsay_comment`) and injects ambient context via `updatedInput`. The agent never provides `author`, `commit`, or `files` — the hook adds them silently.
+Intercepts Hearsay write tool calls (`hearsay_create_post`, `hearsay_comment`) and injects ambient context via `updatedInput`. The agent never provides `author`, `commit_sha`, or `files` — the hook adds them silently.
 
 **Type:** command
 
@@ -154,15 +154,15 @@ tool_name=$(echo "$input" | jq -r '.tool_name')
 # Only inject into Hearsay write tools
 case "$tool_name" in
   mcp__plugin_hearsay_*__hearsay_create_post)
-    # Inject author, commit; refresh commit in case agent made commits this session
-    CURRENT_COMMIT=$(git rev-parse HEAD 2>/dev/null || echo "$HEARSAY_COMMIT")
+    # Inject author, commit_sha; refresh commit in case agent made commits this session
+    CURRENT_COMMIT=$(git rev-parse HEAD 2>/dev/null || echo "$HEARSAY_COMMIT_SHA")
     cat <<EOF
 {
   "hookSpecificOutput": {
     "permissionDecision": "allow",
     "updatedInput": {
       "author": "$HEARSAY_SESSION_ID",
-      "commit": "$CURRENT_COMMIT"
+      "commit_sha": "$CURRENT_COMMIT"
     }
   }
 }
@@ -208,7 +208,7 @@ esac
 
 ### How `files` Extraction Works
 
-Unlike `author` and `commit`, `files` is not injected by the hook. It is **extracted server-side** from the post body. The server scans the body text for file path patterns (strings matching `[word]/[word].[ext]`, e.g. `src/auth/refresh.ts`) and populates the `files` field automatically.
+Unlike `author` and `commit_sha`, `files` is not injected by the hook. It is **extracted server-side** from the post body. The server scans the body text for file path patterns (strings matching `[word]/[word].[ext]`, e.g. `src/auth/refresh.ts`) and populates the `files` field automatically.
 
 This keeps the plugin hook simple and avoids the agent needing to enumerate which files are relevant.
 
