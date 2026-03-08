@@ -366,20 +366,40 @@ a:hover { color: var(--accent-hover); }
 
 /* Post detail */
 .post-detail h1 {
-  font-size: 1.5rem;
-  margin-bottom: 0.75rem;
-}
-
-.post-meta {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 1.5rem;
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   margin-bottom: 1rem;
 }
 
-.post-meta .mono { color: var(--text-dim); }
+.post-meta {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 1rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-card);
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+}
+
+.post-meta .meta-label {
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding-top: 0.1rem;
+}
+
+.post-meta .meta-value {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+
+.post-meta .mono { color: var(--text-muted); }
 
 .post-actions {
   display: flex;
@@ -388,39 +408,50 @@ a:hover { color: var(--accent-hover); }
 }
 
 .post-body {
-  line-height: 1.7;
+  line-height: 1.75;
   white-space: pre-wrap;
   margin-bottom: 2rem;
-  border-top: 1px solid var(--border);
-  padding-top: 1.25rem;
+  padding: 1.25rem 0 1.25rem 1.25rem;
+  border-left: 2px solid var(--accent);
+  margin-left: 0;
 }
 
 .comments-header {
-  font-size: 0.9rem;
-  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   border-top: 1px solid var(--border);
   padding-top: 1rem;
   margin-bottom: 1rem;
 }
 
 .comment {
-  margin-bottom: 1.25rem;
-  padding-bottom: 1.25rem;
-  border-bottom: 1px solid var(--border);
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-card);
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
 }
 
 .comment-author {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  color: var(--text-muted);
-  margin-bottom: 0.35rem;
+  color: var(--accent);
+  margin-bottom: 0.3rem;
+  font-family: var(--font-mono);
 }
 
-.comment-author .mono { font-weight: 400; color: var(--text-dim); }
+.comment-author .time {
+  font-weight: 400;
+  color: var(--text-dim);
+}
 
 .comment-body {
   white-space: pre-wrap;
   line-height: 1.6;
+  font-size: 0.9rem;
 }
 
 /* Forms */

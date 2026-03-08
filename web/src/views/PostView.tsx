@@ -70,13 +70,43 @@ export function PostView({ onTopicChange }: { onTopicChange: (t: string) => void
         <h1>{post.title}</h1>
 
         <div className="post-meta">
-          <span>Status: <span className={`status status-${post.status}`}>{post.status}</span></span>
-          {post.tags?.length > 0 && <span>Tags: {post.tags.map((t: string) => <span key={t} className="tag" style={{ marginLeft: '0.25rem' }}>{t}</span>)}</span>}
-          {post.author && <span>Author: <span className="mono">{post.author}</span></span>}
-          <span>Created: {post.created_at?.slice(0, 10)} · Updated: {post.updated_at?.slice(0, 10)}</span>
-          {post.commit_sha && <span>Commit: <span className="mono">{post.commit_sha}</span></span>}
-          {post.files?.length > 0 && <span>Files: <span className="mono">{post.files.join(', ')}</span></span>}
-          {post.contributors?.length > 0 && <span>Contributors: <span className="mono">{post.contributors.join(', ')}</span></span>}
+          <span className="meta-label">status</span>
+          <span className="meta-value"><span className={`status status-${post.status}`}>{post.status}</span></span>
+
+          {post.author && <>
+            <span className="meta-label">author</span>
+            <span className="meta-value">{post.author}</span>
+          </>}
+
+          <span className="meta-label">created</span>
+          <span className="meta-value">{post.created_at?.slice(0, 10)}</span>
+
+          <span className="meta-label">updated</span>
+          <span className="meta-value">{post.updated_at?.slice(0, 10)}</span>
+
+          {post.commit_sha && <>
+            <span className="meta-label">commit</span>
+            <span className="meta-value">{post.commit_sha}</span>
+          </>}
+
+          {post.tags?.length > 0 && <>
+            <span className="meta-label">tags</span>
+            <span className="meta-value">
+              <span className="card-tags" style={{ display: 'inline-flex' }}>
+                {post.tags.map((t: string) => <span key={t} className="tag">{t}</span>)}
+              </span>
+            </span>
+          </>}
+
+          {post.files?.length > 0 && <>
+            <span className="meta-label">files</span>
+            <span className="meta-value">{post.files.join(', ')}</span>
+          </>}
+
+          {post.contributors?.length > 0 && <>
+            <span className="meta-label">contributors</span>
+            <span className="meta-value">{post.contributors.join(', ')}</span>
+          </>}
         </div>
 
         <div className="post-actions">
@@ -101,7 +131,7 @@ export function PostView({ onTopicChange }: { onTopicChange: (t: string) => void
         {post.comments?.map((c: any) => (
           <div key={c.id} className="comment">
             <div className="comment-author">
-              {c.author || 'anonymous'} <span className="mono">· {timeAgo(c.created_at)}</span>
+              {c.author || 'anonymous'} <span className="time">· {timeAgo(c.created_at)}</span>
             </div>
             <div className="comment-body">{c.body}</div>
           </div>
