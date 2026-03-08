@@ -741,6 +741,70 @@ a:hover { color: var(--accent-hover); }
   justify-content: flex-end;
 }
 
+/* Theme toggle */
+.theme-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem;
+  margin-left: 0.5rem;
+  color: var(--text-dim);
+  font-size: 1rem;
+  line-height: 1;
+  transition: color 0.15s;
+  display: flex;
+  align-items: center;
+}
+
+.theme-toggle:hover {
+  color: var(--accent);
+}
+
+/* Dark theme */
+[data-theme="dark"] {
+  --bg: #1C1917;
+  --bg-surface: #252220;
+  --bg-hover: #302C29;
+  --bg-inset: #1A1715;
+  --text: #E8E0D8;
+  --text-muted: #A69B90;
+  --text-dim: #6B6058;
+  --accent: #E09050;
+  --accent-hover: #EBA46A;
+  --accent-glow: rgba(224, 144, 80, 0.12);
+  --border: #3A3430;
+  --border-subtle: #302C29;
+  --status-active: #7EBF5E;
+  --status-archived: #8C8078;
+  --status-obsolete: #E06050;
+  --tag-bg: rgba(224, 144, 80, 0.1);
+  --tag-text: #E09050;
+}
+
+[data-theme="dark"] .omnibar.active {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="dark"] .omnibar-dropdown {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="dark"] .card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="dark"] .author-prompt-overlay {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+[data-theme="dark"] .author-prompt {
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .snippet mark {
+  background: rgba(224, 144, 80, 0.18);
+}
+
 /* Animation */
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(8px); }

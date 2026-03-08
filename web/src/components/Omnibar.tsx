@@ -6,9 +6,23 @@ interface OmnibarProps {
   currentTopic: string;
 }
 
+function getInitialTheme(): string {
+  const stored = localStorage.getItem('hearsay_theme');
+  if (stored) return stored;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
 export function Omnibar({ currentTopic }: OmnibarProps) {
   const navigate = useNavigate();
   const [active, setActive] = useState(false);
+  const [theme, setTheme] = useState(getInitialTheme);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('hearsay_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => setTheme((t) => t === 'dark' ? 'light' : 'dark');
   const [query, setQuery] = useState('');
   const [topics, setTopics] = useState<any[]>([]);
   const [posts, setPosts] = useState<any[]>([]);
@@ -208,6 +222,13 @@ export function Omnibar({ currentTopic }: OmnibarProps) {
             <span className="omnibar-hint">
               <kbd>⌘K</kbd>
             </span>
+            <button
+              className="theme-toggle"
+              onClick={(e) => { e.stopPropagation(); toggleTheme(); }}
+              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {theme === 'dark' ? '\u2600' : '\u263E'}
+            </button>
           </div>
         )}
       </div>
