@@ -5,6 +5,7 @@ import { BrowseView } from './views/BrowseView';
 import { PostView } from './views/PostView';
 import { SearchView } from './views/SearchView';
 import { NewPostView } from './views/NewPostView';
+import { AuthorPrompt } from './components/AuthorPrompt';
 
 export default function App() {
   const [activeTopic, setActiveTopic] = useState('');
@@ -20,6 +21,7 @@ export default function App() {
 
   return (
     <div className="app">
+      <AuthorPrompt />
       <header className="header">
         <h1><Link to="/">hearsay</Link></h1>
         <form className="search-box" onSubmit={handleSearch}>
