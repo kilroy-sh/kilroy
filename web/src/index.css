@@ -46,37 +46,76 @@ a:hover { color: var(--accent-hover); }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.75rem 1.25rem;
+  padding: 0 1.25rem;
+  height: 48px;
   border-bottom: 1px solid var(--border);
   background: var(--bg-surface);
+  position: relative;
+}
+
+.header::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 15%;
+  right: 15%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0.4;
 }
 
 .header h1 {
-  font-size: 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
   font-weight: 600;
-  letter-spacing: 0.5px;
+  letter-spacing: 1.5px;
+  text-transform: lowercase;
 }
 
 .header h1 a { color: var(--text); }
+.header h1 a:hover { color: var(--accent); }
 
 .search-box {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  position: relative;
 }
 
 .search-box input {
   background: var(--bg-input);
   border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  padding: 0.35rem 0.75rem;
+  padding-right: 3rem;
   color: var(--text);
-  font-size: 0.85rem;
-  width: 260px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  width: 240px;
   outline: none;
+  transition: width 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.search-box input:focus { border-color: var(--accent); }
+.search-box input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+  width: 300px;
+}
+
+.search-hint {
+  position: absolute;
+  right: 0.6rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0.1rem 0.35rem;
+  pointer-events: none;
+  line-height: 1;
+}
 
 .main {
   display: flex;
@@ -404,4 +443,15 @@ a:hover { color: var(--accent-hover); }
   font-size: 0.9rem;
   padding: 2rem 0;
   text-align: center;
+}
+
+/* Noise texture overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
 }

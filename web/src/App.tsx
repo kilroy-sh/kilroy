@@ -21,13 +21,14 @@ export default function App() {
   return (
     <div className="app">
       <header className="header">
-        <h1><Link to="/">Hearsay</Link></h1>
+        <h1><Link to="/">hearsay</Link></h1>
         <form className="search-box" onSubmit={handleSearch}>
           <input
-            placeholder="Search..."
+            placeholder="Search posts..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
           />
+          <span className="search-hint">/</span>
         </form>
       </header>
       <div className="main">
