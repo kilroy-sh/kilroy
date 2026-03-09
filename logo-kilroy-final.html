@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kilroy — Final Brand Kit</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&family=Nunito+Sans:opsz,wght@6..12,200..1000&family=JetBrains+Mono:wght@300;400;500&family=Space+Mono:wght@400;700&family=Permanent+Marker&family=Caveat:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FAF6F1;
+    --bg-surface: #F3EDE5;
+    --bg-dark: #2C2520;
+    --bg-wall: #D4C9B8;
+    --text: #2C2520;
+    --text-muted: #8C7E72;
+    --text-dim: #B5A99B;
+    --accent: #C8642A;
+    --accent-light: #E09050;
+    --border: #E2D9CE;
+    --green: #5A8A3C;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Nunito Sans', sans-serif;
+    padding: 60px 40px 120px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-size: 2.8rem;
+    font-weight: 300;
+    letter-spacing: -0.03em;
+    margin-bottom: 6px;
+  }
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    color: var(--text-muted);
+    font-size: 1rem;
+    margin-bottom: 72px;
+    line-height: 1.6;
+  }
+
+  .section { margin-bottom: 80px; }
+  .section-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+  .section-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1.5rem;
+    font-weight: 400;
+    margin-bottom: 8px;
+  }
+  .section-desc {
+    color: var(--text-muted);
+    font-size: 0.92rem;
+    line-height: 1.6;
+    margin-bottom: 32px;
+    max-width: 580px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 24px;
+  }
+
+  .card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(44,37,32,0.06);
+  }
+
+  .card-preview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 44px 32px;
+    min-height: 220px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card-preview.wall {
+    background: var(--bg-wall);
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 38px, rgba(0,0,0,0.04) 38px, rgba(0,0,0,0.04) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 78px, rgba(0,0,0,0.03) 78px, rgba(0,0,0,0.03) 80px);
+  }
+  .card-preview.dark { background: var(--bg-dark); }
+
+  .card-body {
+    padding: 20px 24px 24px;
+    border-top: 1px solid var(--border);
+  }
+  .card-body h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+  .card-body p {
+    color: var(--text-muted);
+    font-size: 0.88rem;
+    line-height: 1.55;
+  }
+
+  .tag {
+    display: inline-block;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: rgba(200,100,42,0.08);
+    color: var(--accent);
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+
+  .ascii-block {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.35;
+    color: var(--accent);
+    background: var(--bg-dark);
+    padding: 16px 20px;
+    border-radius: 8px;
+    white-space: pre;
+    display: inline-block;
+  }
+
+  .dual {
+    display: flex;
+    align-items: center;
+    gap: 36px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .dual-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    text-align: center;
+    margin-top: 8px;
+  }
+  .dark .dual-label { color: #6B5E54; }
+
+  .divider {
+    width: 1px;
+    height: 80px;
+    background: var(--border);
+    opacity: 0.5;
+  }
+  .dark .divider { background: #4A3F38; }
+
+  .favicon-item { text-align: center; }
+  .favicon-item span {
+    display: block;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    margin-top: 6px;
+  }
+</style>
+</head>
+<body>
+
+<h1><span>Kilroy</span> — Final Brand Kit</h1>
+<p class="subtitle">An agent was here. The Dome Bot, finalised across every context.</p>
+
+
+<!-- ============================================ -->
+<!-- SECTION 1: THE PRIMARY MARK -->
+<!-- ============================================ -->
+<div class="section">
+  <div class="section-label">Primary Mark</div>
+  <h2 class="section-title">The Dome Bot on the Wall</h2>
+  <p class="section-desc">The canonical version — full detail, with wall, grippers, antenna, visor, and sensor probe.</p>
+
+  <div class="grid">
+
+    <!-- Light / Wall -->
+    <div class="card">
+      <div class="card-preview wall" style="min-height:300px;">
+        <svg width="260" height="220" viewBox="0 0 260 220">
+          <!-- Wall -->
+          <line x1="12" y1="126" x2="248" y2="126" stroke="#2C2520" stroke-width="3" stroke-linecap="round"/>
+
+          <!-- Gripper claws - left -->
+          <g fill="none" stroke="#C8642A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M56 126 L56 114 L52 110"/>
+            <path d="M56 114 L60 110"/>
+            <path d="M66 126 L66 112 L62 108"/>
+            <path d="M66 112 L70 108"/>
+          </g>
+          <!-- Gripper claws - right -->
+          <g fill="none" stroke="#C8642A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M192 126 L192 112 L188 108"/>
+            <path d="M192 112 L196 108"/>
+            <path d="M202 126 L202 114 L198 110"/>
+            <path d="M202 114 L206 110"/>
+          </g>
+
+          <!-- Bot head -->
+          <path d="M82 126 L82 84 C82 56, 176 56, 176 84 L176 126"
+                stroke="#C8642A" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+          <!-- Dome ridge -->
+          <path d="M96 72 C96 58, 162 58, 162 72"
+                stroke="#C8642A" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.35"/>
+
+          <!-- Antenna -->
+          <line x1="129" y1="58" x2="129" y2="40" stroke="#C8642A" stroke-width="2.2" stroke-linecap="round"/>
+          <circle cx="129" cy="36" r="5" fill="#C8642A"/>
+          <circle cx="129" cy="36" r="2.8" fill="#E09050"/>
+
+          <!-- Eye visor band -->
+          <rect x="94" y="88" width="70" height="22" rx="11" fill="#2C2520"/>
+          <!-- Eyes -->
+          <circle cx="113" cy="99" r="7" fill="#E09050"/>
+          <circle cx="145" cy="99" r="7" fill="#E09050"/>
+          <circle cx="113" cy="99" r="3.5" fill="#C8642A"/>
+          <circle cx="145" cy="99" r="3.5" fill="#C8642A"/>
+          <!-- Eye shine -->
+          <circle cx="115.5" cy="97" r="2" fill="white" opacity="0.45"/>
+          <circle cx="147.5" cy="97" r="2" fill="white" opacity="0.45"/>
+
+          <!-- Panel detail -->
+          <rect x="116" y="114" width="26" height="6" rx="3" fill="none" stroke="#C8642A" stroke-width="1.2" opacity="0.2"/>
+
+          <!-- Sensor probe / nose -->
+          <rect x="125" y="118" width="8" height="34" rx="4" fill="#C8642A" opacity="0.65"/>
+          <circle cx="129" cy="156" r="3.5" fill="#E09050" opacity="0.5"/>
+
+          <!-- Tagline -->
+          <text x="129" y="186" font-family="'Caveat', cursive" font-size="17" fill="#C8642A" text-anchor="middle" opacity="0.6" transform="rotate(-1.5, 129, 186)">an agent was here</text>
+        </svg>
+      </div>
+      <div class="card-body">
+        <span class="tag">Primary — Light</span>
+        <h3>On the Wall</h3>
+        <p>Full Kilroy scene on brick. The hero version for landing pages, README headers, and Show HN.</p>
+      </div>
+    </div>
+
+    <!-- Dark -->
+    <div class="card">
+      <div class="card-preview dark" style="min-height:300px;">
+        <svg width="260" height="220" viewBox="0 0 260 220">
+          <!-- Wall -->
+          <line x1="12" y1="126" x2="248" y2="126" stroke="#8C7E72" stroke-width="2.5" stroke-linecap="round" opacity="0.4"/>
+
+          <!-- Grippers -->
+          <g fill="none" stroke="#C8642A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.5">
+            <path d="M56 126 L56 114 L52 110"/>
+            <path d="M56 114 L60 110"/>
+            <path d="M66 126 L66 112 L62 108"/>
+            <path d="M66 112 L70 108"/>
+            <path d="M192 126 L192 112 L188 108"/>
+            <path d="M192 112 L196 108"/>
+            <path d="M202 126 L202 114 L198 110"/>
+            <path d="M202 114 L206 110"/>
+          </g>
+
+          <!-- Bot head -->
+          <path d="M82 126 L82 84 C82 56, 176 56, 176 84 L176 126"
+                stroke="#C8642A" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M96 72 C96 58, 162 58, 162 72"
+                stroke="#C8642A" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.3"/>
+
+          <!-- Antenna -->
+          <line x1="129" y1="58" x2="129" y2="40" stroke="#C8642A" stroke-width="2.2" stroke-linecap="round"/>
+          <circle cx="129" cy="36" r="5" fill="#C8642A"/>
+          <circle cx="129" cy="36" r="2.8" fill="#E09050"/>
+
+          <!-- Visor -->
+          <rect x="94" y="88" width="70" height="22" rx="11" fill="#1a1512"/>
+          <circle cx="113" cy="99" r="7" fill="#E09050"/>
+          <circle cx="145" cy="99" r="7" fill="#E09050"/>
+          <circle cx="113" cy="99" r="3.5" fill="#C8642A"/>
+          <circle cx="145" cy="99" r="3.5" fill="#C8642A"/>
+          <circle cx="115.5" cy="97" r="2" fill="white" opacity="0.35"/>
+          <circle cx="147.5" cy="97" r="2" fill="white" opacity="0.35"/>
+
+          <!-- Panel -->
+          <rect x="116" y="114" width="26" height="6" rx="3" fill="none" stroke="#C8642A" stroke-width="1.2" opacity="0.15"/>
+
+          <!-- Sensor -->
+          <rect x="125" y="118" width="8" height="34" rx="4" fill="#C8642A" opacity="0.55"/>
+          <circle cx="129" cy="156" r="3.5" fill="#E09050" opacity="0.4"/>
+
+          <!-- Tagline -->
+          <text x="129" y="186" font-family="'Space Mono', monospace" font-size="12" fill="#8C7E72" text-anchor="middle" letter-spacing="0.06em">an agent was here</text>
+        </svg>
+      </div>
+      <div class="card-body">
+        <span class="tag">Primary — Dark</span>
+        <h3>On Dark</h3>
+        <p>For dark UIs, terminal splash screens, and dark-mode web.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ============================================ -->
+<!-- SECTION 2: WORDMARK LOCKUPS -->
+<!-- ============================================ -->
+<div class="section">
+  <div class="section-label">Wordmarks</div>
+  <h2 class="section-title">Logo + Name</h2>
+
+  <div class="grid" style="grid-template-columns: 1fr;">
+
+    <div class="card">
+      <div class="card-preview" style="flex-direction: column; gap: 52px; padding: 56px;">
+
+        <!-- Space Mono stacked — THE primary lockup -->
+        <svg width="400" height="56" viewBox="0 0 400 56">
+          <g transform="translate(0, 4)">
+            <line x1="2" y1="34" x2="52" y2="34" stroke="#2C2520" stroke-width="2" stroke-linecap="round"/>
+            <path d="M12 34 C12 16, 42 16, 42 34" stroke="#C8642A" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+            <line x1="27" y1="16" x2="27" y2="8" stroke="#C8642A" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="27" cy="6" r="2.5" fill="#E09050"/>
+            <rect x="17" y="24" width="20" height="6" rx="3" fill="#2C2520"/>
+            <circle cx="23" cy="27" r="2.5" fill="#E09050"/>
+            <circle cx="31" cy="27" r="2.5" fill="#E09050"/>
+            <path d="M27 34 C27 37, 26.5 40, 27 46" stroke="#C8642A" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          </g>
+          <text x="64" y="30" font-family="'Space Mono', monospace" font-size="24" font-weight="700" fill="#2C2520">kilroy</text>
+          <text x="64" y="46" font-family="'Space Mono', monospace" font-size="10" fill="#8C7E72" letter-spacing="0.08em">AN AGENT WAS HERE</text>
+        </svg>
+
+        <!-- Fraunces inline -->
+        <svg width="400" height="48" viewBox="0 0 400 48">
+          <g transform="translate(0, 0)">
+            <line x1="2" y1="32" x2="52" y2="32" stroke="#2C2520" stroke-width="2" stroke-linecap="round"/>
+            <path d="M12 32 C12 14, 42 14, 42 32" stroke="#C8642A" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+            <line x1="27" y1="14" x2="27" y2="6" stroke="#C8642A" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="27" cy="4" r="2.5" fill="#E09050"/>
+            <rect x="17" y="22" width="20" height="6" rx="3" fill="#2C2520"/>
+            <circle cx="23" cy="25" r="2.5" fill="#E09050"/>
+            <circle cx="31" cy="25" r="2.5" fill="#E09050"/>
+            <path d="M27 32 C27 35, 26.5 38, 27 44" stroke="#C8642A" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          </g>
+          <text x="64" y="32" font-family="'Fraunces', serif" font-size="28" font-weight="400" fill="#2C2520" letter-spacing="-0.5">kilroy</text>
+          <text x="178" y="32" font-family="'Fraunces', serif" font-size="14" font-weight="300" fill="#8C7E72">an agent was here</text>
+        </svg>
+
+      </div>
+      <div class="card-body">
+        <p><strong>Top: Space Mono stacked</strong> — the recommended primary lockup. Bold name, uppercase tagline below. Dev-native feel. <strong>Bottom: Fraunces inline</strong> — for editorial contexts, blog headers, documentation.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-preview dark" style="flex-direction: column; gap: 52px; padding: 56px;">
+
+        <svg width="400" height="56" viewBox="0 0 400 56">
+          <g transform="translate(0, 4)">
+            <line x1="2" y1="34" x2="52" y2="34" stroke="#8C7E72" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
+            <path d="M12 34 C12 16, 42 16, 42 34" stroke="#C8642A" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+            <line x1="27" y1="16" x2="27" y2="8" stroke="#C8642A" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="27" cy="6" r="2.5" fill="#E09050"/>
+            <rect x="17" y="24" width="20" height="6" rx="3" fill="#1a1512"/>
+            <circle cx="23" cy="27" r="2.5" fill="#E09050"/>
+            <circle cx="31" cy="27" r="2.5" fill="#E09050"/>
+            <path d="M27 34 C27 37, 26.5 40, 27 46" stroke="#C8642A" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          </g>
+          <text x="64" y="30" font-family="'Space Mono', monospace" font-size="24" font-weight="700" fill="#FAF6F1">kilroy</text>
+          <text x="64" y="46" font-family="'Space Mono', monospace" font-size="10" fill="#8C7E72" letter-spacing="0.08em">AN AGENT WAS HERE</text>
+        </svg>
+
+        <!-- Text only -->
+        <svg width="400" height="40" viewBox="0 0 400 40">
+          <text x="0" y="28" font-family="'Space Mono', monospace" font-size="24" font-weight="700" fill="#FAF6F1">kilroy</text>
+          <text x="114" y="28" font-family="'Space Mono', monospace" font-size="24" font-weight="400" fill="#C8642A">was here</text>
+        </svg>
+
+      </div>
+      <div class="card-body">
+        <p>Dark variants. Bottom: text-only for inline use where the mark isn't needed.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ============================================ -->
+<!-- SECTION 3: FAVICONS -->
+<!-- ============================================ -->
+<div class="section">
+  <div class="section-label">Icons</div>
+  <h2 class="section-title">App Icons & Favicons</h2>
+
+  <div class="card">
+    <div class="card-preview dark" style="flex-direction: column; gap: 36px; padding: 48px;">
+
+      <!-- 64px -->
+      <div style="display:flex; gap:24px; align-items:end; flex-wrap:wrap; justify-content:center;">
+        <div class="favicon-item">
+          <svg width="64" height="64" viewBox="0 0 64 64">
+            <rect width="64" height="64" rx="14" fill="#C8642A"/>
+            <line x1="8" y1="38" x2="56" y2="38" stroke="#FAF6F1" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
+            <path d="M20 38 C20 20, 44 20, 44 38" stroke="#FAF6F1" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+            <line x1="32" y1="20" x2="32" y2="14" stroke="#FAF6F1" stroke-width="1.8" stroke-linecap="round"/>
+            <circle cx="32" cy="12" r="3" fill="#FAF6F1"/>
+            <rect x="24" y="28" width="16" height="6" rx="3" fill="#2C2520"/>
+            <circle cx="28.5" cy="31" r="2.5" fill="#FAF6F1"/>
+            <circle cx="35.5" cy="31" r="2.5" fill="#FAF6F1"/>
+            <path d="M32 38 C32 42, 31.5 46, 32 52" stroke="#FAF6F1" stroke-width="1.8" fill="none" stroke-linecap="round" opacity="0.55"/>
+          </svg>
+          <span>64 — Accent</span>
+        </div>
+        <div class="favicon-item">
+          <svg width="64" height="64" viewBox="0 0 64 64">
+            <rect width="64" height="64" rx="14" fill="#2C2520"/>
+            <line x1="8" y1="38" x2="56" y2="38" stroke="#8C7E72" stroke-width="2" stroke-linecap="round" opacity="0.3"/>
+            <path d="M20 38 C20 20, 44 20, 44 38" stroke="#C8642A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+            <line x1="32" y1="20" x2="32" y2="14" stroke="#C8642A" stroke-width="1.8" stroke-linecap="round"/>
+            <circle cx="32" cy="12" r="3" fill="#E09050"/>
+            <rect x="24" y="28" width="16" height="6" rx="3" fill="#1a1512"/>
+            <circle cx="28.5" cy="31" r="2.5" fill="#E09050"/>
+            <circle cx="35.5" cy="31" r="2.5" fill="#E09050"/>
+            <path d="M32 38 C32 42, 31.5 46, 32 52" stroke="#C8642A" stroke-width="1.8" fill="none" stroke-linecap="round" opacity="0.45"/>
+          </svg>
+          <span>64 — Dark</span>
+        </div>
+        <div class="favicon-item">
+          <svg width="64" height="64" viewBox="0 0 64 64">
+            <rect width="64" height="64" rx="14" fill="#FAF6F1" stroke="#E2D9CE" stroke-width="1"/>
+            <line x1="8" y1="38" x2="56" y2="38" stroke="#2C2520" stroke-width="2" stroke-linecap="round"/>
+            <path d="M20 38 C20 20, 44 20, 44 38" stroke="#C8642A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+            <line x1="32" y1="20" x2="32" y2="14" stroke="#C8642A" stroke-width="1.8" stroke-linecap="round"/>
+            <circle cx="32" cy="12" r="3" fill="#E09050"/>
+            <rect x="24" y="28" width="16" height="6" rx="3" fill="#2C2520"/>
+            <circle cx="28.5" cy="31" r="2.5" fill="#E09050"/>
+            <circle cx="35.5" cy="31" r="2.5" fill="#E09050"/>
+            <path d="M32 38 C32 42, 31.5 46, 32 52" stroke="#C8642A" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+          </svg>
+          <span>64 — Light</span>
+        </div>
+      </div>
+
+      <!-- 32px -->
+      <div style="display:flex; gap:24px; align-items:end; flex-wrap:wrap; justify-content:center;">
+        <div class="favicon-item">
+          <svg width="32" height="32" viewBox="0 0 32 32">
+            <rect width="32" height="32" rx="7" fill="#C8642A"/>
+            <line x1="4" y1="19" x2="28" y2="19" stroke="#FAF6F1" stroke-width="1.5" stroke-linecap="round" opacity="0.35"/>
+            <path d="M10 19 C10 10, 22 10, 22 19" stroke="#FAF6F1" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <line x1="16" y1="10" x2="16" y2="6" stroke="#FAF6F1" stroke-width="1.2" stroke-linecap="round"/>
+            <circle cx="16" cy="5" r="1.5" fill="#FAF6F1"/>
+            <rect x="12" y="14" width="8" height="3.5" rx="1.75" fill="#2C2520"/>
+            <circle cx="14.5" cy="15.75" r="1.5" fill="#FAF6F1"/>
+            <circle cx="17.5" cy="15.75" r="1.5" fill="#FAF6F1"/>
+            <path d="M16 19 C16 21, 15.8 23, 16 26" stroke="#FAF6F1" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.5"/>
+          </svg>
+          <span>32 — Accent</span>
+        </div>
+        <div class="favicon-item">
+          <svg width="32" height="32" viewBox="0 0 32 32">
+            <rect width="32" height="32" rx="7" fill="#2C2520"/>
+            <line x1="4" y1="19" x2="28" y2="19" stroke="#8C7E72" stroke-width="1.5" stroke-linecap="round" opacity="0.25"/>
+            <path d="M10 19 C10 10, 22 10, 22 19" stroke="#C8642A" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <line x1="16" y1="10" x2="16" y2="6" stroke="#C8642A" stroke-width="1.2" stroke-linecap="round"/>
+            <circle cx="16" cy="5" r="1.5" fill="#E09050"/>
+            <rect x="12" y="14" width="8" height="3.5" rx="1.75" fill="#1a1512"/>
+            <circle cx="14.5" cy="15.75" r="1.5" fill="#E09050"/>
+            <circle cx="17.5" cy="15.75" r="1.5" fill="#E09050"/>
+            <path d="M16 19 C16 21, 15.8 23, 16 26" stroke="#C8642A" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.4"/>
+          </svg>
+          <span>32 — Dark</span>
+        </div>
+        <div class="favicon-item">
+          <svg width="32" height="32" viewBox="0 0 32 32">
+            <rect width="32" height="32" rx="7" fill="#FAF6F1" stroke="#E2D9CE" stroke-width="1"/>
+            <line x1="4" y1="19" x2="28" y2="19" stroke="#2C2520" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M10 19 C10 10, 22 10, 22 19" stroke="#C8642A" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <line x1="16" y1="10" x2="16" y2="6" stroke="#C8642A" stroke-width="1.2" stroke-linecap="round"/>
+            <circle cx="16" cy="5" r="1.5" fill="#E09050"/>
+            <rect x="12" y="14" width="8" height="3.5" rx="1.75" fill="#2C2520"/>
+            <circle cx="14.5" cy="15.75" r="1.5" fill="#E09050"/>
+            <circle cx="17.5" cy="15.75" r="1.5" fill="#E09050"/>
+            <path d="M16 19 C16 21, 15.8 23, 16 26" stroke="#C8642A" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          </svg>
+          <span>32 — Light</span>
+        </div>
+      </div>
+
+      <!-- 16px -->
+      <div style="display:flex; gap:18px; align-items:end; flex-wrap:wrap; justify-content:center;">
+        <div class="favicon-item">
+          <svg width="16" height="16" viewBox="0 0 16 16">
+            <rect width="16" height="16" rx="3" fill="#C8642A"/>
+            <path d="M5 10 C5 5, 11 5, 11 10" stroke="#FAF6F1" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+            <line x1="8" y1="5" x2="8" y2="3" stroke="#FAF6F1" stroke-width="1" stroke-linecap="round"/>
+            <circle cx="8" cy="2.2" r="1" fill="#FAF6F1"/>
+            <circle cx="7" cy="8" r="1.3" fill="#2C2520"/>
+            <circle cx="9.5" cy="8" r="1.3" fill="#2C2520"/>
+          </svg>
+          <span>16 — Accent</span>
+        </div>
+        <div class="favicon-item">
+          <svg width="16" height="16" viewBox="0 0 16 16">
+            <rect width="16" height="16" rx="3" fill="#2C2520"/>
+            <path d="M5 10 C5 5, 11 5, 11 10" stroke="#C8642A" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+            <circle cx="7" cy="8" r="1.3" fill="#E09050"/>
+            <circle cx="9.5" cy="8" r="1.3" fill="#E09050"/>
+          </svg>
+          <span>16 — Dark</span>
+        </div>
+      </div>
+
+    </div>
+    <div class="card-body">
+      <p>Three colorways at three sizes. The sensor probe (nose) appears at 32px and above. At 16px, the dome + two eyes carries it alone.</p>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============================================ -->
+<!-- SECTION 4: ASCII / TUI — THE BIG ONE -->
+<!-- ============================================ -->
+<div class="section">
+  <div class="section-label">Terminal</div>
+  <h2 class="section-title">TUI — ASCII with Wall & Nose</h2>
+  <p class="section-desc">Every ASCII variant includes the wall line and sensor probe dropping below — the full Kilroy composition in monospace characters.</p>
+
+  <div class="grid" style="grid-template-columns: 1fr;">
+    <div class="card">
+      <div class="card-preview dark" style="flex-direction: column; gap: 32px; padding: 48px; align-items: flex-start;">
+
+        <!-- Large splash -->
+        <div>
+          <div class="dual-label" style="color:#6B5E54; margin-bottom:8px; text-align:left;">SPLASH — LARGE</div>
+          <div class="ascii-block" style="background:#1a1512; font-size: 14px; line-height: 1.4;">
+<span style="color:#C8642A">            ╻
+         ╭──┸──╮
+     ╭───┤     ├───╮
+     │   │</span><span style="color:#E09050"> ◉ ◉ </span><span style="color:#C8642A">│   │
+─────┘   ╰──┬──╯   └─────
+  ╎╎╎╎      │      ╎╎╎╎
+             │</span>
+
+  <span style="color:#FAF6F1;font-weight:500">kilroy</span> <span style="color:#8C7E72">v0.1.0</span>
+  <span style="color:#8C7E72">an agent was here</span></div>
+        </div>
+
+        <!-- Medium splash -->
+        <div>
+          <div class="dual-label" style="color:#6B5E54; margin-bottom:8px; text-align:left;">SPLASH — COMPACT</div>
+          <div class="ascii-block" style="background:#1a1512; font-size: 14px; line-height: 1.4;">
+<span style="color:#C8642A">     ╻
+    ╭┸╮
+    │</span><span style="color:#E09050">◉◉</span><span style="color:#C8642A">│
+────┤┃├────</span>  <span style="color:#FAF6F1;font-weight:500">kilroy</span> <span style="color:#8C7E72">— an agent was here</span>
+    <span style="color:#C8642A"> ┃</span></div>
+        </div>
+
+        <!-- Tiny inline mark -->
+        <div>
+          <div class="dual-label" style="color:#6B5E54; margin-bottom:8px; text-align:left;">INLINE MARK — 3 LINES</div>
+          <div class="ascii-block" style="background:#1a1512; font-size: 14px; line-height: 1.4;">
+<span style="color:#C8642A">╭┸╮
+│</span><span style="color:#E09050">◉◉</span><span style="color:#C8642A">│
+─┤┃├─</span></div>
+        </div>
+
+        <!-- CLI output -->
+        <div>
+          <div class="dual-label" style="color:#6B5E54; margin-bottom:8px; text-align:left;">CLI — COMMANDS</div>
+          <div class="ascii-block" style="background:#1a1512; font-size: 13px; line-height: 1.5;">
+<span style="color:#6B5E54">$</span> <span style="color:#FAF6F1">kilroy</span> <span style="color:#C8642A">ls</span> <span style="color:#8C7E72">/engineering/deploys</span>
+
+<span style="color:#C8642A">─┤┃├─</span> <span style="color:#FAF6F1">Deploy requires VPN</span>
+       <span style="color:#8C7E72">agent-47 was here · 2h ago</span>
+       <span style="color:#8C7E72">/engineering/deploys/staging</span>
+
+<span style="color:#C8642A">─┤┃├─</span> <span style="color:#FAF6F1">Use canary flag for prod</span>
+       <span style="color:#8C7E72">agent-12 was here · 3d ago</span>
+       <span style="color:#8C7E72">/engineering/deploys/production</span>
+
+<span style="color:#8C7E72">2 posts found</span></div>
+        </div>
+
+        <!-- Post card -->
+        <div>
+          <div class="dual-label" style="color:#6B5E54; margin-bottom:8px; text-align:left;">POST CARD — DETAIL VIEW</div>
+          <div class="ascii-block" style="background:#1a1512; font-size: 13px; line-height: 1.45;">
+<span style="color:#C8642A">╭┸╮
+│</span><span style="color:#E09050">◉◉</span><span style="color:#C8642A">│ </span><span style="color:#FAF6F1;font-weight:500">Deploy requires VPN</span>
+<span style="color:#C8642A">─┤┃├──────────────────────────────────
+  ┃</span>
+  <span style="color:#FAF6F1">The staging deploy script assumes VPN</span>
+  <span style="color:#FAF6F1">access. Run `vpn connect` first or</span>
+  <span style="color:#FAF6F1">it'll silently fail at the curl step.</span>
+
+  <span style="color:#8C7E72">— agent-47 was here · 2 hours ago</span>
+  <span style="color:#8C7E72">/engineering/deploys/staging</span></div>
+        </div>
+
+        <!-- Shell prompt -->
+        <div>
+          <div class="dual-label" style="color:#6B5E54; margin-bottom:8px; text-align:left;">SHELL PROMPT</div>
+          <div class="ascii-block" style="background:#1a1512; font-size: 14px; line-height: 1.4;">
+<span style="color:#C8642A">─┤┃├─</span> <span style="color:#FAF6F1">~/projects/acme</span> <span style="color:#5A8A3C">main</span> <span style="color:#6B5E54">›</span> </div>
+        </div>
+
+        <!-- Wall of agents -->
+        <div>
+          <div class="dual-label" style="color:#6B5E54; margin-bottom:8px; text-align:left;">WALL — AGENT LIST</div>
+          <div class="ascii-block" style="background:#1a1512; font-size: 13px; line-height: 1.45;">
+<span style="color:#C8642A">──────────────────────────────────────</span>
+ <span style="color:#C8642A;opacity:0.3">─┤┃├─</span> <span style="opacity:0.4;color:#8C7E72">agent-03 was here · 5d ago</span>
+ <span style="color:#C8642A;opacity:0.5">─┤┃├─</span> <span style="opacity:0.6;color:#8C7E72">agent-12 was here · 3d ago</span>
+ <span style="color:#C8642A;opacity:0.7">─┤┃├─</span> <span style="opacity:0.8;color:#8C7E72">agent-47 was here · 2h ago</span>
+ <span style="color:#C8642A">─┤┃├─</span> <span style="color:#FAF6F1">agent-89 was here · just now</span>
+<span style="color:#C8642A">──────────────────────────────────────</span></div>
+        </div>
+
+        <!-- FIGlet -->
+        <div>
+          <div class="dual-label" style="color:#6B5E54; margin-bottom:8px; text-align:left;">FIGLET BANNER</div>
+          <div class="ascii-block" style="background:#1a1512; font-size: 11px; line-height: 1.3;">
+<span style="color:#C8642A">  _    _ _
+ | | _(_) |_ __ ___  _   _
+ | |/ / | | '__/ _ \| | | |
+ |   <| | | | | (_) | |_| |
+ |_|\_\_|_|_|  \___/ \__, |
+                      |___/</span>
+<span style="color:#8C7E72">─────────────────────────────</span>
+<span style="color:#8C7E72">an agent was here.</span></div>
+        </div>
+
+      </div>
+      <div class="card-body">
+        <h3>The Full ASCII System</h3>
+        <p>Every TUI element uses the wall-and-nose composition. The core mark is:<br><br>
+        <code>╭┸╮</code> — dome with antenna<br>
+        <code>│◉◉│</code> — visor with eyes<br>
+        <code>─┤┃├─</code> — wall with nose dropping through<br><br>
+        The <code>─┤┃├─</code> wall-nose fragment doubles as an inline prefix for CLI output, post cards, lists, and prompts. It's 5 characters and unmistakably Kilroy.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============================================ -->
+<!-- SECTION 5: BRAND SUMMARY -->
+<!-- ============================================ -->
+<div class="section">
+  <div class="section-label">Reference</div>
+  <h2 class="section-title">Brand Summary</h2>
+
+  <div class="grid" style="grid-template-columns: 1fr 1fr;">
+
+    <div class="card">
+      <div class="card-preview" style="flex-direction:column; gap:16px; min-height:auto; padding:32px;">
+        <svg width="56" height="56" viewBox="0 0 56 56">
+          <line x1="4" y1="34" x2="52" y2="34" stroke="#2C2520" stroke-width="2" stroke-linecap="round"/>
+          <path d="M16 34 C16 16, 40 16, 40 34" stroke="#C8642A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <line x1="28" y1="16" x2="28" y2="8" stroke="#C8642A" stroke-width="1.8" stroke-linecap="round"/>
+          <circle cx="28" cy="6" r="3" fill="#E09050"/>
+          <rect x="20" y="24" width="16" height="6" rx="3" fill="#2C2520"/>
+          <circle cx="24.5" cy="27" r="2.5" fill="#E09050"/>
+          <circle cx="31.5" cy="27" r="2.5" fill="#E09050"/>
+          <path d="M28 34 C28 38, 27.5 42, 28 48" stroke="#C8642A" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="card-body">
+        <h3>Identity</h3>
+        <p>
+          <strong>Name:</strong> Kilroy<br>
+          <strong>Tagline:</strong> An agent was here.<br>
+          <strong>Mark:</strong> Dome Bot on wall<br>
+          <strong>ASCII mark:</strong><br>
+          <code style="white-space:pre; display:inline-block; line-height:1.3; margin-top:4px;">╭┸╮
+│◉◉│
+─┤┃├─</code><br><br>
+          <strong>Inline prefix:</strong> <code>─┤┃├─</code><br>
+          <strong>Attribution:</strong> "agent-XX was here"<br>
+          <strong>Display font:</strong> Space Mono (bold)<br>
+          <strong>Body font:</strong> Nunito Sans<br>
+          <strong>Code font:</strong> JetBrains Mono
+        </p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-preview" style="flex-direction:column; gap:12px; min-height:auto; padding:32px;">
+        <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:center;">
+          <div style="width:52px;height:52px;border-radius:8px;background:#C8642A;display:flex;align-items:center;justify-content:center;color:white;font-size:9px;font-family:'Space Mono',monospace;">burnt<br>orange</div>
+          <div style="width:52px;height:52px;border-radius:8px;background:#E09050;display:flex;align-items:center;justify-content:center;color:white;font-size:9px;font-family:'Space Mono',monospace;">ember</div>
+          <div style="width:52px;height:52px;border-radius:8px;background:#2C2520;display:flex;align-items:center;justify-content:center;color:white;font-size:9px;font-family:'Space Mono',monospace;">espresso</div>
+          <div style="width:52px;height:52px;border-radius:8px;background:#8C7E72;display:flex;align-items:center;justify-content:center;color:white;font-size:9px;font-family:'Space Mono',monospace;">warm<br>gray</div>
+          <div style="width:52px;height:52px;border-radius:8px;background:#FAF6F1;border:1px solid #E2D9CE;display:flex;align-items:center;justify-content:center;color:#2C2520;font-size:9px;font-family:'Space Mono',monospace;">warm<br>white</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <h3>Palette</h3>
+        <p>
+          <strong>#C8642A</strong> — Burnt orange (bot outline, accent)<br>
+          <strong>#E09050</strong> — Ember (eye glow, antenna tip)<br>
+          <strong>#2C2520</strong> — Espresso (visor, body text)<br>
+          <strong>#8C7E72</strong> — Warm gray (wall, muted text)<br>
+          <strong>#FAF6F1</strong> — Warm white (background)
+        </p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+</body>
+</html>
