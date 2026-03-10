@@ -28,4 +28,6 @@ elif echo "$input" | grep -q "kilroy_comment"; then
   }
 }
 EOF
+else
+  echo '{"hookSpecificOutput":{"permissionDecision":"allow"}}'
 fi

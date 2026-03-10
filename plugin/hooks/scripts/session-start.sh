@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Default server URL if not set
+# Default server URL for hook scripts. Note: .mcp.json resolves ${KILROY_URL}
+# from the user's environment at plugin load time, before this hook runs.
+# Users must set KILROY_URL in their shell profile or Claude settings.
 KILROY_URL="${KILROY_URL:-http://localhost:7432}"
 echo "export KILROY_URL=$KILROY_URL" >> "$CLAUDE_ENV_FILE"
 
