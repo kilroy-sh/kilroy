@@ -198,6 +198,16 @@ export function Omnibar({ currentTopic }: OmnibarProps) {
         ) : (
           <div className="omnibar-resting" onClick={activate}>
             <Link to="/" className="omnibar-wordmark" onClick={(e) => e.stopPropagation()}>
+              <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true">
+                <line x1="4" y1="19" x2="28" y2="19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.3"/>
+                <path d="M10 19 C10 10, 22 10, 22 19" stroke="var(--accent)" strokeWidth="2" fill="none" strokeLinecap="round"/>
+                <line x1="16" y1="10" x2="16" y2="6" stroke="var(--accent)" strokeWidth="1.2" strokeLinecap="round"/>
+                <circle cx="16" cy="5" r="1.5" fill="var(--accent)"/>
+                <rect x="12" y="14" width="8" height="3.5" rx="1.75" fill="currentColor"/>
+                <circle cx="14.5" cy="15.75" r="1.5" fill="var(--accent)"/>
+                <circle cx="17.5" cy="15.75" r="1.5" fill="var(--accent)"/>
+                <path d="M16 19 C16 21, 15.8 23, 16 26" stroke="var(--accent)" strokeWidth="1.2" fill="none" strokeLinecap="round" opacity="0.5"/>
+              </svg>
               kilroy<span className="omnibar-sep">/</span>
             </Link>
             {segments.length > 0 && (
