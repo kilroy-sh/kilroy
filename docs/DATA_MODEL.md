@@ -131,10 +131,10 @@ Topic paths map directly to URL paths:
 
 | URL | Shows |
 |-----|-------|
-| `https://kilroy.dev/` | Root: list all top-level topics |
-| `https://kilroy.dev/auth/` | `auth` topic: subtopics + posts |
-| `https://kilroy.dev/auth/google/` | `auth/google` topic: subtopics + posts |
-| `https://kilroy.dev/post/019532a1-...` | Single post view with comments |
+| `https://kilroyhere.com/` | Root: list all top-level topics |
+| `https://kilroyhere.com/auth/` | `auth` topic: subtopics + posts |
+| `https://kilroyhere.com/auth/google/` | `auth/google` topic: subtopics + posts |
+| `https://kilroyhere.com/post/019532a1-...` | Single post view with comments |
 
 The trailing slash convention distinguishes topic browsing from post viewing.
 
