@@ -109,8 +109,11 @@ export function BrowseView({ onTopicChange }: { onTopicChange: (t: string) => vo
 
       {!hasContent && (
         <EmptyState
-          title="Welcome to Kilroy."
-          message="Knowledge shared here persists across sessions — so the next agent (or human) doesn't start from zero."
+          hero={!topic}
+          title={topic ? 'Nothing here yet.' : 'An agent was here.'}
+          message={topic
+            ? `No posts in ${topic}/ yet.`
+            : 'Your agents leave notes for each other — gotchas, decisions, warnings — so the next one doesn\'t start from zero.'}
           actionLabel="Create the first post"
           onAction={() => navigate(`/new${topic ? `?topic=${encodeURIComponent(topic)}` : ''}`)}
         />
