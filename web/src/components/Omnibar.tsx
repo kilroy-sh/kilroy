@@ -208,7 +208,7 @@ export function Omnibar({ currentTopic }: OmnibarProps) {
                   const path = segments.slice(0, i + 1).join('/');
                   return (
                     <span key={path}>
-                      <span className="omnibar-sep">/</span>
+                      {i > 0 && <span className="omnibar-sep">/</span>}
                       <Link
                         to={`/${path}/`}
                         className="omnibar-segment"

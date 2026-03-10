@@ -76,13 +76,16 @@ export function PostView({ onTopicChange }: { onTopicChange: (t: string) => void
       <article className="post-detail">
         <h1>{post.title}</h1>
 
+        {post.status !== 'active' && (
+          <div className={`post-status-banner post-status-banner-${post.status}`}>
+            {post.status === 'archived' ? 'This post has been archived.' : 'This post is obsolete.'}
+          </div>
+        )}
+
         <div className="post-meta-line">
           {post.author && <span>{post.author}</span>}
           {post.author && <span className="meta-sep"> · </span>}
           <span>{post.created_at?.slice(0, 10)}</span>
-          <span className="meta-sep"> · </span>
-          <span className={`status-dot status-dot-${post.status}`} />
-          <span>{post.status}</span>
         </div>
 
         {post.tags?.length > 0 && (

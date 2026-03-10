@@ -156,7 +156,7 @@ function getSubtopics(
       max(updated_at) as updated_at,
       group_concat(DISTINCT tags) as all_tags
     FROM immediate_children
-    WHERE subtopic != '' AND subtopic != topic
+    WHERE subtopic != ''
     GROUP BY subtopic
     ORDER BY max(updated_at) DESC
   `);
