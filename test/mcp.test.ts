@@ -4,7 +4,7 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createMcpServer } from "../src/mcp/server";
 
 // Use in-memory database for tests
-process.env.HEARSAY_DB_PATH = ":memory:";
+process.env.KILROY_DB_PATH = ":memory:";
 
 let client: Client;
 
@@ -44,13 +44,13 @@ describe("MCP tool registration", () => {
     const result = await client.listTools();
     const names = result.tools.map((t) => t.name).sort();
     expect(names).toEqual([
-      "hearsay_browse",
-      "hearsay_comment",
-      "hearsay_create_post",
-      "hearsay_delete_post",
-      "hearsay_read_post",
-      "hearsay_search",
-      "hearsay_update_post_status",
+      "kilroy_browse",
+      "kilroy_comment",
+      "kilroy_create_post",
+      "kilroy_delete_post",
+      "kilroy_read_post",
+      "kilroy_search",
+      "kilroy_update_post_status",
     ]);
   });
 
@@ -62,13 +62,13 @@ describe("MCP tool registration", () => {
   });
 });
 
-// ─── hearsay_create_post ────────────────────────────────────────
+// ─── kilroy_create_post ────────────────────────────────────────
 
-describe("hearsay_create_post", () => {
+describe("kilroy_create_post", () => {
   beforeEach(setupMcp);
 
   it("creates a post and returns it", async () => {
-    const { data } = await callTool("hearsay_create_post", {
+    const { data } = await callTool("kilroy_create_post", {
       title: "OAuth gotcha",
       topic: "auth/google",
       body: "Redirect URI must match exactly. See src/auth/oauth.ts for details.",
@@ -86,7 +86,7 @@ describe("hearsay_create_post", () => {
   });
 
   it("returns error for missing fields", async () => {
-    const { data, isError } = await callTool("hearsay_create_post", {
+    const { data, isError } = await callTool("kilroy_create_post", {
       title: "missing body",
       topic: "test",
       body: "",
@@ -96,26 +96,26 @@ describe("hearsay_create_post", () => {
   });
 });
 
-// ─── hearsay_read_post ──────────────────────────────────────────
+// ─── kilroy_read_post ──────────────────────────────────────────
 
-describe("hearsay_read_post", () => {
+describe("kilroy_read_post", () => {
   beforeEach(setupMcp);
 
   it("reads a post with comments", async () => {
-    const { data: post } = await callTool("hearsay_create_post", {
+    const { data: post } = await callTool("kilroy_create_post", {
       title: "Test",
       topic: "test",
       body: "Test body",
       author: "claude-test",
     });
 
-    await callTool("hearsay_comment", {
+    await callTool("kilroy_comment", {
       post_id: post.id,
       body: "Great find!",
       author: "human:sarah",
     });
 
-    const { data } = await callTool("hearsay_read_post", { post_id: post.id });
+    const { data } = await callTool("kilroy_read_post", { post_id: post.id });
 
     expect(data.title).toBe("Test");
     expect(data.body).toBe("Test body");
@@ -126,7 +126,7 @@ describe("hearsay_read_post", () => {
   });
 
   it("returns error for non-existent post", async () => {
-    const { data, isError } = await callTool("hearsay_read_post", {
+    const { data, isError } = await callTool("kilroy_read_post", {
       post_id: "nonexistent",
     });
     expect(isError).toBe(true);
@@ -134,29 +134,29 @@ describe("hearsay_read_post", () => {
   });
 });
 
-// ─── hearsay_browse ──────────────────────────────────────────────
+// ─── kilroy_browse ──────────────────────────────────────────────
 
-describe("hearsay_browse", () => {
+describe("kilroy_browse", () => {
   beforeEach(setupMcp);
 
   it("browses root with subtopics", async () => {
-    await callTool("hearsay_create_post", {
+    await callTool("kilroy_create_post", {
       title: "Auth post",
       topic: "auth",
       body: "Auth content",
     });
-    await callTool("hearsay_create_post", {
+    await callTool("kilroy_create_post", {
       title: "Google auth post",
       topic: "auth/google",
       body: "Google auth content",
     });
-    await callTool("hearsay_create_post", {
+    await callTool("kilroy_create_post", {
       title: "Deploy post",
       topic: "deployments/staging",
       body: "Deploy content",
     });
 
-    const { data } = await callTool("hearsay_browse", {});
+    const { data } = await callTool("kilroy_browse", {});
 
     expect(data.path).toBe("");
     expect(data.subtopics.map((s: any) => s.name).sort()).toEqual([
@@ -166,23 +166,23 @@ describe("hearsay_browse", () => {
   });
 
   it("browses a specific topic", async () => {
-    await callTool("hearsay_create_post", {
+    await callTool("kilroy_create_post", {
       title: "Post A",
       topic: "auth/google",
       body: "Content A",
     });
 
-    const { data } = await callTool("hearsay_browse", { topic: "auth/google" });
+    const { data } = await callTool("kilroy_browse", { topic: "auth/google" });
     expect(data.path).toBe("auth/google");
     expect(data.posts).toHaveLength(1);
     expect(data.posts[0].title).toBe("Post A");
   });
 
   it("supports recursive mode", async () => {
-    await callTool("hearsay_create_post", { title: "A", topic: "auth", body: "a" });
-    await callTool("hearsay_create_post", { title: "B", topic: "auth/google", body: "b" });
+    await callTool("kilroy_create_post", { title: "A", topic: "auth", body: "a" });
+    await callTool("kilroy_create_post", { title: "B", topic: "auth/google", body: "b" });
 
-    const { data } = await callTool("hearsay_browse", {
+    const { data } = await callTool("kilroy_browse", {
       topic: "auth",
       recursive: true,
     });
@@ -193,21 +193,21 @@ describe("hearsay_browse", () => {
 
   it("supports pagination", async () => {
     for (let i = 0; i < 5; i++) {
-      await callTool("hearsay_create_post", {
+      await callTool("kilroy_create_post", {
         title: `Post ${i}`,
         topic: "paginate",
         body: `Body ${i}`,
       });
     }
 
-    const { data: page1 } = await callTool("hearsay_browse", {
+    const { data: page1 } = await callTool("kilroy_browse", {
       topic: "paginate",
       limit: 2,
     });
     expect(page1.posts).toHaveLength(2);
     expect(page1.has_more).toBe(true);
 
-    const { data: page2 } = await callTool("hearsay_browse", {
+    const { data: page2 } = await callTool("kilroy_browse", {
       topic: "paginate",
       limit: 2,
       cursor: page1.next_cursor,
@@ -221,37 +221,37 @@ describe("hearsay_browse", () => {
   });
 });
 
-// ─── hearsay_search ──────────────────────────────────────────────
+// ─── kilroy_search ──────────────────────────────────────────────
 
-describe("hearsay_search", () => {
+describe("kilroy_search", () => {
   beforeEach(setupMcp);
 
   it("finds posts by content", async () => {
-    await callTool("hearsay_create_post", {
+    await callTool("kilroy_create_post", {
       title: "Race condition in auth",
       topic: "auth",
       body: "Found a race condition in token refresh",
     });
 
-    const { data } = await callTool("hearsay_search", { query: "race condition" });
+    const { data } = await callTool("kilroy_search", { query: "race condition" });
 
     expect(data.results).toHaveLength(1);
     expect(data.results[0].title).toBe("Race condition in auth");
   });
 
   it("filters by topic", async () => {
-    await callTool("hearsay_create_post", {
+    await callTool("kilroy_create_post", {
       title: "Auth race",
       topic: "auth",
       body: "race condition",
     });
-    await callTool("hearsay_create_post", {
+    await callTool("kilroy_create_post", {
       title: "Deploy race",
       topic: "deploy",
       body: "race condition",
     });
 
-    const { data } = await callTool("hearsay_search", {
+    const { data } = await callTool("kilroy_search", {
       query: "race",
       topic: "auth",
     });
@@ -260,19 +260,19 @@ describe("hearsay_search", () => {
   });
 });
 
-// ─── hearsay_comment ──────────────────────────────────────────────
+// ─── kilroy_comment ──────────────────────────────────────────────
 
-describe("hearsay_comment", () => {
+describe("kilroy_comment", () => {
   beforeEach(setupMcp);
 
   it("adds a comment to a post", async () => {
-    const { data: post } = await callTool("hearsay_create_post", {
+    const { data: post } = await callTool("kilroy_create_post", {
       title: "Test",
       topic: "test",
       body: "Content",
     });
 
-    const { data } = await callTool("hearsay_comment", {
+    const { data } = await callTool("kilroy_comment", {
       post_id: post.id,
       body: "Great find!",
       author: "human:sarah",
@@ -284,7 +284,7 @@ describe("hearsay_comment", () => {
   });
 
   it("returns error for non-existent post", async () => {
-    const { data, isError } = await callTool("hearsay_comment", {
+    const { data, isError } = await callTool("kilroy_comment", {
       post_id: "nonexistent",
       body: "test",
     });
@@ -293,19 +293,19 @@ describe("hearsay_comment", () => {
   });
 });
 
-// ─── hearsay_update_post_status ──────────────────────────────────
+// ─── kilroy_update_post_status ──────────────────────────────────
 
-describe("hearsay_update_post_status", () => {
+describe("kilroy_update_post_status", () => {
   beforeEach(setupMcp);
 
   it("archives an active post", async () => {
-    const { data: post } = await callTool("hearsay_create_post", {
+    const { data: post } = await callTool("kilroy_create_post", {
       title: "Test",
       topic: "test",
       body: "Content",
     });
 
-    const { data } = await callTool("hearsay_update_post_status", {
+    const { data } = await callTool("kilroy_update_post_status", {
       post_id: post.id,
       status: "archived",
     });
@@ -314,18 +314,18 @@ describe("hearsay_update_post_status", () => {
   });
 
   it("rejects invalid transition", async () => {
-    const { data: post } = await callTool("hearsay_create_post", {
+    const { data: post } = await callTool("kilroy_create_post", {
       title: "Test",
       topic: "test",
       body: "Content",
     });
 
-    await callTool("hearsay_update_post_status", {
+    await callTool("kilroy_update_post_status", {
       post_id: post.id,
       status: "archived",
     });
 
-    const { data, isError } = await callTool("hearsay_update_post_status", {
+    const { data, isError } = await callTool("kilroy_update_post_status", {
       post_id: post.id,
       status: "obsolete",
     });
@@ -334,30 +334,30 @@ describe("hearsay_update_post_status", () => {
   });
 });
 
-// ─── hearsay_delete_post ──────────────────────────────────────────
+// ─── kilroy_delete_post ──────────────────────────────────────────
 
-describe("hearsay_delete_post", () => {
+describe("kilroy_delete_post", () => {
   beforeEach(setupMcp);
 
   it("deletes a post", async () => {
-    const { data: post } = await callTool("hearsay_create_post", {
+    const { data: post } = await callTool("kilroy_create_post", {
       title: "Test",
       topic: "test",
       body: "Content",
     });
 
-    const { data } = await callTool("hearsay_delete_post", { post_id: post.id });
+    const { data } = await callTool("kilroy_delete_post", { post_id: post.id });
 
     expect(data.deleted).toBe(true);
     expect(data.post_id).toBe(post.id);
 
     // Verify it's gone
-    const { isError } = await callTool("hearsay_read_post", { post_id: post.id });
+    const { isError } = await callTool("kilroy_read_post", { post_id: post.id });
     expect(isError).toBe(true);
   });
 
   it("returns error for non-existent post", async () => {
-    const { data, isError } = await callTool("hearsay_delete_post", {
+    const { data, isError } = await callTool("kilroy_delete_post", {
       post_id: "nonexistent",
     });
     expect(isError).toBe(true);

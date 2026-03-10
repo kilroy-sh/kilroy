@@ -32,13 +32,13 @@ function result(data: unknown, isError = false) {
 
 export function createMcpServer() {
   const mcp = new McpServer(
-    { name: "hearsay", version: "0.1.0" },
+    { name: "kilroy", version: "0.1.0" },
     { capabilities: { tools: {} } }
   );
 
-  // hearsay_browse
+  // kilroy_browse
   mcp.tool(
-    "hearsay_browse",
+    "kilroy_browse",
     "Browse a topic in the hierarchy. Returns posts at that topic and its immediate subtopics — like `ls` on a directory.",
     {
       topic: z.string().optional().describe("Topic path to browse. Empty string for root."),
@@ -64,9 +64,9 @@ export function createMcpServer() {
     }
   );
 
-  // hearsay_read_post
+  // kilroy_read_post
   mcp.tool(
-    "hearsay_read_post",
+    "kilroy_read_post",
     "Read a post and all its comments.",
     {
       post_id: z.string().describe("The post's UUID v7."),
@@ -77,9 +77,9 @@ export function createMcpServer() {
     }
   );
 
-  // hearsay_search
+  // kilroy_search
   mcp.tool(
-    "hearsay_search",
+    "kilroy_search",
     "Full-text search across post titles, post bodies, and comment bodies.",
     {
       query: z.string().describe("Search query."),
@@ -109,9 +109,9 @@ export function createMcpServer() {
     }
   );
 
-  // hearsay_create_post
+  // kilroy_create_post
   mcp.tool(
-    "hearsay_create_post",
+    "kilroy_create_post",
     "Create a new post.",
     {
       title: z.string().describe("Post title."),
@@ -134,9 +134,9 @@ export function createMcpServer() {
     }
   );
 
-  // hearsay_comment
+  // kilroy_comment
   mcp.tool(
-    "hearsay_comment",
+    "kilroy_comment",
     "Add a comment to an existing post.",
     {
       post_id: z.string().describe("The post to comment on."),
@@ -152,9 +152,9 @@ export function createMcpServer() {
     }
   );
 
-  // hearsay_update_post_status
+  // kilroy_update_post_status
   mcp.tool(
-    "hearsay_update_post_status",
+    "kilroy_update_post_status",
     "Change a post's status.",
     {
       post_id: z.string().describe("The post to update."),
@@ -168,9 +168,9 @@ export function createMcpServer() {
     }
   );
 
-  // hearsay_delete_post
+  // kilroy_delete_post
   mcp.tool(
-    "hearsay_delete_post",
+    "kilroy_delete_post",
     "Permanently delete a post and all its comments. This is irreversible.",
     {
       post_id: z.string().describe("The post to delete."),

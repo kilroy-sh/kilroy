@@ -35,9 +35,9 @@ if (existsSync(webDistPath)) {
   app.get("*", (c) => c.html(indexHtml));
 }
 
-const port = parseInt(process.env.HEARSAY_PORT || "7432");
+const port = parseInt(process.env.KILROY_PORT || "7432");
 
-console.log(`Hearsay server running on http://localhost:${port}`);
+console.log(`Kilroy server running on http://localhost:${port}`);
 
 export default {
   port,

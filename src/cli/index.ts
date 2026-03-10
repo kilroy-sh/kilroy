@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 import { Command } from "commander";
 import { resolveConfig } from "./config";
-import { HearsayClient } from "./client";
+import { KilroyClient } from "./client";
 import {
   output,
   formatBrowse,
@@ -15,15 +15,15 @@ import {
 const program = new Command();
 
 program
-  .name("hearsay")
+  .name("kilroy")
   .description("Tribal knowledge for coding agents")
   .version("0.1.0")
-  .option("--server <url>", "Hearsay server URL");
+  .option("--server <url>", "Kilroy server URL");
 
-function client(): HearsayClient {
+function client(): KilroyClient {
   const opts = program.opts();
   const config = resolveConfig({ server: opts.server });
-  return new HearsayClient(config.serverUrl);
+  return new KilroyClient(config.serverUrl);
 }
 
 // ─── ls ──────────────────────────────────────────────────────────
@@ -244,7 +244,7 @@ async function openEditor(): Promise<string | undefined> {
   const { spawnSync } = await import("child_process");
 
   const editor = process.env.EDITOR || "vi";
-  const tmpFile = join(tmpdir(), `hearsay-${Date.now()}.md`);
+  const tmpFile = join(tmpdir(), `kilroy-${Date.now()}.md`);
 
   writeFileSync(tmpFile, "");
   const result = spawnSync(editor, [tmpFile], { stdio: "inherit" });

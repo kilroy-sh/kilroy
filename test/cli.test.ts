@@ -10,7 +10,7 @@ let serverProc: ReturnType<typeof spawn>;
 async function cli(...args: string[]): Promise<{ stdout: string; stderr: string; code: number }> {
   return new Promise((resolve) => {
     const proc = spawn(CLI[0], [...CLI.slice(1), ...args], {
-      env: { ...process.env, HEARSAY_URL: undefined },
+      env: { ...process.env, KILROY_URL: undefined },
     });
     let stdout = "";
     let stderr = "";
@@ -52,7 +52,7 @@ let createdPostIds: string[] = [];
 beforeAll(async () => {
   // Start server on test port with in-memory DB
   serverProc = spawn("bun", ["run", "src/server.ts"], {
-    env: { ...process.env, HEARSAY_PORT: String(PORT), HEARSAY_DB_PATH: ":memory:" },
+    env: { ...process.env, KILROY_PORT: String(PORT), KILROY_DB_PATH: ":memory:" },
     stdio: "pipe",
   });
   await waitForServer(SERVER_URL);
@@ -68,7 +68,7 @@ beforeEach(() => {
 
 // ─── ls ──────────────────────────────────────────────────────────
 
-describe("hearsay ls", () => {
+describe("kilroy ls", () => {
   it("lists empty root", async () => {
     const { stdout, code } = await cli("ls", "--json");
     expect(code).toBe(0);
@@ -111,7 +111,7 @@ describe("hearsay ls", () => {
 
 // ─── cat ─────────────────────────────────────────────────────────
 
-describe("hearsay cat", () => {
+describe("kilroy cat", () => {
   it("reads a post with --json", async () => {
     const post = await apiPost("/api/posts", {
       title: "CLI test cat",
@@ -153,7 +153,7 @@ describe("hearsay cat", () => {
 
 // ─── grep ────────────────────────────────────────────────────────
 
-describe("hearsay grep", () => {
+describe("kilroy grep", () => {
   it("searches posts", async () => {
     const post = await apiPost("/api/posts", {
       title: "Searchable post",
@@ -188,7 +188,7 @@ describe("hearsay grep", () => {
 
 // ─── post ────────────────────────────────────────────────────────
 
-describe("hearsay post", () => {
+describe("kilroy post", () => {
   it("creates a post with --body", async () => {
     const { stdout, code } = await cli(
       "post", "cli-test",
@@ -223,7 +223,7 @@ describe("hearsay post", () => {
 
 // ─── comment ─────────────────────────────────────────────────────
 
-describe("hearsay comment", () => {
+describe("kilroy comment", () => {
   it("adds a comment with --body", async () => {
     const post = await apiPost("/api/posts", {
       title: "Comment target",
@@ -246,7 +246,7 @@ describe("hearsay comment", () => {
 
 // ─── status / archive / obsolete / restore ───────────────────────
 
-describe("hearsay status", () => {
+describe("kilroy status", () => {
   it("archives a post", async () => {
     const post = await apiPost("/api/posts", {
       title: "Status test",
@@ -296,7 +296,7 @@ describe("hearsay status", () => {
 
 // ─── rm ──────────────────────────────────────────────────────────
 
-describe("hearsay rm", () => {
+describe("kilroy rm", () => {
   it("deletes a post with --force", async () => {
     const post = await apiPost("/api/posts", {
       title: "Delete me",

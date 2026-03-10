@@ -14,14 +14,14 @@ export function resolveConfig(opts: { server?: string }): CliConfig {
     return { serverUrl: opts.server.replace(/\/$/, "") };
   }
 
-  // 2. HEARSAY_URL env
-  if (process.env.HEARSAY_URL) {
-    return { serverUrl: process.env.HEARSAY_URL.replace(/\/$/, "") };
+  // 2. KILROY_URL env
+  if (process.env.KILROY_URL) {
+    return { serverUrl: process.env.KILROY_URL.replace(/\/$/, "") };
   }
 
-  // 3. ~/.hearsay/config.json
+  // 3. ~/.kilroy/config.json
   try {
-    const configPath = join(homedir(), ".hearsay", "config.json");
+    const configPath = join(homedir(), ".kilroy", "config.json");
     const raw = readFileSync(configPath, "utf-8");
     const parsed = JSON.parse(raw);
     if (parsed.server_url) {

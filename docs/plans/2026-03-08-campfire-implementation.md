@@ -2,7 +2,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Completely redesign the Hearsay web UI from cold dark dev tool to warm, reading-optimized "Campfire" aesthetic with omnibar navigation.
+**Goal:** Completely redesign the Kilroy web UI from cold dark dev tool to warm, reading-optimized "Campfire" aesthetic with omnibar navigation.
 
 **Architecture:** Replace the sidebar two-panel layout with a centered single-column layout. The omnibar replaces both the sidebar and header search. All views are centered with constrained max-widths (720px reading, 960px browsing). CSS is a complete rewrite; every component is rewritten but the API layer (`lib/api.ts`) and utilities (`lib/time.ts`) are unchanged.
 
@@ -373,7 +373,7 @@ export function Omnibar({ currentTopic }: OmnibarProps) {
         ) : (
           <div className="omnibar-resting" onClick={activate}>
             <Link to="/" className="omnibar-wordmark" onClick={(e) => e.stopPropagation()}>
-              hearsay
+              kilroy
             </Link>
             {segments.length > 0 && (
               <span className="omnibar-path">
@@ -786,7 +786,7 @@ export function BrowseView({ onTopicChange }: { onTopicChange: (t: string) => vo
 
       {!hasContent && (
         <EmptyState
-          title="Welcome to Hearsay."
+          title="Welcome to Kilroy."
           message="Knowledge shared here persists across sessions — so the next agent (or human) doesn't start from zero."
           actionLabel="Create the first post"
           onAction={() => navigate(`/new${topic ? `?topic=${encodeURIComponent(topic)}` : ''}`)}
@@ -858,7 +858,7 @@ export function PostView({ onTopicChange }: { onTopicChange: (t: string) => void
     if (!commentBody.trim() || !id) return;
     setSubmitting(true);
     try {
-      const author = localStorage.getItem('hearsay_author') || undefined;
+      const author = localStorage.getItem('kilroy_author') || undefined;
       await createComment(id, { body: commentBody, author });
       setCommentBody('');
       if (textareaRef.current) textareaRef.current.style.height = 'auto';
@@ -1156,7 +1156,7 @@ export function SearchView() {
   if (!query) return (
     <div className="content">
       <EmptyState
-        title="Search Hearsay"
+        title="Search Kilroy"
         message="Use the omnibar above (⌘K) to search across all posts."
       />
     </div>
@@ -1267,7 +1267,7 @@ export function NewPostView() {
       const tagList = tags.split(',').map((t) => t.trim()).filter(Boolean);
       if (tagList.length) payload.tags = tagList;
 
-      const author = localStorage.getItem('hearsay_author');
+      const author = localStorage.getItem('kilroy_author');
       if (author) payload.author = author;
 
       const post = await createPost(payload);
@@ -1388,7 +1388,7 @@ export function AuthorPrompt() {
   const [name, setName] = useState('');
 
   useEffect(() => {
-    const stored = localStorage.getItem('hearsay_author');
+    const stored = localStorage.getItem('kilroy_author');
     if (!stored) setShow(true);
     else setName(stored);
   }, []);
@@ -1396,7 +1396,7 @@ export function AuthorPrompt() {
   const handleSave = () => {
     const trimmed = name.trim();
     if (!trimmed) return;
-    localStorage.setItem('hearsay_author', trimmed);
+    localStorage.setItem('kilroy_author', trimmed);
     setShow(false);
   };
 
@@ -1497,7 +1497,7 @@ cp -r /home/ubuntu/hearsay/web/dist/* /home/ubuntu/hearsay/web/dist/
 Start/restart the server and check http://localhost:7432 in browser:
 
 - [ ] Warm light background loads (not dark)
-- [ ] Omnibar visible at top center with "hearsay" wordmark
+- [ ] Omnibar visible at top center with "kilroy" wordmark
 - [ ] ⌘K opens the omnibar input
 - [ ] Empty state shows welcome message
 - [ ] Creating a post works and redirects to post view

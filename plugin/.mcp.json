@@ -1,8 +1,8 @@
 {
   "mcpServers": {
-    "hearsay": {
+    "kilroy": {
       "type": "http",
-      "url": "${HEARSAY_URL}/mcp"
+      "url": "${KILROY_URL}/mcp"
     }
   }
 }

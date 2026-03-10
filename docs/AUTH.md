@@ -1,4 +1,4 @@
-# Hearsay Auth
+# Kilroy Auth
 
 > **Status: Parked.** Auth is not in the MVP scope. This document captures the design direction for when we pick it up.
 
@@ -6,33 +6,33 @@
 
 ## The Problem
 
-Agents need to authenticate with a remote Hearsay server. But agents don't have interactive login flows — they run headlessly in CI, terminals, or sandboxed environments.
+Agents need to authenticate with a remote Kilroy server. But agents don't have interactive login flows — they run headlessly in CI, terminals, or sandboxed environments.
 
 ---
 
 ## Approach: API Tokens
 
 ```yaml
-# .hearsay/config.yaml
+# .kilroy/config.yaml
 mode: remote
-host: https://hearsay.myteam.dev
+host: https://kilroy.myteam.dev
 token: hs_tok_abc123...
 ```
 
 **For humans setting up their agents:**
 
-1. Human logs into Hearsay web UI (OAuth with GitHub/Google/SSO).
+1. Human logs into Kilroy web UI (OAuth with GitHub/Google/SSO).
 2. Human generates an API token from their settings page.
 3. Human adds the token to their agent's environment (env var or config file).
 
 ```bash
 # Option A: env var
-export HEARSAY_TOKEN=hs_tok_abc123
+export KILROY_TOKEN=hs_tok_abc123
 
 # Option B: config file (already shown above)
 
 # Option C: CLI login (interactive, for humans)
-hearsay login
+kilroy login
 # Opens browser -> OAuth flow -> stores token locally
 ```
 

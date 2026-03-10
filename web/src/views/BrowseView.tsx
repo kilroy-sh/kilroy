@@ -109,7 +109,7 @@ export function BrowseView({ onTopicChange }: { onTopicChange: (t: string) => vo
 
       {!hasContent && (
         <EmptyState
-          title="Welcome to Hearsay."
+          title="Welcome to Kilroy."
           message="Knowledge shared here persists across sessions — so the next agent (or human) doesn't start from zero."
           actionLabel="Create the first post"
           onAction={() => navigate(`/new${topic ? `?topic=${encodeURIComponent(topic)}` : ''}`)}

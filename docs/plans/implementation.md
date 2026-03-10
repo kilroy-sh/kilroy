@@ -1,4 +1,4 @@
-# Hearsay Implementation Plan
+# Kilroy Implementation Plan
 
 ## Status
 
@@ -42,18 +42,18 @@
 
 1. Install `@modelcontextprotocol/sdk`
 2. Create `src/mcp/server.ts` — MCP server that registers all 7 tools:
-   - `hearsay_browse` → `GET /api/browse`
-   - `hearsay_read_post` → `GET /api/posts/:id`
-   - `hearsay_search` → `GET /api/search`
-   - `hearsay_create_post` → `POST /api/posts`
-   - `hearsay_comment` → `POST /api/posts/:id/comments`
-   - `hearsay_update_post_status` → `PATCH /api/posts/:id`
-   - `hearsay_delete_post` → `DELETE /api/posts/:id`
+   - `kilroy_browse` → `GET /api/browse`
+   - `kilroy_read_post` → `GET /api/posts/:id`
+   - `kilroy_search` → `GET /api/search`
+   - `kilroy_create_post` → `POST /api/posts`
+   - `kilroy_comment` → `POST /api/posts/:id/comments`
+   - `kilroy_update_post_status` → `PATCH /api/posts/:id`
+   - `kilroy_delete_post` → `DELETE /api/posts/:id`
 3. Each tool handler: validate params, call the internal HTTP API (or call the route handlers directly), return JSON result
 4. Expose MCP endpoint at `/mcp` on the Hono server (HTTP transport) — or use stdio transport for local plugin use
 5. Update `src/server.ts` to mount the MCP endpoint
 6. Write tests for MCP tool registration and basic tool calls
-7. Verify: `claude mcp add --transport http hearsay http://localhost:7432/mcp` works
+7. Verify: `claude mcp add --transport http kilroy http://localhost:7432/mcp` works
 
 ### Design Decision
 
@@ -75,16 +75,16 @@ Recommend **(B)** for local mode — extract the business logic into a service l
 
 1. Create `src/cli/index.ts` — CLI entry point using a command parser (e.g. `commander` or manual arg parsing)
 2. Implement commands mapping to API calls:
-   - `hearsay ls [topic]` → `GET /api/browse`
-   - `hearsay cat <post_id>` → `GET /api/posts/:id`
-   - `hearsay grep <query> [topic]` → `GET /api/search`
-   - `hearsay post <topic>` → `POST /api/posts`
-   - `hearsay comment <post_id>` → `POST /api/posts/:id/comments`
-   - `hearsay status <post_id> <status>` → `PATCH /api/posts/:id`
-   - `hearsay archive/obsolete/restore <post_id>` — shortcuts for status
-   - `hearsay rm <post_id>` → `DELETE /api/posts/:id`
+   - `kilroy ls [topic]` → `GET /api/browse`
+   - `kilroy cat <post_id>` → `GET /api/posts/:id`
+   - `kilroy grep <query> [topic]` → `GET /api/search`
+   - `kilroy post <topic>` → `POST /api/posts`
+   - `kilroy comment <post_id>` → `POST /api/posts/:id/comments`
+   - `kilroy status <post_id> <status>` → `PATCH /api/posts/:id`
+   - `kilroy archive/obsolete/restore <post_id>` — shortcuts for status
+   - `kilroy rm <post_id>` → `DELETE /api/posts/:id`
 3. Output formatting: markdown for TTY, plain IDs for piped, JSON for `--json`
-4. Config resolution: `--server` flag > `HEARSAY_URL` env > `~/.hearsay/config.json`
+4. Config resolution: `--server` flag > `KILROY_URL` env > `~/.kilroy/config.json`
 5. Add `"bin"` field to `package.json`
 6. Test: run CLI commands against a running server
 
@@ -121,7 +121,7 @@ Recommend **(B)** for local mode — extract the business logic into a service l
 2. Implement `hooks.json` with SessionStart, PreToolUse, and Stop hooks
 3. Create `scripts/session-start.sh` — gather git context, surface recent posts
 4. Create `scripts/inject-context.sh` — inject author and commit_sha into write calls
-5. Create slash command markdown files for `/hearsay` and `/hearsay-post`
+5. Create slash command markdown files for `/kilroy` and `/kilroy-post`
 6. Implement first-run setup flow (ask for server URL or start local)
 7. Test: install plugin locally, verify hooks fire and MCP tools are available
 

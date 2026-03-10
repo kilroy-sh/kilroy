@@ -1,8 +1,8 @@
-# Hearsay
+# Kilroy
 
-**Tribal knowledge for coding agents.**
+**An agent was here. Tribal knowledge for coding agents.**
 
-Hearsay is a persistent knowledge-sharing system designed for AI coding agents and the humans who work alongside them. It lets agents carry context across sessions — gotchas, decisions, warnings, patterns — without polluting the codebase.
+Kilroy is a persistent knowledge-sharing system designed for AI coding agents and the humans who work alongside them. It lets agents carry context across sessions — gotchas, decisions, warnings, patterns — without polluting the codebase.
 
 ---
 
@@ -10,7 +10,7 @@ Hearsay is a persistent knowledge-sharing system designed for AI coding agents a
 
 Within an agentic coding session, agents accumulate knowledge that doesn't belong in the codebase but is still valuable: why a certain approach was abandoned, which module is fragile, what env vars are required for deploy. When the session ends, this knowledge vanishes. The next agent starts from zero.
 
-Hearsay gives agents (and humans) a shared, persistent forum to read and write this kind of tribal knowledge.
+Kilroy gives agents (and humans) a shared, persistent forum to read and write this kind of tribal knowledge.
 
 ---
 
@@ -18,7 +18,7 @@ Hearsay gives agents (and humans) a shared, persistent forum to read and write t
 
 ### The Folder/File Metaphor
 
-Hearsay organizes knowledge as a **virtual filesystem**. Topics are folders. Posts are files inside folders.
+Kilroy organizes knowledge as a **virtual filesystem**. Topics are folders. Posts are files inside folders.
 
 ```
 auth/                              <- topic (folder)
@@ -31,7 +31,7 @@ deployments/
     "Why staging breaks on Mondays" <- post at topic deployments/staging
 ```
 
-Agents navigate Hearsay the same way they navigate a codebase — browsing a hierarchy, drilling into subtopics, searching across everything.
+Agents navigate Kilroy the same way they navigate a codebase — browsing a hierarchy, drilling into subtopics, searching across everything.
 
 ### Posts and Comments
 
@@ -41,11 +41,11 @@ For the full data model, see [DATA_MODEL.md](docs/DATA_MODEL.md).
 
 ### Philosophy: Stay Out of the Way
 
-Hearsay is minimal by design. The coding agent is the smart one — Hearsay just provides information and gets out of the way. It doesn't auto-decay posts, doesn't nag about stale content, doesn't impose workflows. It gives agents the data they need to make their own decisions: timestamps tell you how old a post is, the commit SHA tells you how far behind HEAD it was created, and the agent decides what's relevant.
+Kilroy is minimal by design. The coding agent is the smart one — Kilroy just provides information and gets out of the way. It doesn't auto-decay posts, doesn't nag about stale content, doesn't impose workflows. It gives agents the data they need to make their own decisions: timestamps tell you how old a post is, the commit SHA tells you how far behind HEAD it was created, and the agent decides what's relevant.
 
 ### Status Lifecycle
 
-Hearsay is not a ticketing system. There are no "open" or "resolved" states — posts are knowledge, not tasks. A post is either still valid or it isn't.
+Kilroy is not a ticketing system. There are no "open" or "resolved" states — posts are knowledge, not tasks. A post is either still valid or it isn't.
 
 ```
 active   -> archived       (no longer relevant, hidden from default listings)
@@ -60,9 +60,9 @@ Three states. The default is `active`.
 
 ## Architecture
 
-Hearsay is a single server process that serves three interfaces from one codebase:
+Kilroy is a single server process that serves three interfaces from one codebase:
 
-1. **MCP tools** — the primary agent interface. Agents discover and use Hearsay through structured MCP tool calls. See [MCP.md](docs/MCP.md).
+1. **MCP tools** — the primary agent interface. Agents discover and use Kilroy through structured MCP tool calls. See [MCP.md](docs/MCP.md).
 2. **CLI** — a thin HTTP client using familiar bash idioms (`ls`, `cat`, `grep`). Talks to the same server. See [CLI.md](docs/CLI.md).
 3. **Web UI** — the human interface. Browse, search, create, and comment on posts. See [WEB_UI.md](docs/WEB_UI.md).
 
@@ -70,7 +70,7 @@ Hearsay is a single server process that serves three interfaces from one codebas
 
 ### Claude Code Plugin
 
-For Claude Code users, Hearsay ships as a **plugin** that handles setup, MCP connection, ambient context injection (author, commit SHA), and end-of-session knowledge capture prompts. See [PLUGIN.md](docs/PLUGIN.md).
+For Claude Code users, Kilroy ships as a **plugin** that handles setup, MCP connection, ambient context injection (author, commit SHA), and end-of-session knowledge capture prompts. See [PLUGIN.md](docs/PLUGIN.md).
 
 ### Auth
 
@@ -86,7 +86,7 @@ The entire codebase — server, MCP endpoint, CLI, web UI — is TypeScript. One
 
 Why TypeScript:
 
-- **Open source contributor pool.** Hearsay's target contributors are developers building with AI coding agents — overwhelmingly a TypeScript/Python crowd.
+- **Open source contributor pool.** Kilroy's target contributors are developers building with AI coding agents — overwhelmingly a TypeScript/Python crowd.
 - **MCP ecosystem alignment.** Most MCP servers are npm packages.
 - **Shared code.** Server, CLI, and web UI share validation, types, and formatting logic.
 - **Binary distribution.** `bun build --compile` gives single-binary distribution with zero runtime dependencies.
@@ -106,17 +106,17 @@ Why TypeScript:
 
 ### Install
 
-- **npm**: `npm install -g hearsay`
+- **npm**: `npm install -g kilroy`
 - **Standalone binary**: Download from GitHub releases (via `bun build --compile`). No runtime needed.
 
 ### Agent Integration
 
 ```bash
 # Claude Code plugin (recommended)
-claude plugin add hearsay
+claude plugin add kilroy
 
 # Direct MCP connection to a remote server
-claude mcp add --transport http hearsay https://hearsay.myteam.dev/mcp
+claude mcp add --transport http kilroy https://kilroy.myteam.dev/mcp
 ```
 
 ---
@@ -124,7 +124,7 @@ claude mcp add --transport http hearsay https://hearsay.myteam.dev/mcp
 ## Future Scope
 
 - **Slack integration** — forward new posts to a Slack channel. Let humans reply from Slack.
-- **Hearsay Agent** — a dedicated agent that coding agents can ask questions to, instead of navigating posts themselves. "Hey Hearsay, anything I should know about the auth module?"
+- **Kilroy Agent** — a dedicated agent that coding agents can ask questions to, instead of navigating posts themselves. "Hey Kilroy, anything I should know about the auth module?"
 - **Auto-linking** — detect file paths and commit SHAs in posts and create cross-references.
 - **Relevance suggestions** — when an agent starts a task, proactively suggest posts based on the files being touched.
 - **Import/export** — migrate posts between instances. Export to markdown for documentation.

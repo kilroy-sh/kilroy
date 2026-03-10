@@ -2,15 +2,15 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Transform the Hearsay web UI from a generic dark-mode dashboard into a distinctive, crafted engineering tool with strong typographic identity, refined color palette, polished interactions, and missing spec features.
+**Goal:** Transform the Kilroy web UI from a generic dark-mode dashboard into a distinctive, crafted engineering tool with strong typographic identity, refined color palette, polished interactions, and missing spec features.
 
-**Architecture:** Pure frontend changes — no backend modifications. All changes are in `web/`. The CSS is a single `index.css` file (no CSS modules/Tailwind). Components are React + react-router-dom. The app is served from Hearsay server on port 7432, dev proxy configured in vite.
+**Architecture:** Pure frontend changes — no backend modifications. All changes are in `web/`. The CSS is a single `index.css` file (no CSS modules/Tailwind). Components are React + react-router-dom. The app is served from Kilroy server on port 7432, dev proxy configured in vite.
 
 **Tech Stack:** React 19, react-router-dom 7, Vite 7, plain CSS with custom properties. No animation libraries — CSS-only transitions and keyframes. Google Fonts loaded via `<link>` tags.
 
 **Running the app:** The server is already running on port 7432. For dev: `cd web && bun run dev`. To rebuild production: `cd web && bun run build`.
 
-**Verification:** After each task, visually verify at `http://localhost:7432` (production build) or the Vite dev server. Run `cd /home/ubuntu/hearsay/web && bun run build` to verify no build errors.
+**Verification:** After each task, visually verify at `http://localhost:7432` (production build) or the Vite dev server. Run `cd /home/ubuntu/kilroy/web && bun run build` to verify no build errors.
 
 ---
 
@@ -33,7 +33,7 @@ Add Google Fonts links and fix the page title:
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Hearsay</title>
+    <title>Kilroy</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -101,7 +101,7 @@ Replace all occurrences of `font-family: var(--mono)` with `font-family: var(--f
 
 **Step 4: Verify build**
 
-Run: `cd /home/ubuntu/hearsay/web && bun run build`
+Run: `cd /home/ubuntu/kilroy/web && bun run build`
 Expected: Build succeeds with no errors.
 
 **Step 5: Commit**
@@ -228,7 +228,7 @@ In `web/src/App.tsx`, update the header JSX (inside the `<header className="head
 
 ```tsx
 <header className="header">
-  <h1><Link to="/">hearsay</Link></h1>
+  <h1><Link to="/">kilroy</Link></h1>
   <form className="search-box" onSubmit={handleSearch}>
     <input
       placeholder="Search posts..."
@@ -242,7 +242,7 @@ In `web/src/App.tsx`, update the header JSX (inside the `<header className="head
 
 **Step 4: Verify build**
 
-Run: `cd /home/ubuntu/hearsay/web && bun run build`
+Run: `cd /home/ubuntu/kilroy/web && bun run build`
 Expected: Build succeeds.
 
 **Step 5: Commit**
@@ -434,7 +434,7 @@ In the `Sidebar` component's return JSX, change the bottom button from `btn btn-
 
 **Step 4: Verify build**
 
-Run: `cd /home/ubuntu/hearsay/web && bun run build`
+Run: `cd /home/ubuntu/kilroy/web && bun run build`
 Expected: Build succeeds.
 
 **Step 5: Commit**
@@ -622,7 +622,7 @@ Replace the post cards rendering (the `data.posts?.map(...)` block, lines 77-95)
 
 **Step 4: Verify build**
 
-Run: `cd /home/ubuntu/hearsay/web && bun run build`
+Run: `cd /home/ubuntu/kilroy/web && bun run build`
 Expected: Build succeeds.
 
 **Step 5: Commit**
@@ -796,7 +796,7 @@ In the comments map (line 104), replace the comment-author div:
 
 **Step 4: Verify build**
 
-Run: `cd /home/ubuntu/hearsay/web && bun run build`
+Run: `cd /home/ubuntu/kilroy/web && bun run build`
 Expected: Build succeeds.
 
 **Step 5: Commit**
@@ -973,7 +973,7 @@ In `web/src/index.css`, delete the old `.empty` and `.loading` rules (the `/* Ut
 
 **Step 7: Verify build**
 
-Run: `cd /home/ubuntu/hearsay/web && bun run build`
+Run: `cd /home/ubuntu/kilroy/web && bun run build`
 Expected: Build succeeds.
 
 **Step 8: Commit**
@@ -1100,7 +1100,7 @@ No change needed — the code as written will work with TypeScript's JSX inferen
 
 **Step 4: Verify build**
 
-Run: `cd /home/ubuntu/hearsay/web && bun run build`
+Run: `cd /home/ubuntu/kilroy/web && bun run build`
 Expected: Build succeeds.
 
 **Step 5: Commit**
@@ -1218,7 +1218,7 @@ export function AuthorPrompt() {
   const [name, setName] = useState('');
 
   useEffect(() => {
-    const stored = localStorage.getItem('hearsay_author');
+    const stored = localStorage.getItem('kilroy_author');
     if (!stored) setShow(true);
     else setName(stored);
   }, []);
@@ -1226,7 +1226,7 @@ export function AuthorPrompt() {
   const handleSave = () => {
     const trimmed = name.trim();
     if (!trimmed) return;
-    localStorage.setItem('hearsay_author', trimmed);
+    localStorage.setItem('kilroy_author', trimmed);
     setShow(false);
   };
 
@@ -1346,7 +1346,7 @@ Add `<AuthorPrompt />` as the first child inside the `.app` div:
 
 **Step 5: Verify build**
 
-Run: `cd /home/ubuntu/hearsay/web && bun run build`
+Run: `cd /home/ubuntu/kilroy/web && bun run build`
 Expected: Build succeeds.
 
 **Step 6: Commit**
@@ -1456,7 +1456,7 @@ In `web/src/views/NewPostView.tsx`, change the h2 tag (line 50) to use monospace
 
 **Step 5: Build production bundle**
 
-Run: `cd /home/ubuntu/hearsay/web && bun run build`
+Run: `cd /home/ubuntu/kilroy/web && bun run build`
 Expected: Build succeeds. Output in `web/dist/`.
 
 **Step 6: Commit**
@@ -1468,10 +1468,10 @@ git commit -m "feat(web): breadcrumb, controls, content transitions polish"
 
 **Step 7: Rebuild and verify embedded assets**
 
-If the Hearsay server embeds the web build, restart it to pick up changes:
+If the Kilroy server embeds the web build, restart it to pick up changes:
 
 ```bash
-cd /home/ubuntu/hearsay && bun run build 2>/dev/null || true
+cd /home/ubuntu/kilroy && bun run build 2>/dev/null || true
 ```
 
 Then verify at `http://localhost:7432` that all views render correctly:
@@ -1481,7 +1481,7 @@ Then verify at `http://localhost:7432` that all views render correctly:
 - Search view
 - New post form
 - Sidebar tree navigation
-- Author prompt (clear localStorage first: `localStorage.removeItem('hearsay_author')`)
+- Author prompt (clear localStorage first: `localStorage.removeItem('kilroy_author')`)
 
 ---
 

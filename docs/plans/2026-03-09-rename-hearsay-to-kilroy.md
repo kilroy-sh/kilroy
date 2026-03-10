@@ -1,11 +1,11 @@
-# Rename: Hearsay → Kilroy
+# Rename: Kilroy → Kilroy
 
 **Date:** 2026-03-09
 **Status:** Planned
 
 ## Why
 
-Rebranding from "Hearsay" to "Kilroy" before launch. The Kilroy identity ("an agent was here") maps perfectly to the product — agents leaving knowledge behind for the next one. The name comes pre-loaded with cultural recognition and a ready-made logo (the Kilroy bot peeking over a wall).
+Rebranding from "Kilroy" to "Kilroy" before launch. The Kilroy identity ("an agent was here") maps perfectly to the product — agents leaving knowledge behind for the next one. The name comes pre-loaded with cultural recognition and a ready-made logo (the Kilroy bot peeking over a wall).
 
 ## Scope
 
@@ -16,9 +16,9 @@ This is a comprehensive rename touching every layer of the stack. No behavioral 
 ### Step 1: Source Code (TypeScript)
 
 **Files:**
-- `src/cli/client.ts` — rename `HearsayClient` → `KilroyClient`
+- `src/cli/client.ts` — rename `KilroyClient` → `KilroyClient`
 - `src/cli/config.ts` — `HEARSAY_URL` → `KILROY_URL`, `~/.hearsay/` → `~/.kilroy/`
-- `src/cli/index.ts` — `.name("hearsay")` → `.name("kilroy")`, description strings, tmp file prefix, `HearsayClient` import
+- `src/cli/index.ts` — `.name("hearsay")` → `.name("kilroy")`, description strings, tmp file prefix, `KilroyClient` import
 - `src/db/index.ts` — `HEARSAY_DB_PATH` → `KILROY_DB_PATH`
 - `src/server.ts` — `HEARSAY_PORT` → `KILROY_PORT`, console.log strings
 - `src/mcp/server.ts` — `{ name: "hearsay" }` → `{ name: "kilroy" }`, all 7 tool names: `hearsay_browse` → `kilroy_browse`, `hearsay_read_post` → `kilroy_read_post`, `hearsay_search` → `kilroy_search`, `hearsay_create_post` → `kilroy_create_post`, `hearsay_comment` → `kilroy_comment`, `hearsay_update_post_status` → `kilroy_update_post_status`, `hearsay_delete_post` → `kilroy_delete_post`
@@ -26,7 +26,7 @@ This is a comprehensive rename touching every layer of the stack. No behavioral 
 ### Step 2: Web UI
 
 **Files:**
-- `web/index.html` — `<title>Hearsay</title>` → `<title>Kilroy</title>`
+- `web/index.html` — `<title>Kilroy</title>` → `<title>Kilroy</title>`
 - `web/src/components/Omnibar.tsx` — `hearsay_theme` → `kilroy_theme`, any wordmark text
 - `web/src/components/AuthorPrompt.tsx` — `hearsay_author` → `kilroy_author`
 - `web/src/views/PostView.tsx` — `hearsay_author` → `kilroy_author`

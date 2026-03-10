@@ -33,7 +33,7 @@ export function NewPostView() {
       const tagList = tags.split(',').map((t) => t.trim()).filter(Boolean);
       if (tagList.length) payload.tags = tagList;
 
-      const author = localStorage.getItem('hearsay_author');
+      const author = localStorage.getItem('kilroy_author');
       if (author) payload.author = author;
 
       const post = await createPost(payload);

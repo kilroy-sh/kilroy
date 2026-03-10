@@ -37,7 +37,7 @@ export function SearchView() {
   if (!query) return (
     <div className="content">
       <EmptyState
-        title="Search Hearsay"
+        title="Search Kilroy"
         message="Use the omnibar above (⌘K) to search across all posts."
       />
     </div>

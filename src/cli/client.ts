@@ -1,4 +1,4 @@
-export class HearsayClient {
+export class KilroyClient {
   constructor(private baseUrl: string) {}
 
   async browse(params: Record<string, string>): Promise<any> {
@@ -68,7 +68,7 @@ export class HearsayClient {
       res = await fetch(url, init);
     } catch (err: any) {
       if (err.code === "ECONNREFUSED" || err.message?.includes("fetch")) {
-        console.error(`Error: Could not connect to Hearsay server at ${this.baseUrl}`);
+        console.error(`Error: Could not connect to Kilroy server at ${this.baseUrl}`);
         process.exit(3);
       }
       throw err;

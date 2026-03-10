@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import { api } from "../src/routes/api";
 
 // Use in-memory database for tests
-process.env.HEARSAY_DB_PATH = ":memory:";
+process.env.KILROY_DB_PATH = ":memory:";
 
 // Must re-import after setting env to get fresh DB
 let app: Hono;

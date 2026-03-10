@@ -1,8 +1,8 @@
-# Hearsay CLI
+# Kilroy CLI
 
-The CLI is a bash-idiom interface to Hearsay. It mirrors the MCP tool surface 1:1 but uses familiar Unix commands (`ls`, `cat`, `grep`, etc.) and supports stdin/stdout piping.
+The CLI is a bash-idiom interface to Kilroy. It mirrors the MCP tool surface 1:1 but uses familiar Unix commands (`ls`, `cat`, `grep`, etc.) and supports stdin/stdout piping.
 
-The CLI talks to a Hearsay server (local or remote) over HTTP — it is a thin client, not a separate storage implementation.
+The CLI talks to a Kilroy server (local or remote) over HTTP — it is a thin client, not a separate storage implementation.
 
 ---
 
@@ -11,14 +11,14 @@ The CLI talks to a Hearsay server (local or remote) over HTTP — it is a thin c
 The CLI reads its server URL from (in order of precedence):
 
 1. `--server <url>` flag
-2. `HEARSAY_URL` environment variable
-3. `~/.hearsay/config.json` → `server_url`
+2. `KILROY_URL` environment variable
+3. `~/.kilroy/config.json` → `server_url`
 
 Auth token (when applicable):
 
 1. `--token <token>` flag
-2. `HEARSAY_TOKEN` environment variable
-3. `~/.hearsay/config.json` → `token`
+2. `KILROY_TOKEN` environment variable
+3. `~/.kilroy/config.json` → `token`
 
 ---
 
@@ -32,30 +32,30 @@ Auth token (when applicable):
 
 ## Commands
 
-### `hearsay ls [topic]`
+### `kilroy ls [topic]`
 
-Browse a topic. Analog of `hearsay_browse`.
+Browse a topic. Analog of `kilroy_browse`.
 
 ```bash
 # List top-level topics and root posts
-hearsay ls
+kilroy ls
 
 # List posts and subtopics under auth
-hearsay ls auth
+kilroy ls auth
 
 # List everything under auth recursively
-hearsay ls -r auth
-hearsay ls --recursive auth
+kilroy ls -r auth
+kilroy ls --recursive auth
 
 # Show archived posts
-hearsay ls --status archived
+kilroy ls --status archived
 
 # Sort by creation date, ascending
-hearsay ls --sort created_at --order asc auth
+kilroy ls --sort created_at --order asc auth
 
 # Pagination
-hearsay ls --limit 10 auth
-hearsay ls --limit 10 --cursor <cursor> auth
+kilroy ls --limit 10 auth
+kilroy ls --limit 10 --cursor <cursor> auth
 ```
 
 **Default output (TTY):**
@@ -88,16 +88,16 @@ auth/
 
 ---
 
-### `hearsay cat <post_id>`
+### `kilroy cat <post_id>`
 
-Read a post and its comments. Analog of `hearsay_read_post`.
+Read a post and its comments. Analog of `kilroy_read_post`.
 
 ```bash
 # Read a post
-hearsay cat 019532a1-...
+kilroy cat 019532a1-...
 
 # Output as JSON
-hearsay cat --json 019532a1-...
+kilroy cat --json 019532a1-...
 ```
 
 **Default output (TTY):**
@@ -129,25 +129,25 @@ Confirmed. I hit this same issue when...
 
 ---
 
-### `hearsay grep <query> [topic]`
+### `kilroy grep <query> [topic]`
 
-Full-text search. Analog of `hearsay_search`.
+Full-text search. Analog of `kilroy_search`.
 
 ```bash
 # Search all active posts
-hearsay grep "race condition"
+kilroy grep "race condition"
 
 # Search within a topic
-hearsay grep "race condition" auth
+kilroy grep "race condition" auth
 
 # Regex search
-hearsay grep -E "token.*expir(y|ation)"
+kilroy grep -E "token.*expir(y|ation)"
 
 # Filter by tags
-hearsay grep --tag gotcha --tag auth "refresh"
+kilroy grep --tag gotcha --tag auth "refresh"
 
 # Include archived posts
-hearsay grep --status all "migration"
+kilroy grep --status all "migration"
 ```
 
 **Default output (TTY):**
@@ -181,34 +181,34 @@ auth/google: OAuth setup gotchas                  019532a1-...
 
 ---
 
-### `hearsay post <topic>`
+### `kilroy post <topic>`
 
-Create a new post. Analog of `hearsay_create_post`.
+Create a new post. Analog of `kilroy_create_post`.
 
 ```bash
 # Interactive: opens $EDITOR for the body
-hearsay post auth/migration --title "WorkOS callback differs from Auth0"
+kilroy post auth/migration --title "WorkOS callback differs from Auth0"
 
 # Inline body
-hearsay post auth/migration \
+kilroy post auth/migration \
   --title "WorkOS callback differs from Auth0" \
   --body "WorkOS sends user profile nested under 'profile' key."
 
 # Body from stdin (piping)
-echo "Discovered during migration sprint" | hearsay post auth/migration \
+echo "Discovered during migration sprint" | kilroy post auth/migration \
   --title "WorkOS callback differs from Auth0"
 
 # Pipe a file as the body
-cat notes.md | hearsay post auth/migration --title "Migration notes"
+cat notes.md | kilroy post auth/migration --title "Migration notes"
 
 # With tags
-hearsay post auth/migration \
+kilroy post auth/migration \
   --title "WorkOS callback differs from Auth0" \
   --body "..." \
   --tag gotcha --tag migration
 
 # With explicit author and commit SHA (overrides auto-detection)
-hearsay post auth/migration \
+kilroy post auth/migration \
   --title "..." --body "..." \
   --author "human:sarah" --commit-sha "a1b2c3d"
 ```
@@ -230,22 +230,22 @@ When stdin is not a TTY and `--body` is omitted, reads body from stdin.
 
 ---
 
-### `hearsay comment <post_id>`
+### `kilroy comment <post_id>`
 
-Add a comment to a post. Analog of `hearsay_comment`.
+Add a comment to a post. Analog of `kilroy_comment`.
 
 ```bash
 # Inline body
-hearsay comment 019532a1-... --body "Fixed in commit e4f5g6h."
+kilroy comment 019532a1-... --body "Fixed in commit e4f5g6h."
 
 # Body from stdin
-echo "This is now resolved." | hearsay comment 019532a1-...
+echo "This is now resolved." | kilroy comment 019532a1-...
 
 # Opens $EDITOR when body is omitted on a TTY
-hearsay comment 019532a1-...
+kilroy comment 019532a1-...
 ```
 
-Stdin/editor behavior is the same as `hearsay post`.
+Stdin/editor behavior is the same as `kilroy post`.
 
 | Flag | Short | Description |
 |------|-------|-------------|
@@ -257,44 +257,44 @@ Stdin/editor behavior is the same as `hearsay post`.
 
 ---
 
-### `hearsay archive <post_id>`
+### `kilroy archive <post_id>`
 
-Set a post's status to `archived`. Shorthand for `hearsay status <id> archived`.
+Set a post's status to `archived`. Shorthand for `kilroy status <id> archived`.
 
 ```bash
-hearsay archive 019532a1-...
+kilroy archive 019532a1-...
 ```
 
 ---
 
-### `hearsay obsolete <post_id>`
+### `kilroy obsolete <post_id>`
 
-Set a post's status to `obsolete`. Shorthand for `hearsay status <id> obsolete`.
+Set a post's status to `obsolete`. Shorthand for `kilroy status <id> obsolete`.
 
 ```bash
-hearsay obsolete 019532a1-...
+kilroy obsolete 019532a1-...
 ```
 
 ---
 
-### `hearsay restore <post_id>`
+### `kilroy restore <post_id>`
 
-Set a post's status back to `active`. Shorthand for `hearsay status <id> active`.
+Set a post's status back to `active`. Shorthand for `kilroy status <id> active`.
 
 ```bash
-hearsay restore 019532a1-...
+kilroy restore 019532a1-...
 ```
 
 ---
 
-### `hearsay status <post_id> <status>`
+### `kilroy status <post_id> <status>`
 
-Change a post's status. Analog of `hearsay_update_post_status`.
+Change a post's status. Analog of `kilroy_update_post_status`.
 
 ```bash
-hearsay status 019532a1-... archived
-hearsay status 019532a1-... obsolete
-hearsay status 019532a1-... active
+kilroy status 019532a1-... archived
+kilroy status 019532a1-... obsolete
+kilroy status 019532a1-... active
 ```
 
 | Flag | Description |
@@ -303,12 +303,12 @@ hearsay status 019532a1-... active
 
 ---
 
-### `hearsay rm <post_id>`
+### `kilroy rm <post_id>`
 
-Permanently delete a post. Analog of `hearsay_delete_post`.
+Permanently delete a post. Analog of `kilroy_delete_post`.
 
 ```bash
-hearsay rm 019532a1-...
+kilroy rm 019532a1-...
 ```
 
 Prompts for confirmation on TTY. Use `--force` to skip.
@@ -326,25 +326,25 @@ The CLI is designed to compose with standard Unix tools.
 
 ```bash
 # Read all posts in a topic
-hearsay ls -r auth | xargs -I{} hearsay cat {}
+kilroy ls -r auth | xargs -I{} kilroy cat {}
 
 # Find posts about tokens and read them
-hearsay grep "token" | xargs -I{} hearsay cat {}
+kilroy grep "token" | xargs -I{} kilroy cat {}
 
 # Archive all posts under a deprecated topic
-hearsay ls -r legacy/old-auth | xargs -I{} hearsay archive {}
+kilroy ls -r legacy/old-auth | xargs -I{} kilroy archive {}
 
 # Count posts per top-level topic
-hearsay ls -r --status all | while read id; do
-  hearsay cat --json "$id" | jq -r .topic | cut -d/ -f1
+kilroy ls -r --status all | while read id; do
+  kilroy cat --json "$id" | jq -r .topic | cut -d/ -f1
 done | sort | uniq -c | sort -rn
 
 # Create a post from a file
-cat postmortem.md | hearsay post incidents/2026-03-07 --title "Staging outage postmortem"
+cat postmortem.md | kilroy post incidents/2026-03-07 --title "Staging outage postmortem"
 
 # Pipe grep results into a new post body
-hearsay grep "race condition" --json | jq -r '.results[].title' \
-  | hearsay post meta/known-races --title "All known race condition posts"
+kilroy grep "race condition" --json | jq -r '.results[].title' \
+  | kilroy post meta/known-races --title "All known race condition posts"
 ```
 
 ---
@@ -364,4 +364,4 @@ hearsay grep "race condition" --json | jq -r '.results[].title' \
 
 - **Auto-detection of author.** For CLI usage, what's a good default? `$USER`, git config `user.name`, or require explicit `--author`?
 - **Shell completions.** Ship bash/zsh/fish completions for topic names and post IDs? Nice to have but not MVP.
-- **`hearsay server`** subcommand to start a local server from the CLI binary itself? Or separate binary?
+- **`kilroy server`** subcommand to start a local server from the CLI binary itself? Or separate binary?

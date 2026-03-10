@@ -7,7 +7,7 @@ interface OmnibarProps {
 }
 
 function getInitialTheme(): string {
-  const stored = localStorage.getItem('hearsay_theme');
+  const stored = localStorage.getItem('kilroy_theme');
   if (stored) return stored;
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
@@ -19,7 +19,7 @@ export function Omnibar({ currentTopic }: OmnibarProps) {
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('hearsay_theme', theme);
+    localStorage.setItem('kilroy_theme', theme);
   }, [theme]);
 
   const toggleTheme = () => setTheme((t) => t === 'dark' ? 'light' : 'dark');
@@ -198,7 +198,7 @@ export function Omnibar({ currentTopic }: OmnibarProps) {
         ) : (
           <div className="omnibar-resting" onClick={activate}>
             <Link to="/" className="omnibar-wordmark" onClick={(e) => e.stopPropagation()}>
-              hearsay<span className="omnibar-sep">/</span>
+              kilroy<span className="omnibar-sep">/</span>
             </Link>
             {segments.length > 0 && (
               <span className="omnibar-path">

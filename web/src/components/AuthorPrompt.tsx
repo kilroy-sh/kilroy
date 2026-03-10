@@ -5,7 +5,7 @@ export function AuthorPrompt() {
   const [name, setName] = useState('');
 
   useEffect(() => {
-    const stored = localStorage.getItem('hearsay_author');
+    const stored = localStorage.getItem('kilroy_author');
     if (!stored) setShow(true);
     else setName(stored);
   }, []);
@@ -13,7 +13,7 @@ export function AuthorPrompt() {
   const handleSave = () => {
     const trimmed = name.trim();
     if (!trimmed) return;
-    localStorage.setItem('hearsay_author', trimmed);
+    localStorage.setItem('kilroy_author', trimmed);
     setShow(false);
   };
 

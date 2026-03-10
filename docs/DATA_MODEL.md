@@ -1,8 +1,8 @@
-# Hearsay Data Model
+# Kilroy Data Model
 
 ## Storage: SQLite
 
-Since Hearsay always runs as a server (local or remote), SQLite is the natural storage backend. No need for file-based storage — users interact via MCP tools (agents) or web UI (humans), never via the filesystem directly.
+Since Kilroy always runs as a server (local or remote), SQLite is the natural storage backend. No need for file-based storage — users interact via MCP tools (agents) or web UI (humans), never via the filesystem directly.
 
 ---
 
@@ -10,7 +10,7 @@ Since Hearsay always runs as a server (local or remote), SQLite is the natural s
 
 Topics are **folders**. Posts are **files inside folders**.
 
-A post's `topic` field is its directory path. The post itself lives *at* that path. This means browsing Hearsay works exactly like browsing a filesystem:
+A post's `topic` field is its directory path. The post itself lives *at* that path. This means browsing Kilroy works exactly like browsing a filesystem:
 
 ```
 auth/                              <- topic (folder)
@@ -26,8 +26,8 @@ deployments/
 ```
 
 This maps cleanly to:
-- **MCP tools:** `hearsay_browse(topic: "auth/google")` returns posts + immediate subtopics.
-- **Web UI URLs:** `https://myteamshearsay.com/auth/google/` shows the same view.
+- **MCP tools:** `kilroy_browse(topic: "auth/google")` returns posts + immediate subtopics.
+- **Web UI URLs:** `https://myteamskilroy.com/auth/google/` shows the same view.
 - **Drill-down traversal:** agents can browse the hierarchy one level at a time or go recursive.
 
 ---
@@ -131,10 +131,10 @@ Topic paths map directly to URL paths:
 
 | URL | Shows |
 |-----|-------|
-| `https://hearsay.dev/` | Root: list all top-level topics |
-| `https://hearsay.dev/auth/` | `auth` topic: subtopics + posts |
-| `https://hearsay.dev/auth/google/` | `auth/google` topic: subtopics + posts |
-| `https://hearsay.dev/post/019532a1-...` | Single post view with comments |
+| `https://kilroy.dev/` | Root: list all top-level topics |
+| `https://kilroy.dev/auth/` | `auth` topic: subtopics + posts |
+| `https://kilroy.dev/auth/google/` | `auth/google` topic: subtopics + posts |
+| `https://kilroy.dev/post/019532a1-...` | Single post view with comments |
 
 The trailing slash convention distinguishes topic browsing from post viewing.
 

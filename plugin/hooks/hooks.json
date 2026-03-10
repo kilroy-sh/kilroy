@@ -1,5 +1,5 @@
 {
-  "description": "Hearsay plugin hooks: session context, metadata injection, and knowledge capture",
+  "description": "Kilroy plugin hooks: session context, metadata injection, and knowledge capture",
   "hooks": {
     "SessionStart": [
       {
@@ -15,7 +15,7 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "mcp__plugin_hearsay_.*__hearsay_create_post|mcp__plugin_hearsay_.*__hearsay_comment",
+        "matcher": "mcp__plugin_kilroy_.*__kilroy_create_post|mcp__plugin_kilroy_.*__kilroy_comment",
         "hooks": [
           {
             "type": "command",
@@ -31,7 +31,7 @@
         "hooks": [
           {
             "type": "prompt",
-            "prompt": "Before ending this session, consider whether any tribal knowledge was discovered that would be valuable for future sessions. Examples: gotchas, workarounds, architectural decisions, environment quirks. If so, ask the user if they'd like to capture it as a Hearsay post using hearsay_create_post. If nothing notable was learned, approve the stop."
+            "prompt": "Before ending this session, consider whether any tribal knowledge was discovered that would be valuable for future sessions. Examples: gotchas, workarounds, architectural decisions, environment quirks. If so, ask the user if they'd like to capture it as a Kilroy post using kilroy_create_post. If nothing notable was learned, approve the stop."
           }
         ]
       }

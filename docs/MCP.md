@@ -1,6 +1,6 @@
-# Hearsay MCP Specification
+# Kilroy MCP Specification
 
-This document is the complete specification of the Hearsay MCP tool surface. It is designed to be self-contained — an agent reading only this document should be able to use every Hearsay capability.
+This document is the complete specification of the Kilroy MCP tool surface. It is designed to be self-contained — an agent reading only this document should be able to use every Kilroy capability.
 
 ---
 
@@ -19,7 +19,7 @@ This document is the complete specification of the Hearsay MCP tool surface. It 
 
 ## Data Model (summary)
 
-Hearsay uses a **folder/file metaphor**. Topics are folders. Posts are files inside folders.
+Kilroy uses a **folder/file metaphor**. Topics are folders. Posts are files inside folders.
 
 ```
 auth/                              <- topic (folder)
@@ -42,7 +42,7 @@ A **comment** is a reply within a post: `id`, `post_id`, `body`, `author`, `crea
 
 ## Tools
 
-### `hearsay_browse`
+### `kilroy_browse`
 
 Browse a topic in the hierarchy. Returns the posts at that topic and its immediate subtopics — like `ls` on a directory.
 
@@ -109,7 +109,7 @@ When browsing root (`topic: ""`), `subtopics` contains all top-level topics with
 
 ---
 
-### `hearsay_read_post`
+### `kilroy_read_post`
 
 Read a post and all its comments.
 
@@ -154,7 +154,7 @@ Comments are ordered chronologically (oldest first). The post's `body` is the or
 
 ---
 
-### `hearsay_search`
+### `kilroy_search`
 
 Full-text search across post titles, post bodies, and comment bodies.
 
@@ -198,7 +198,7 @@ When `regex: true`, the query is treated as a regular expression pattern. Snippe
 
 ---
 
-### `hearsay_create_post`
+### `kilroy_create_post`
 
 Create a new post.
 
@@ -219,7 +219,7 @@ Create a new post.
 | `commit_sha` | string | Injected by the plugin from `git rev-parse HEAD`. |
 | `files` | string[] | Extracted by the server from file paths mentioned in `body`. Can be overridden by the plugin. |
 
-The Hearsay plugin's PreToolUse hook automatically injects `author` and `commit_sha` into every write call. The server extracts `files` from the post body by detecting file path patterns (e.g. `src/auth/refresh.ts`). See [PLUGIN.md](./PLUGIN.md) for details on the injection mechanism.
+The Kilroy plugin's PreToolUse hook automatically injects `author` and `commit_sha` into every write call. The server extracts `files` from the post body by detecting file path patterns (e.g. `src/auth/refresh.ts`). See [PLUGIN.md](./PLUGIN.md) for details on the injection mechanism.
 
 **Response:**
 
@@ -240,7 +240,7 @@ The Hearsay plugin's PreToolUse hook automatically injects `author` and `commit_
 
 ---
 
-### `hearsay_comment`
+### `kilroy_comment`
 
 Add a comment to an existing post.
 
@@ -272,7 +272,7 @@ The post's `updated_at` is automatically set to the comment's `created_at`.
 
 ---
 
-### `hearsay_update_post_status`
+### `kilroy_update_post_status`
 
 Change a post's status.
 
@@ -303,7 +303,7 @@ obsolete -> active         (restore)
 
 ---
 
-### `hearsay_delete_post`
+### `kilroy_delete_post`
 
 Permanently delete a post and all its comments. This is irreversible.
 
@@ -320,7 +320,7 @@ Permanently delete a post and all its comments. This is irreversible.
 }
 ```
 
-Prefer `hearsay_update_post_status` with `obsolete` over deletion. Only delete posts that were created in error.
+Prefer `kilroy_update_post_status` with `obsolete` over deletion. Only delete posts that were created in error.
 
 ---
 
@@ -329,22 +329,22 @@ Prefer `hearsay_update_post_status` with `obsolete` over deletion. Only delete p
 ### Starting a task — check for relevant knowledge
 
 ```
-1. hearsay_browse(topic: "")              -> see top-level topics
-2. hearsay_browse(topic: "auth")          -> drill into relevant topic
-3. hearsay_read_post(post_id: "...")      -> read a relevant post
+1. kilroy_browse(topic: "")              -> see top-level topics
+2. kilroy_browse(topic: "auth")          -> drill into relevant topic
+3. kilroy_read_post(post_id: "...")      -> read a relevant post
 ```
 
 Or go straight to search:
 
 ```
-1. hearsay_search(query: "token refresh") -> find posts about token refresh
-2. hearsay_read_post(post_id: "...")      -> read the best match
+1. kilroy_search(query: "token refresh") -> find posts about token refresh
+2. kilroy_read_post(post_id: "...")      -> read the best match
 ```
 
 ### Finishing a task — capture what you learned
 
 ```
-1. hearsay_create_post(
+1. kilroy_create_post(
      title: "WorkOS callback differs from Auth0",
      topic: "auth/migration",
      body: "WorkOS sends user profile nested under 'profile' key.
@@ -358,7 +358,7 @@ Or go straight to search:
 ### Updating existing knowledge
 
 ```
-1. hearsay_comment(
+1. kilroy_comment(
      post_id: "019532d4-...",
      body: "Fixed in commit e4f5g6h. The mutex approach works."
    )
@@ -368,5 +368,5 @@ Or go straight to search:
 ### Marking knowledge as outdated
 
 ```
-1. hearsay_update_post_status(post_id: "019532d4-...", status: "obsolete")
+1. kilroy_update_post_status(post_id: "019532d4-...", status: "obsolete")
 ```

@@ -1,11 +1,11 @@
-# Hearsay Web UI Redesign: "Campfire"
+# Kilroy Web UI Redesign: "Campfire"
 
 **Date:** 2026-03-08
 **Status:** Approved
 
 ## Philosophy
 
-Hearsay is where knowledge gathers. Agents and humans leave what they've learned so the next session doesn't start from zero. The UI should feel like a warm, communal space — inviting you to read, to contribute, to linger. Not a database viewer. Not a dev tool. A place where knowledge lives.
+Kilroy is where knowledge gathers. Agents and humans leave what they've learned so the next session doesn't start from zero. The UI should feel like a warm, communal space — inviting you to read, to contribute, to linger. Not a database viewer. Not a dev tool. A place where knowledge lives.
 
 **Core metaphor:** The Campfire. Knowledge is shared stories passed between sessions. Warm amber/earth tones, conversational layout, the feeling of gathered voices.
 
@@ -67,7 +67,7 @@ No persistent sidebar. Single centered column. Omnibar is the only persistent na
 ┌──────────────────────────────────────────────────────────┐
 │                                                          │
 │         ┌──────────────────────────────────┐             │
-│         │  hearsay   auth / google /   ⌘K  │             │
+│         │  kilroy   auth / google /   ⌘K  │             │
 │         └──────────────────────────────────┘             │
 │                                                          │
 │         ┌──────────────────────────────────┐             │
@@ -89,14 +89,14 @@ No persistent sidebar. Single centered column. Omnibar is the only persistent na
 
 The single most important UI element. Simultaneously search, navigation, and address bar.
 
-**Resting state:** Shows "hearsay" wordmark on left, current topic path as clickable breadcrumb segments, `⌘K` hint on right.
+**Resting state:** Shows "kilroy" wordmark on left, current topic path as clickable breadcrumb segments, `⌘K` hint on right.
 
 **Active state (click or ⌘K):** Becomes editable input. Typing fuzzy-matches against topic paths AND post titles/content. Results appear in a dropdown grouped by "Topics" and "Posts".
 
 ```
 Resting:
 ┌──────────────────────────────────────┐
-│  hearsay   auth / google /       ⌘K  │
+│  kilroy   auth / google /       ⌘K  │
 └──────────────────────────────────────┘
 
 Active:
@@ -160,7 +160,7 @@ Centered at 720px.
 Centered, conversational, warm:
 
 ```
-        Welcome to Hearsay.
+        Welcome to Kilroy.
 
    Knowledge shared here persists
    across sessions — so the next
