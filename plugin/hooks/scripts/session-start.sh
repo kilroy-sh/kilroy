@@ -1,23 +1,26 @@
 #!/usr/bin/env bash
-set -eo pipefail
+
+# No set -e or pipefail — this hook must never fail.
+# A failed hook means no context injection and Kilroy becomes invisible.
 
 # Default server URL
 KILROY_URL="${KILROY_URL:-http://localhost:7432}"
 
 # Gather git context (may not be in a git repo)
-COMMIT=$(git rev-parse HEAD 2>/dev/null || echo "")
-BRANCH=$(git branch --show-current 2>/dev/null || echo "")
+COMMIT=$(git rev-parse HEAD 2>/dev/null || true)
+BRANCH=$(git branch --show-current 2>/dev/null || true)
 
 # Session identity
-SESSION_ID="claude-session-$(head -c 8 /dev/urandom | xxd -p 2>/dev/null || echo "unknown")"
+SESSION_ID="claude-session-$$"
 
-# Persist as env vars for the session (if CLAUDE_ENV_FILE is available)
-if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
-  echo "export KILROY_URL=$KILROY_URL" >> "$CLAUDE_ENV_FILE"
-  echo "export KILROY_COMMIT_SHA=$COMMIT" >> "$CLAUDE_ENV_FILE"
-  echo "export KILROY_BRANCH=$BRANCH" >> "$CLAUDE_ENV_FILE"
-  echo "export KILROY_SESSION_ID=$SESSION_ID" >> "$CLAUDE_ENV_FILE"
-  echo "export KILROY_CWD=${CLAUDE_PROJECT_DIR:-}" >> "$CLAUDE_ENV_FILE"
+# Persist as env vars for the session
+if [ -n "${CLAUDE_ENV_FILE:-}" ] && [ -f "${CLAUDE_ENV_FILE:-/dev/null}" ]; then
+  cat >> "$CLAUDE_ENV_FILE" <<ENVEOF
+export KILROY_URL=$KILROY_URL
+export KILROY_COMMIT_SHA=$COMMIT
+export KILROY_BRANCH=$BRANCH
+export KILROY_SESSION_ID=$SESSION_ID
+ENVEOF
 fi
 
 # Escape string for JSON embedding
@@ -31,12 +34,7 @@ escape_for_json() {
     printf '%s' "$s"
 }
 
-# Read skill content to inject
-PLUGIN_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")/../.." && pwd)"
-check_skill=$(cat "${PLUGIN_ROOT}/skills/check-knowledge/SKILL.md" 2>/dev/null || echo "")
-capture_skill=$(cat "${PLUGIN_ROOT}/skills/capture-knowledge/SKILL.md" 2>/dev/null || echo "")
-
-context="<kilroy>
+context='<kilroy>
 You have Kilroy — shared tribal knowledge from past agent sessions, teammates, and humans. It is NOT local memory. It persists across sessions, across machines, across the team.
 
 IMPORTANT: Kilroy vs local memory — Kilroy is for knowledge that would benefit OTHER sessions, teammates, or future agents. Local auto-memory is for personal preferences and session mechanics. When the user shares reusable context (a decision, a constraint, a fact about their stack), or when you complete an analysis or investigation, that belongs in Kilroy, not local memory.
@@ -62,16 +60,10 @@ WHEN TO COMMENT (use kilroy_comment):
 Do NOT ask the user whether to capture. If knowledge is worth preserving, just do it — the same way you would write to local memory without asking. Post first, mention it briefly to the user afterward.
 
 For detailed guidance on topic organization and metadata interpretation, invoke the kilroy:check-knowledge or kilroy:capture-knowledge skills.
-</kilroy>"
+</kilroy>'
 
 escaped=$(escape_for_json "$context")
 
-cat <<EOF
-{
-  "hookSpecificOutput": {
-    "additionalContext": "${escaped}"
-  }
-}
-EOF
+printf '{"hookSpecificOutput":{"additionalContext":"%s"}}\n' "$escaped"
 
 exit 0
