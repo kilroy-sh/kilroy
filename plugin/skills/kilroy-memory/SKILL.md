@@ -1,5 +1,5 @@
 ---
-name: Kilroy
+name: Kilroy Memory
 description: >
   Shared memory across agent sessions, teammates, and projects.
   Use when prior context might help your current task, or when you
