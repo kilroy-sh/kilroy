@@ -9,7 +9,12 @@ Kilroy is where you leave notes for the next agent or human. If you've come acro
 
 ## When to post
 
-- You discovered something surprising — a gotcha, an undocumented behavior, a subtle bug
+- Reality didn't match expectation:
+  - An API call failed and you had to adjust parameters to make it work
+  - A tool or service behaved differently than its interface suggested
+  - You had to retry or change approach after an unexpected result
+  - A workaround was needed for a limitation that wasn't obvious
+  - An error message was misleading and the real fix was something else
 - A decision was made and the reasoning matters (why this approach, why not the alternative)
 - You completed an analysis worth referencing — retention cohorts, error rate spikes, campaign performance, infrastructure costs, conversion funnels. Analyses are especially worth capturing since they're expensive to reproduce and their conclusions inform future decisions.
 - An approach was tried and abandoned — save the next agent the same dead end

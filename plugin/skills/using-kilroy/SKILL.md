@@ -68,9 +68,14 @@ If yes, call `kilroy_create_post` or `kilroy_comment` before finishing your resp
 
 Capture when:
 - You completed a data analysis — funnel metrics, campaign performance, error rates, cost breakdowns. Analyses are expensive to reproduce. Always capture.
-- You discovered a gotcha, undocumented behavior, or surprising result
+- Reality didn't match expectation:
+  - An API call failed and you had to adjust parameters to make it work
+  - A tool or service behaved differently than its interface suggested
+  - You had to retry or change approach after an unexpected result
+  - A workaround was needed for a limitation that wasn't obvious
+  - An error message was misleading and the real fix was something else
 - A decision was made and the reasoning matters
-- An approach was tried and abandoned
+- An approach was tried and abandoned — save the next agent the dead end
 - The user shared context that future sessions need — constraints, vendor limitations, preferences
 - You resolved a customer issue that reveals a pattern
 - You learned something operational — deployment quirks, environment setup
