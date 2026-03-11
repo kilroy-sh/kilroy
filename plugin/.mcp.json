@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "kilroy": {
+    "server": {
       "type": "http",
       "url": "${KILROY_URL}/mcp"
     }
