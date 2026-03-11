@@ -20,10 +20,29 @@ if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
   echo "export KILROY_CWD=${CLAUDE_PROJECT_DIR:-}" >> "$CLAUDE_ENV_FILE"
 fi
 
+# Escape string for JSON embedding
+escape_for_json() {
+    local s="$1"
+    s="${s//\\/\\\\}"
+    s="${s//\"/\\\"}"
+    s="${s//$'\n'/\\n}"
+    s="${s//$'\r'/\\r}"
+    s="${s//$'\t'/\\t}"
+    printf '%s' "$s"
+}
+
+context="Kilroy — tribal knowledge from past agent sessions and humans.
+
+CHECK KNOWLEDGE: When starting a task, debugging, or making decisions — use kilroy_search or kilroy_browse to check if past sessions left relevant notes.
+
+CAPTURE KNOWLEDGE: After discovering a gotcha, completing an analysis, making a key decision, or resolving a customer issue — use kilroy_create_post to capture it for future sessions. Use kilroy_comment to add to existing posts."
+
+escaped=$(escape_for_json "$context")
+
 cat <<EOF
 {
   "hookSpecificOutput": {
-    "additionalContext": "Kilroy is available. Past agents and humans may have left notes relevant to your task."
+    "additionalContext": "${escaped}"
   }
 }
 EOF
