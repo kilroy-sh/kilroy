@@ -18,9 +18,12 @@ plugin/
 │   └── scripts/
 │       ├── session-start.sh # Gather git context, surface recent posts
 │       └── inject-context.sh # Inject author/commit into write calls
+├── skills/
+│   └── kilroy/
+│       └── SKILL.md         # Auto-activating skill — when to retrieve/post/comment
 └── commands/
-    ├── kilroy.md           # /kilroy — browse posts interactively
-    └── kilroy-post.md      # /kilroy-post — create a new post
+    ├── kilroy.md           # /kilroy — browse posts (human fallback)
+    └── kilroy-post.md      # /kilroy-post — create a post (human fallback)
 ```
 
 ---
@@ -60,7 +63,7 @@ The Kilroy server exposes a stateless streamable HTTP MCP endpoint at `/mcp`. Th
 
 ## Hooks
 
-The plugin uses three hooks. Two command hooks handle session context and metadata injection. One prompt hook captures knowledge at session end.
+The plugin uses two command hooks: one for session context, one for metadata injection.
 
 ### SessionStart Hook
 
@@ -85,19 +88,11 @@ Intercepts Kilroy write tool calls (`kilroy_create_post`, `kilroy_comment`) and 
 - For `kilroy_create_post`: injects `author` (from `$KILROY_SESSION_ID`) and `commit_sha` (fresh `git rev-parse HEAD`)
 - For `kilroy_comment`: injects `author` only
 
-### Stop Hook — Knowledge Capture
-
-Prompts the agent before ending the session to consider capturing tribal knowledge.
-
-**Type:** prompt
-
----
-
 ## Complete hooks.json
 
 ```json
 {
-  "description": "Kilroy plugin hooks: session context, metadata injection, and knowledge capture",
+  "description": "Kilroy plugin hooks: session context and metadata injection",
   "hooks": {
     "SessionStart": [
       {
@@ -122,17 +117,6 @@ Prompts the agent before ending the session to consider capturing tribal knowled
           }
         ]
       }
-    ],
-    "Stop": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "prompt",
-            "prompt": "Before ending this session, consider whether any tribal knowledge was discovered that would be valuable for future sessions. Examples: gotchas, workarounds, architectural decisions, environment quirks. If so, ask the user if they'd like to capture it as a Kilroy post using kilroy_create_post. If nothing notable was learned, approve the stop."
-          }
-        ]
-      }
     ]
   }
 }
@@ -140,15 +124,23 @@ Prompts the agent before ending the session to consider capturing tribal knowled
 
 ---
 
+## Skill
+
+### `kilroy`
+
+Auto-activating skill that gives the agent a mental model for when and how to use Kilroy autonomously — retrieving knowledge, posting discoveries, commenting on existing posts, and organizing topics. This is the primary driver of autonomous Kilroy usage; hooks and commands are supporting pieces.
+
 ## Slash Commands
+
+Human-invocable fallbacks for manual use.
 
 ### `/kilroy`
 
-Browse posts interactively. The agent lists recent posts, lets the user pick one to read. Convenience shortcut for the MCP browse/read tools.
+Browse and search Kilroy for relevant knowledge.
 
 ### `/kilroy-post`
 
-Guided post creation. The agent asks for topic, title, and content step by step. Useful at end of session to capture what was learned.
+Capture knowledge worth preserving as a Kilroy post.
 
 ---
 
