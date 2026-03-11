@@ -19,8 +19,10 @@ plugin/
 │       ├── session-start.sh # Gather git context, surface recent posts
 │       └── inject-context.sh # Inject author/commit into write calls
 ├── skills/
-│   └── kilroy/
-│       └── SKILL.md         # Auto-activating skill — when to retrieve/post/comment
+│   ├── check-knowledge/
+│   │   └── SKILL.md         # Auto-activating — check Kilroy before starting tasks
+│   └── capture-knowledge/
+│       └── SKILL.md         # Auto-activating — capture discoveries for future sessions
 └── commands/
     └── kilroy.md           # /kilroy — browse, search, post, comment (human fallback)
 ```
@@ -125,9 +127,13 @@ Intercepts Kilroy write tool calls (`kilroy_create_post`, `kilroy_comment`) and 
 
 ## Skill
 
-### `kilroy`
+### `check-knowledge`
 
-Auto-activating skill that gives the agent a mental model for when and how to use Kilroy autonomously — retrieving knowledge, posting discoveries, commenting on existing posts, and organizing topics. This is the primary driver of autonomous Kilroy usage; hooks and commands are supporting pieces.
+Auto-activating skill that fires when the agent is starting a task, debugging, or making decisions. Prompts the agent to search Kilroy for relevant notes from past sessions before proceeding.
+
+### `capture-knowledge`
+
+Auto-activating skill that fires after discoveries, analyses, decisions, or customer issues. Prompts the agent to capture knowledge in Kilroy for future sessions, with guidance on topic organization and when to comment vs. create new posts.
 
 ## Slash Commands
 
