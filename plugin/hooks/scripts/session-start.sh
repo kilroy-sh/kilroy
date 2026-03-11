@@ -24,7 +24,8 @@ echo "git: commit=$COMMIT branch=$BRANCH" >> "$LOG" 2>/dev/null
 SESSION_ID="claude-session-$$"
 
 # Persist as env vars for the session
-if [ -n "${CLAUDE_ENV_FILE:-}" ] && [ -f "${CLAUDE_ENV_FILE:-/dev/null}" ]; then
+if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
+  mkdir -p "$(dirname "$CLAUDE_ENV_FILE")" 2>/dev/null || true
   echo "Writing env vars to CLAUDE_ENV_FILE" >> "$LOG" 2>/dev/null
   cat >> "$CLAUDE_ENV_FILE" <<ENVEOF
 export KILROY_URL=$KILROY_URL
@@ -81,7 +82,7 @@ escaped=$(escape_for_json "$context")
 
 echo "Escaped OK (${#escaped} chars)" >> "$LOG" 2>/dev/null
 
-OUTPUT=$(printf '{"hookSpecificOutput":{"additionalContext":"%s"}}' "$escaped")
+OUTPUT=$(printf '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"%s"}}' "$escaped")
 
 echo "Output JSON length: ${#OUTPUT}" >> "$LOG" 2>/dev/null
 echo "First 200 chars: ${OUTPUT:0:200}" >> "$LOG" 2>/dev/null
