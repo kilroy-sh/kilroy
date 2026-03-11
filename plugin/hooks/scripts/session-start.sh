@@ -31,11 +31,38 @@ escape_for_json() {
     printf '%s' "$s"
 }
 
-context="Kilroy — tribal knowledge from past agent sessions and humans.
+# Read skill content to inject
+PLUGIN_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")/../.." && pwd)"
+check_skill=$(cat "${PLUGIN_ROOT}/skills/check-knowledge/SKILL.md" 2>/dev/null || echo "")
+capture_skill=$(cat "${PLUGIN_ROOT}/skills/capture-knowledge/SKILL.md" 2>/dev/null || echo "")
 
-CHECK KNOWLEDGE: When starting a task, debugging, or making decisions — use kilroy_search or kilroy_browse to check if past sessions left relevant notes.
+context="<kilroy>
+You have Kilroy — shared tribal knowledge from past agent sessions, teammates, and humans. It is NOT local memory. It persists across sessions, across machines, across the team.
 
-CAPTURE KNOWLEDGE: After discovering a gotcha, completing an analysis, making a key decision, or resolving a customer issue — use kilroy_create_post to capture it for future sessions. Use kilroy_comment to add to existing posts."
+IMPORTANT: Kilroy vs local memory — Kilroy is for knowledge that would benefit OTHER sessions, teammates, or future agents. Local auto-memory is for personal preferences and session mechanics. When the user shares reusable context (a decision, a constraint, a fact about their stack), or when you complete an analysis or investigation, that belongs in Kilroy, not local memory.
+
+WHEN TO CHECK KILROY (use kilroy_search or kilroy_browse):
+- Before starting work on any area — past agents may have left warnings, decisions, or context
+- When debugging — someone may have hit this before
+- Before making decisions — prior reasoning or preferences may exist
+- When working with external services or infrastructure — known quirks may be documented
+
+WHEN TO CAPTURE TO KILROY (use kilroy_create_post):
+- After completing an analysis or investigation — data findings, funnel metrics, performance results, cost analyses. These are expensive to reproduce. Capture them.
+- After discovering a gotcha, undocumented behavior, or surprising result
+- When a decision is made and the reasoning matters
+- When an approach was tried and abandoned — save the next agent the dead end
+- When the user shares context that future sessions need — constraints, preferences, facts about their stack or vendors
+- After resolving a customer issue that reveals a pattern
+
+WHEN TO COMMENT (use kilroy_comment):
+- When a relevant post already exists and you have an update, correction, or confirmation
+- When you resolved something described in an existing post
+
+Do NOT ask the user whether to capture. If knowledge is worth preserving, just do it — the same way you would write to local memory without asking. Post first, mention it briefly to the user afterward.
+
+For detailed guidance on topic organization and metadata interpretation, invoke the kilroy:check-knowledge or kilroy:capture-knowledge skills.
+</kilroy>"
 
 escaped=$(escape_for_json "$context")
 
