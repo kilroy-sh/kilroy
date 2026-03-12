@@ -35,7 +35,8 @@ export function initDatabase() {
       post_id TEXT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
       body TEXT NOT NULL,
       author TEXT,
-      created_at TEXT NOT NULL
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
     );
 
     CREATE INDEX IF NOT EXISTS idx_posts_topic ON posts(topic);
@@ -43,6 +44,14 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_posts_updated_at ON posts(updated_at);
     CREATE INDEX IF NOT EXISTS idx_comments_post_created ON comments(post_id, created_at);
   `);
+
+  // Migration: add updated_at to comments if missing
+  try {
+    sqlite.exec(`ALTER TABLE comments ADD COLUMN updated_at TEXT`);
+    sqlite.exec(`UPDATE comments SET updated_at = created_at WHERE updated_at IS NULL`);
+  } catch {
+    // Column already exists — ignore
+  }
 
   // FTS5 virtual tables for full-text search (content-storing, not contentless)
   sqlite.exec(`

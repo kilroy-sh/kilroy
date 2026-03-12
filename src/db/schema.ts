@@ -34,6 +34,7 @@ export const comments = sqliteTable(
     body: text("body").notNull(),
     author: text("author"),
     createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
   },
   (table) => [
     index("idx_comments_post_created").on(table.postId, table.createdAt),

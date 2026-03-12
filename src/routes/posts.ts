@@ -40,6 +40,7 @@ postsRouter.get("/:id", (c) => {
       author: comment.author,
       body: comment.body,
       created_at: comment.createdAt,
+      updated_at: comment.updatedAt,
     })),
   });
 });
@@ -124,6 +125,7 @@ postsRouter.post("/:id/comments", async (c) => {
     body: body.body,
     author: body.author || null,
     createdAt: now,
+    updatedAt: now,
   };
 
   db.insert(comments).values(comment).run();
@@ -142,6 +144,7 @@ postsRouter.post("/:id/comments", async (c) => {
       post_id: comment.postId,
       author: comment.author,
       created_at: comment.createdAt,
+      updated_at: comment.updatedAt,
     },
     201
   );
