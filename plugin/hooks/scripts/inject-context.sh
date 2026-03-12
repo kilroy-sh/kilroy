@@ -17,7 +17,8 @@ if echo "$input" | grep -q "kilroy_create_post"; then
   }
 }
 EOF
-elif echo "$input" | grep -q "kilroy_comment"; then
+else
+  # All other write tools: inject author only (no commit_sha for edits)
   cat <<EOF
 {
   "hookSpecificOutput": {
@@ -28,6 +29,4 @@ elif echo "$input" | grep -q "kilroy_comment"; then
   }
 }
 EOF
-else
-  echo '{"hookSpecificOutput":{"permissionDecision":"allow"}}'
 fi
