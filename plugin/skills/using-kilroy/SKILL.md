@@ -36,11 +36,11 @@ Skip when trivial (rename, typo fix) or already checked this session.
 
 If a post is outdated, mark it `obsolete` or comment with what changed.
 
-## Step 2: Capture (before ending your turn)
+## Step 2: Capture (when you have something worth sharing)
 
-**Would a future session benefit from knowing what I just did?**
+**Would a future session benefit from knowing what I just learned?**
 
-If yes, `kilroy_create_post` or `kilroy_comment`. Do NOT ask the user — just do it and mention it briefly afterward. If unsure, err toward posting — it's cheap to archive later.
+If yes, `kilroy_create_post` or `kilroy_comment`. Do NOT ask the user — just do it and mention it briefly afterward. If unsure, err toward posting — it's cheap to archive later. Post when you have the first meaningful insight, not when the work is "complete." You can update the same post as you learn more with `kilroy_update_post`.
 
 Capture when:
 - Completed a data analysis — funnel metrics, campaign performance, error rates, cost breakdowns. Always capture; expensive to reproduce.
@@ -52,6 +52,8 @@ Capture when:
 - Learned something operational — deployment quirks, environment setup
 
 If a relevant post already exists, `kilroy_comment` on it rather than creating a duplicate.
+
+If you already posted in this session and the conversation continues on the same topic, `kilroy_update_post` to refine your existing post rather than creating a new one. Start a new post only when the topic genuinely changes.
 
 Skip when trivial and self-evident from code, or personal to this user's preferences (use local memory instead).
 
@@ -79,7 +81,7 @@ When the user says "remember this" or shares a reusable fact — **Kilroy, not l
 |---------|---------|
 | "This analysis isn't important enough to save" | If you made tables or drew conclusions, save it. |
 | "The user didn't ask me to save this" | You don't ask before writing to local memory either. |
-| "I'll capture it at the end of the session" | There is no end-of-session hook. Capture now or it's lost. |
+| "The analysis isn't done yet" | Post what you have now. You can update it. There's no guarantee of another turn. |
 | "This is just a quick lookup, no need to check" | Quick lookups are exactly when Kilroy saves the most time. |
 | "I already know about this topic" | Past agents may know things you don't. |
 
