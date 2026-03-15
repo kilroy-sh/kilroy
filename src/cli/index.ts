@@ -7,6 +7,7 @@ import {
   formatBrowse,
   formatPost,
   formatSearch,
+  formatFind,
   formatCreated,
   formatStatus,
   formatDeleted,
@@ -40,6 +41,7 @@ program
   .option("--order <dir>", "Sort direction: asc, desc", "desc")
   .option("-n, --limit <n>", "Max results (1-100)", "50")
   .option("--cursor <cursor>", "Pagination cursor")
+  .option("-q, --quiet", "Post IDs only", false)
   .option("--json", "Output raw JSON", false)
   .action(async (topic: string | undefined, opts) => {
     const params: Record<string, string> = {};
@@ -52,7 +54,7 @@ program
     if (opts.cursor) params.cursor = opts.cursor;
 
     const data = await client().browse(params);
-    output(data, { json: opts.json, formatter: formatBrowse });
+    output(data, { json: opts.json, quiet: opts.quiet, formatter: formatBrowse });
   });
 
 // ─── read ─────────────────────────────────────────────────────────
@@ -73,27 +75,24 @@ program
   .description("Full-text search")
   .option("-E, --regex", "Treat query as regex", false)
   .option("-t, --topic <topic>", "Restrict to topic prefix")
-  .option("--tag <tag>", "Filter by tag (repeatable)", collect, [])
-  .option("-s, --status <status>", "Filter: active, archived, obsolete, all", "active")
   .option("--sort <field>", "Sort: relevance, updated_at, created_at", "relevance")
   .option("--order <dir>", "Sort direction: asc, desc", "desc")
   .option("-n, --limit <n>", "Max results (1-100)", "20")
   .option("--cursor <cursor>", "Pagination cursor")
+  .option("-q, --quiet", "Post IDs only", false)
   .option("--json", "Output raw JSON", false)
   .action(async (query: string, topicArg: string | undefined, opts) => {
     const params: Record<string, string> = { query };
     const topic = opts.topic || topicArg;
     if (topic) params.topic = topic;
     if (opts.regex) params.regex = "true";
-    if (opts.tag.length) params.tags = opts.tag.join(",");
-    if (opts.status !== "active") params.status = opts.status;
     if (opts.sort !== "relevance") params.order_by = opts.sort;
     if (opts.order !== "desc") params.order = opts.order;
     if (opts.limit !== "20") params.limit = opts.limit;
     if (opts.cursor) params.cursor = opts.cursor;
 
     const data = await client().search(params);
-    output(data, { json: opts.json, formatter: formatSearch });
+    output(data, { json: opts.json, quiet: opts.quiet, formatter: formatSearch });
   });
 
 // ─── post ────────────────────────────────────────────────────────
@@ -131,7 +130,7 @@ program
     }
 
     const data = await client().createPost(payload);
-    output(data, { json: opts.json, formatter: (d) => formatCreated(d, `Created ${d.topic}: ${d.title}`) });
+    output(data, { json: opts.json, formatter: formatCreated });
   });
 
 // ─── comment ─────────────────────────────────────────────────────
@@ -163,7 +162,7 @@ program
     }
 
     const data = await client().createComment(postId, payload);
-    output(data, { json: opts.json, formatter: (d) => formatCreated(d, `Comment ${d.id}`) });
+    output(data, { json: opts.json, formatter: formatCreated });
   });
 
 // ─── status ──────────────────────────────────────────────────────
@@ -203,6 +202,98 @@ program
   .action(async (postId: string, opts) => {
     const data = await client().deletePost(postId);
     output(data, { json: opts.json, formatter: formatDeleted });
+  });
+
+// ─── find ───────────────────────────────────────────────────────
+
+program
+  .command("find [topic]")
+  .description("Search posts by metadata")
+  .option("-a, --author <author>", "Filter by author")
+  .option("--tag <tag>", "Filter by tag (repeatable)", collect, [])
+  .option("--since <date>", "Posts updated after date (ISO 8601)")
+  .option("--before <date>", "Posts updated before date")
+  .option("-f, --file <path>", "Posts referencing this file")
+  .option("--commit <sha>", "Posts from this commit")
+  .option("-s, --status <status>", "Filter: active, archived, obsolete, all", "active")
+  .option("--sort <field>", "Sort: updated_at, created_at, title", "updated_at")
+  .option("--order <dir>", "Sort direction: asc, desc", "desc")
+  .option("-n, --limit <n>", "Max results (1-100)", "20")
+  .option("--cursor <cursor>", "Pagination cursor")
+  .option("-q, --quiet", "Post IDs only", false)
+  .option("--json", "Full JSON response", false)
+  .action(async (topicArg: string | undefined, opts) => {
+    const params: Record<string, string | string[]> = {};
+    const topic = topicArg;
+    if (topic) params.topic = topic;
+    if (opts.author) params.author = opts.author;
+    if (opts.tag.length) params.tag = opts.tag;
+    if (opts.since) params.since = opts.since;
+    if (opts.before) params.before = opts.before;
+    if (opts.file) params.file = opts.file;
+    if (opts.commit) params.commit = opts.commit;
+    if (opts.status !== "active") params.status = opts.status;
+    if (opts.sort !== "updated_at") params.order_by = opts.sort;
+    if (opts.order !== "desc") params.order = opts.order;
+    if (opts.limit !== "20") params.limit = opts.limit;
+    if (opts.cursor) params.cursor = opts.cursor;
+
+    const data = await client().find(params);
+    output(data, { json: opts.json, quiet: opts.quiet, formatter: formatFind });
+  });
+
+// ─── edit ───────────────────────────────────────────────────────
+
+program
+  .command("edit <post_id> [comment_id]")
+  .description("Update a post or comment")
+  .option("--title <title>", "New title (posts only)")
+  .option("-b, --body <body>", "New body")
+  .option("--tag <tag>", "Replace tags (repeatable, posts only)", collect, [])
+  .option("--topic <topic>", "Move to new topic (posts only)")
+  .option("--author <author>", "Override author (must match original)")
+  .option("--json", "Full JSON response", false)
+  .action(async (postId: string, commentId: string | undefined, opts) => {
+    let body = opts.body;
+
+    // Read from stdin if no --body
+    if (!body && !process.stdin.isTTY) {
+      body = await readStdin();
+    }
+
+    const config = getConfig();
+    const author = opts.author || config.author;
+
+    if (commentId) {
+      // Edit comment
+      const payload: Record<string, any> = {};
+      if (body) payload.body = body;
+      if (author) payload.author = author;
+
+      if (!payload.body) {
+        console.error("Error: --body or stdin required when editing a comment.");
+        process.exit(1);
+      }
+
+      const data = await client().updateComment(postId, commentId, payload);
+      output(data, { json: opts.json, formatter: formatCreated });
+    } else {
+      // Edit post
+      const payload: Record<string, any> = {};
+      if (opts.title) payload.title = opts.title;
+      if (body) payload.body = body;
+      if (opts.tag.length) payload.tags = opts.tag;
+      if (opts.topic) payload.topic = opts.topic;
+      if (author) payload.author = author;
+
+      if (Object.keys(payload).length === 0 || (Object.keys(payload).length === 1 && payload.author)) {
+        console.error("Error: At least one field required: --title, --body, --tag, --topic.");
+        process.exit(1);
+      }
+
+      const data = await client().updatePost(postId, payload);
+      output(data, { json: opts.json, formatter: formatCreated });
+    }
   });
 
 // ─── helpers ─────────────────────────────────────────────────────
