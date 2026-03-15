@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { Command } from "commander";
-import { resolveConfig } from "./config";
+import { resolveConfig, CliConfig } from "./config";
 import { KilroyClient } from "./client";
 import {
   output,
@@ -20,10 +20,13 @@ program
   .version("0.1.0")
   .option("--server <url>", "Kilroy server URL");
 
-function client(): KilroyClient {
+function getConfig(): CliConfig {
   const opts = program.opts();
-  const config = resolveConfig({ server: opts.server });
-  return new KilroyClient(config.serverUrl);
+  return resolveConfig({ server: opts.server });
+}
+
+function client(): KilroyClient {
+  return new KilroyClient(getConfig().serverUrl);
 }
 
 // ─── ls ──────────────────────────────────────────────────────────
@@ -52,10 +55,10 @@ program
     output(data, { json: opts.json, formatter: formatBrowse });
   });
 
-// ─── cat ─────────────────────────────────────────────────────────
+// ─── read ─────────────────────────────────────────────────────────
 
 program
-  .command("cat <post_id>")
+  .command("read <post_id>")
   .description("Read a post and its comments")
   .option("--json", "Output raw JSON", false)
   .action(async (postId: string, opts) => {
@@ -112,13 +115,8 @@ program
       body = await readStdin();
     }
 
-    // Open $EDITOR if no body and stdin is a TTY
-    if (!body && process.stdin.isTTY) {
-      body = await openEditor();
-    }
-
     if (!body) {
-      console.error("Error: No body provided. Use --body, pipe stdin, or $EDITOR.");
+      console.error("Error: No body provided. Use --body or pipe stdin.");
       process.exit(1);
     }
 
@@ -126,6 +124,11 @@ program
     if (opts.tag.length) payload.tags = opts.tag;
     if (opts.author) payload.author = opts.author;
     if (opts.commitSha) payload.commit_sha = opts.commitSha;
+
+    if (!payload.author) {
+      const config = getConfig();
+      if (config.author) payload.author = config.author;
+    }
 
     const data = await client().createPost(payload);
     output(data, { json: opts.json, formatter: (d) => formatCreated(d, `Created ${d.topic}: ${d.title}`) });
@@ -146,17 +149,18 @@ program
       body = await readStdin();
     }
 
-    if (!body && process.stdin.isTTY) {
-      body = await openEditor();
-    }
-
     if (!body) {
-      console.error("Error: No body provided. Use --body, pipe stdin, or $EDITOR.");
+      console.error("Error: No body provided. Use --body or pipe stdin.");
       process.exit(1);
     }
 
     const payload: Record<string, any> = { body };
     if (opts.author) payload.author = opts.author;
+
+    if (!payload.author) {
+      const config = getConfig();
+      if (config.author) payload.author = config.author;
+    }
 
     const data = await client().createComment(postId, payload);
     output(data, { json: opts.json, formatter: (d) => formatCreated(d, `Comment ${d.id}`) });
@@ -195,18 +199,8 @@ for (const [cmd, targetStatus] of [
 program
   .command("rm <post_id>")
   .description("Permanently delete a post")
-  .option("-f, --force", "Skip confirmation", false)
   .option("--json", "Output raw JSON", false)
   .action(async (postId: string, opts) => {
-    if (!opts.force && process.stdin.isTTY) {
-      process.stdout.write(`Delete post ${postId}? [y/N] `);
-      const answer = await readLine();
-      if (answer.toLowerCase() !== "y") {
-        console.log("Aborted.");
-        process.exit(0);
-      }
-    }
-
     const data = await client().deletePost(postId);
     output(data, { json: opts.json, formatter: formatDeleted });
   });
@@ -224,39 +218,6 @@ async function readStdin(): Promise<string> {
     chunks.push(chunk);
   }
   return Buffer.concat(chunks).toString("utf-8").trim();
-}
-
-async function readLine(): Promise<string> {
-  return new Promise((resolve) => {
-    let data = "";
-    process.stdin.setEncoding("utf-8");
-    process.stdin.once("data", (chunk) => {
-      data += chunk;
-      resolve(data.trim());
-    });
-  });
-}
-
-async function openEditor(): Promise<string | undefined> {
-  const { tmpdir } = await import("os");
-  const { join } = await import("path");
-  const { writeFileSync, readFileSync, unlinkSync } = await import("fs");
-  const { spawnSync } = await import("child_process");
-
-  const editor = process.env.EDITOR || "vi";
-  const tmpFile = join(tmpdir(), `kilroy-${Date.now()}.md`);
-
-  writeFileSync(tmpFile, "");
-  const result = spawnSync(editor, [tmpFile], { stdio: "inherit" });
-
-  if (result.status !== 0) return undefined;
-
-  try {
-    const content = readFileSync(tmpFile, "utf-8").trim();
-    return content || undefined;
-  } finally {
-    try { unlinkSync(tmpFile); } catch {}
-  }
 }
 
 program.parse();

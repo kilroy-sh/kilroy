@@ -109,20 +109,20 @@ describe("kilroy ls", () => {
   });
 });
 
-// ─── cat ─────────────────────────────────────────────────────────
+// ─── read ─────────────────────────────────────────────────────────
 
-describe("kilroy cat", () => {
+describe("kilroy read", () => {
   it("reads a post with --json", async () => {
     const post = await apiPost("/api/posts", {
-      title: "CLI test cat",
+      title: "CLI test read",
       topic: "cli-test",
       body: "read me",
     });
 
-    const { stdout, code } = await cli("cat", post.id, "--json");
+    const { stdout, code } = await cli("read", post.id, "--json");
     expect(code).toBe(0);
     const data = JSON.parse(stdout);
-    expect(data.title).toBe("CLI test cat");
+    expect(data.title).toBe("CLI test read");
     expect(data.body).toBe("read me");
 
     await apiDelete(`/api/posts/${post.id}`);
@@ -137,7 +137,7 @@ describe("kilroy cat", () => {
     });
 
     // Even in non-TTY pipe mode, we get the piped format (body text)
-    const { stdout, code } = await cli("cat", post.id);
+    const { stdout, code } = await cli("read", post.id);
     expect(code).toBe(0);
     expect(stdout).toContain("formatted body");
 
@@ -145,7 +145,7 @@ describe("kilroy cat", () => {
   });
 
   it("exits 2 for non-existent post", async () => {
-    const { code, stderr } = await cli("cat", "nonexistent-id");
+    const { code, stderr } = await cli("read", "nonexistent-id");
     expect(code).toBe(2);
     expect(stderr).toContain("not found");
   });
@@ -297,20 +297,20 @@ describe("kilroy status", () => {
 // ─── rm ──────────────────────────────────────────────────────────
 
 describe("kilroy rm", () => {
-  it("deletes a post with --force", async () => {
+  it("deletes a post", async () => {
     const post = await apiPost("/api/posts", {
       title: "Delete me",
       topic: "cli-test",
       body: "body",
     });
 
-    const { stdout, code } = await cli("rm", post.id, "--force", "--json");
+    const { stdout, code } = await cli("rm", post.id, "--json");
     expect(code).toBe(0);
     const data = JSON.parse(stdout);
     expect(data.deleted).toBe(true);
 
     // Verify it's gone
-    const { code: catCode } = await cli("cat", post.id);
-    expect(catCode).toBe(2);
+    const { code: readCode } = await cli("read", post.id);
+    expect(readCode).toBe(2);
   });
 });
