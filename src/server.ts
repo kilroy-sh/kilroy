@@ -2,21 +2,38 @@ import { Hono } from "hono";
 import { serveStatic } from "hono/bun";
 import { initDatabase } from "./db";
 import { api } from "./routes/api";
+import { teamsRouter, joinHandler } from "./routes/teams";
+import { teamAuth } from "./middleware/team";
 import { createMcpServer } from "./mcp/server";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { existsSync, readFileSync } from "fs";
 import { resolve } from "path";
+import type { Env } from "./types";
 
 initDatabase();
 
 const app = new Hono();
 
-app.route("/api", api);
+// Team creation — no auth required
+app.route("/teams", teamsRouter);
+
+// Team-scoped routes
+const teamApp = new Hono<Env>();
+
+// Join page — validates token, sets cookie (no auth middleware — the join handler does its own validation)
+teamApp.route("/join", joinHandler);
+
+// Auth middleware for all other team routes
+teamApp.use("/api/*", teamAuth);
+teamApp.use("/mcp", teamAuth);
+
+// API routes
+teamApp.route("/api", api);
 
 // MCP endpoint — stateless streamable HTTP transport
-// Each request gets a fresh MCP server + transport pair (stateless mode)
-app.all("/mcp", async (c) => {
-  const mcp = createMcpServer();
+teamApp.all("/mcp", async (c) => {
+  const teamId = c.get("teamId");
+  const mcp = createMcpServer(teamId);
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
   });
@@ -28,12 +45,15 @@ app.all("/mcp", async (c) => {
 // Serve web UI static assets
 const webDistPath = resolve(import.meta.dir, "../web/dist");
 if (existsSync(webDistPath)) {
-  app.use("/assets/*", serveStatic({ root: webDistPath, rewriteRequestPath: (p) => p }));
+  teamApp.use("/assets/*", serveStatic({ root: webDistPath, rewriteRequestPath: (p) => p.replace(/^\/[^/]+/, "") }));
 
   // SPA fallback: serve index.html for all non-API, non-asset routes
   const indexHtml = readFileSync(resolve(webDistPath, "index.html"), "utf-8");
-  app.get("*", (c) => c.html(indexHtml));
+  teamApp.get("*", (c) => c.html(indexHtml));
 }
+
+// Mount team routes under /:team
+app.route("/:team", teamApp);
 
 const port = parseInt(process.env.KILROY_PORT || "7432");
 
