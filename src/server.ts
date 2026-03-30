@@ -10,7 +10,7 @@ import { existsSync, readFileSync } from "fs";
 import { resolve } from "path";
 import type { Env } from "./types";
 
-initDatabase();
+await initDatabase();
 
 const app = new Hono();
 

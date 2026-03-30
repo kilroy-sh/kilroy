@@ -11,8 +11,8 @@ export function formatPost(post: {
   author: string | null;
   files: string | null;
   commitSha: string | null;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: Date;
+  updatedAt: Date;
 }) {
   return {
     id: post.id,
@@ -23,7 +23,7 @@ export function formatPost(post: {
     author: post.author,
     files: post.files ? JSON.parse(post.files) : [],
     commit_sha: post.commitSha,
-    created_at: post.createdAt,
-    updated_at: post.updatedAt,
+    created_at: post.createdAt.toISOString(),
+    updated_at: post.updatedAt.toISOString(),
   };
 }

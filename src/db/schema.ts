@@ -1,13 +1,13 @@
-import { sqliteTable, text, index } from "drizzle-orm/sqlite-core";
+import { pgTable, text, index, timestamp } from "drizzle-orm/pg-core";
 
-export const teams = sqliteTable("teams", {
+export const teams = pgTable("teams", {
   id: text("id").primaryKey(),
   slug: text("slug").notNull().unique(),
   projectKeyHash: text("project_key_hash").notNull(),
-  createdAt: text("created_at").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const posts = sqliteTable(
+export const posts = pgTable(
   "posts",
   {
     id: text("id").primaryKey(),
@@ -24,8 +24,8 @@ export const posts = sqliteTable(
     author: text("author"),
     files: text("files"), // JSON array of file paths
     commitSha: text("commit_sha"),
-    createdAt: text("created_at").notNull(),
-    updatedAt: text("updated_at").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_posts_team_id").on(table.teamId),
@@ -35,7 +35,7 @@ export const posts = sqliteTable(
   ]
 );
 
-export const comments = sqliteTable(
+export const comments = pgTable(
   "comments",
   {
     id: text("id").primaryKey(),
@@ -47,8 +47,8 @@ export const comments = sqliteTable(
       .references(() => posts.id, { onDelete: "cascade" }),
     body: text("body").notNull(),
     author: text("author"),
-    createdAt: text("created_at").notNull(),
-    updatedAt: text("updated_at").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_comments_post_created").on(table.postId, table.createdAt),

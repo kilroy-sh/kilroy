@@ -1,26 +1,20 @@
-import { Database } from "bun:sqlite";
-import { drizzle } from "drizzle-orm/bun-sqlite";
+import postgres from "postgres";
+import { drizzle } from "drizzle-orm/postgres-js";
 import * as schema from "./schema";
 
-const DB_PATH = process.env.KILROY_DB_PATH || "kilroy.db";
+const DATABASE_URL = process.env.DATABASE_URL || "postgres://kilroy:kilroy@localhost:5432/kilroy";
 
-const sqlite = new Database(DB_PATH);
+export const client = postgres(DATABASE_URL);
+export const db = drizzle(client, { schema });
 
-// Enable WAL mode for better concurrent read performance
-sqlite.exec("PRAGMA journal_mode = WAL");
-sqlite.exec("PRAGMA foreign_keys = ON");
-
-export const db = drizzle(sqlite, { schema });
-export { sqlite };
-
-export function initDatabase() {
+export async function initDatabase() {
   // Create tables
-  sqlite.exec(`
+  await client.unsafe(`
     CREATE TABLE IF NOT EXISTS teams (
       id TEXT PRIMARY KEY,
       slug TEXT NOT NULL UNIQUE,
       project_key_hash TEXT NOT NULL,
-      created_at TEXT NOT NULL
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
 
     CREATE TABLE IF NOT EXISTS posts (
@@ -34,8 +28,9 @@ export function initDatabase() {
       author TEXT,
       files TEXT,
       commit_sha TEXT,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
+      search_vector TSVECTOR,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
 
     CREATE TABLE IF NOT EXISTS comments (
@@ -44,55 +39,64 @@ export function initDatabase() {
       post_id TEXT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
       body TEXT NOT NULL,
       author TEXT,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
+      search_vector TSVECTOR,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
+  `);
 
+  // Indexes
+  await client.unsafe(`
     CREATE INDEX IF NOT EXISTS idx_posts_team_id ON posts(team_id);
     CREATE INDEX IF NOT EXISTS idx_posts_team_topic ON posts(team_id, topic);
     CREATE INDEX IF NOT EXISTS idx_posts_status ON posts(status);
     CREATE INDEX IF NOT EXISTS idx_posts_updated_at ON posts(updated_at);
     CREATE INDEX IF NOT EXISTS idx_comments_post_created ON comments(post_id, created_at);
+    CREATE INDEX IF NOT EXISTS idx_posts_search ON posts USING GIN(search_vector);
+    CREATE INDEX IF NOT EXISTS idx_comments_search ON comments USING GIN(search_vector);
   `);
 
-  // Migration: add updated_at to comments if missing
-  try {
-    sqlite.exec(`ALTER TABLE comments ADD COLUMN updated_at TEXT`);
-    sqlite.exec(`UPDATE comments SET updated_at = created_at WHERE updated_at IS NULL`);
-  } catch {
-    // Column already exists — ignore
-  }
+  // Full-text search triggers for posts
+  await client.unsafe(`
+    CREATE OR REPLACE FUNCTION posts_search_vector_update() RETURNS trigger AS $$
+    BEGIN
+      NEW.search_vector :=
+        setweight(to_tsvector('english', coalesce(NEW.title, '')), 'A') ||
+        setweight(to_tsvector('english', coalesce(NEW.body, '')), 'B');
+      RETURN NEW;
+    END
+    $$ LANGUAGE plpgsql;
 
-  // Migration: add team_id to posts if missing
-  try {
-    sqlite.exec(`ALTER TABLE posts ADD COLUMN team_id TEXT REFERENCES teams(id)`);
-  } catch {
-    // Column already exists — ignore
-  }
-
-  // Migration: add team_id to comments if missing
-  try {
-    sqlite.exec(`ALTER TABLE comments ADD COLUMN team_id TEXT REFERENCES teams(id)`);
-  } catch {
-    // Column already exists — ignore
-  }
-
-  // FTS5 virtual tables for full-text search (content-storing, not contentless)
-  sqlite.exec(`
-    CREATE VIRTUAL TABLE IF NOT EXISTS posts_fts USING fts5(
-      post_id UNINDEXED,
-      title,
-      body,
-      tokenize='porter unicode61'
-    );
+    DROP TRIGGER IF EXISTS posts_search_vector_trigger ON posts;
+    CREATE TRIGGER posts_search_vector_trigger
+      BEFORE INSERT OR UPDATE OF title, body ON posts
+      FOR EACH ROW EXECUTE FUNCTION posts_search_vector_update();
   `);
 
-  sqlite.exec(`
-    CREATE VIRTUAL TABLE IF NOT EXISTS comments_fts USING fts5(
-      comment_id UNINDEXED,
-      post_id UNINDEXED,
-      body,
-      tokenize='porter unicode61'
-    );
+  // Full-text search triggers for comments
+  await client.unsafe(`
+    CREATE OR REPLACE FUNCTION comments_search_vector_update() RETURNS trigger AS $$
+    BEGIN
+      NEW.search_vector := to_tsvector('english', coalesce(NEW.body, ''));
+      RETURN NEW;
+    END
+    $$ LANGUAGE plpgsql;
+
+    DROP TRIGGER IF EXISTS comments_search_vector_trigger ON comments;
+    CREATE TRIGGER comments_search_vector_trigger
+      BEFORE INSERT OR UPDATE OF body ON comments
+      FOR EACH ROW EXECUTE FUNCTION comments_search_vector_update();
+  `);
+
+  // Backfill search_vector for any existing rows that have NULL vectors
+  await client.unsafe(`
+    UPDATE posts SET search_vector =
+      setweight(to_tsvector('english', coalesce(title, '')), 'A') ||
+      setweight(to_tsvector('english', coalesce(body, '')), 'B')
+    WHERE search_vector IS NULL;
+
+    UPDATE comments SET search_vector =
+      to_tsvector('english', coalesce(body, ''))
+    WHERE search_vector IS NULL;
   `);
 }
