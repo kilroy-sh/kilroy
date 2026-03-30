@@ -1,10 +1,10 @@
 import { Hono } from "hono";
-import { sqlite } from "../db";
+import { client } from "../db";
 import type { Env } from "../types";
 
 export const findRouter = new Hono<Env>();
 
-findRouter.get("/", (c) => {
+findRouter.get("/", async (c) => {
   const author = c.req.query("author");
   const tags = c.req.queries("tag") || [];
   const since = c.req.query("since");
@@ -30,37 +30,39 @@ findRouter.get("/", (c) => {
   const teamId = c.get("teamId");
 
   // Build SQL query — always scoped to team
-  const conditions: string[] = ["team_id = ?"];
+  const conditions: string[] = ["team_id = $1"];
   const params: any[] = [teamId];
+  let paramIdx = 2;
 
   if (author) {
-    conditions.push("author = ?");
+    conditions.push(`author = $${paramIdx++}`);
     params.push(author);
   }
 
   if (commit) {
-    conditions.push("commit_sha = ?");
+    conditions.push(`commit_sha = $${paramIdx++}`);
     params.push(commit);
   }
 
   if (since) {
-    conditions.push("updated_at >= ?");
+    conditions.push(`updated_at >= $${paramIdx++}`);
     params.push(since);
   }
 
   if (before) {
-    conditions.push("updated_at <= ?");
+    conditions.push(`updated_at <= $${paramIdx++}`);
     params.push(before);
   }
 
   if (status !== "all") {
-    conditions.push("status = ?");
+    conditions.push(`status = $${paramIdx++}`);
     params.push(status);
   }
 
   if (topic) {
-    conditions.push("(topic = ? OR topic LIKE ?)");
+    conditions.push(`(topic = $${paramIdx} OR topic LIKE $${paramIdx + 1})`);
     params.push(topic, `${topic}/%`);
+    paramIdx += 2;
   }
 
   const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
@@ -70,7 +72,7 @@ findRouter.get("/", (c) => {
   const sortDir = order === "asc" ? "ASC" : "DESC";
 
   const query = `SELECT * FROM posts ${where} ORDER BY ${sortCol} ${sortDir}, id ${sortDir}`;
-  let rows = sqlite.prepare(query).all(...params) as any[];
+  let rows = await client.unsafe(query, params) as any[];
 
   // Post-query filters (tags, file) — these require JSON parsing
   if (tags.length > 0) {
@@ -105,8 +107,8 @@ findRouter.get("/", (c) => {
     author: row.author,
     files: row.files ? JSON.parse(row.files) : [],
     commit_sha: row.commit_sha,
-    created_at: row.created_at,
-    updated_at: row.updated_at,
+    created_at: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
+    updated_at: row.updated_at instanceof Date ? row.updated_at.toISOString() : row.updated_at,
   }));
 
   const response: any = { results };

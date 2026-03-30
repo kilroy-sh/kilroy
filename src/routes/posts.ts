@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { eq, and, asc } from "drizzle-orm";
-import { db, sqlite } from "../db";
+import { db } from "../db";
 import { posts, comments } from "../db/schema";
 import { uuidv7 } from "../lib/uuid";
 import { extractFilePaths } from "../lib/files";
@@ -10,21 +10,20 @@ import type { Env } from "../types";
 export const postsRouter = new Hono<Env>();
 
 // GET /posts/:id — Read a post with all comments
-postsRouter.get("/:id", (c) => {
+postsRouter.get("/:id", async (c) => {
   const postId = c.req.param("id");
   const teamId = c.get("teamId");
 
-  const post = db.select().from(posts).where(and(eq(posts.id, postId), eq(posts.teamId, teamId))).get();
+  const [post] = await db.select().from(posts).where(and(eq(posts.id, postId), eq(posts.teamId, teamId)));
   if (!post) {
     return c.json({ error: "Post not found", code: "NOT_FOUND" }, 404);
   }
 
-  const postComments = db
+  const postComments = await db
     .select()
     .from(comments)
     .where(eq(comments.postId, postId))
-    .orderBy(asc(comments.createdAt))
-    .all();
+    .orderBy(asc(comments.createdAt));
 
   // Compute contributors
   const contributorSet = new Set<string>();
@@ -41,8 +40,8 @@ postsRouter.get("/:id", (c) => {
       id: comment.id,
       author: comment.author,
       body: comment.body,
-      created_at: comment.createdAt,
-      updated_at: comment.updatedAt,
+      created_at: comment.createdAt.toISOString(),
+      updated_at: comment.updatedAt.toISOString(),
     })),
   });
 });
@@ -59,7 +58,7 @@ postsRouter.post("/", async (c) => {
   }
 
   const teamId = c.get("teamId");
-  const now = new Date().toISOString();
+  const now = new Date();
   const id = uuidv7();
   const files = extractFilePaths(body.body);
 
@@ -78,12 +77,9 @@ postsRouter.post("/", async (c) => {
     updatedAt: now,
   };
 
-  db.insert(posts).values(post).run();
+  await db.insert(posts).values(post);
 
-  // Index in FTS
-  sqlite.exec(
-    `INSERT INTO posts_fts(post_id, title, body) VALUES ('${id}', '${escapeSql(body.title)}', '${escapeSql(body.body)}')`
-  );
+  // FTS search_vector is updated automatically by database trigger
 
   return c.json(
     {
@@ -95,8 +91,8 @@ postsRouter.post("/", async (c) => {
       author: post.author,
       files,
       commit_sha: post.commitSha,
-      created_at: post.createdAt,
-      updated_at: post.updatedAt,
+      created_at: post.createdAt.toISOString(),
+      updated_at: post.updatedAt.toISOString(),
     },
     201
   );
@@ -117,12 +113,12 @@ postsRouter.post("/:id/comments", async (c) => {
   const teamId = c.get("teamId");
 
   // Check post exists and belongs to this team
-  const post = db.select().from(posts).where(and(eq(posts.id, postId), eq(posts.teamId, teamId))).get();
+  const [post] = await db.select().from(posts).where(and(eq(posts.id, postId), eq(posts.teamId, teamId)));
   if (!post) {
     return c.json({ error: "Post not found", code: "NOT_FOUND" }, 404);
   }
 
-  const now = new Date().toISOString();
+  const now = new Date();
   const id = uuidv7();
 
   const comment = {
@@ -135,23 +131,20 @@ postsRouter.post("/:id/comments", async (c) => {
     updatedAt: now,
   };
 
-  db.insert(comments).values(comment).run();
+  await db.insert(comments).values(comment);
 
   // Update post's updated_at
-  db.update(posts).set({ updatedAt: now }).where(eq(posts.id, postId)).run();
+  await db.update(posts).set({ updatedAt: now }).where(eq(posts.id, postId));
 
-  // Index comment in FTS
-  sqlite.exec(
-    `INSERT INTO comments_fts(comment_id, post_id, body) VALUES ('${id}', '${postId}', '${escapeSql(body.body)}')`
-  );
+  // FTS search_vector is updated automatically by database trigger
 
   return c.json(
     {
       id: comment.id,
       post_id: comment.postId,
       author: comment.author,
-      created_at: comment.createdAt,
-      updated_at: comment.updatedAt,
+      created_at: comment.createdAt.toISOString(),
+      updated_at: comment.updatedAt.toISOString(),
     },
     201
   );
@@ -173,9 +166,8 @@ postsRouter.patch("/:id/comments/:commentId", async (c) => {
   const teamId = c.get("teamId");
 
   // Find the comment and verify it belongs to this post and team
-  const comment = db.select().from(comments)
-    .where(and(eq(comments.id, commentId), eq(comments.teamId, teamId)))
-    .get();
+  const [comment] = await db.select().from(comments)
+    .where(and(eq(comments.id, commentId), eq(comments.teamId, teamId)));
 
   if (!comment || comment.postId !== postId) {
     return c.json({ error: "Comment not found", code: "NOT_FOUND" }, 404);
@@ -189,30 +181,23 @@ postsRouter.patch("/:id/comments/:commentId", async (c) => {
     );
   }
 
-  const now = new Date().toISOString();
+  const now = new Date();
 
-  // Update comment
-  db.update(comments)
+  // Update comment (trigger auto-updates search_vector)
+  await db.update(comments)
     .set({ body: body.body, updatedAt: now })
-    .where(eq(comments.id, commentId))
-    .run();
+    .where(eq(comments.id, commentId));
 
   // Update parent post's updated_at
-  db.update(posts).set({ updatedAt: now }).where(eq(posts.id, postId)).run();
-
-  // Update FTS index
-  sqlite.exec(`DELETE FROM comments_fts WHERE comment_id = '${escapeSql(commentId)}'`);
-  sqlite.exec(
-    `INSERT INTO comments_fts(comment_id, post_id, body) VALUES ('${escapeSql(commentId)}', '${escapeSql(postId)}', '${escapeSql(body.body)}')`
-  );
+  await db.update(posts).set({ updatedAt: now }).where(eq(posts.id, postId));
 
   return c.json({
     id: commentId,
     post_id: postId,
     body: body.body,
     author: comment.author,
-    created_at: comment.createdAt,
-    updated_at: now,
+    created_at: comment.createdAt.toISOString(),
+    updated_at: now.toISOString(),
   });
 });
 
@@ -252,7 +237,7 @@ postsRouter.patch("/:id", async (c) => {
   }
 
   const teamId = c.get("teamId");
-  const post = db.select().from(posts).where(and(eq(posts.id, postId), eq(posts.teamId, teamId))).get();
+  const [post] = await db.select().from(posts).where(and(eq(posts.id, postId), eq(posts.teamId, teamId)));
   if (!post) {
     return c.json({ error: "Post not found", code: "NOT_FOUND" }, 404);
   }
@@ -282,7 +267,7 @@ postsRouter.patch("/:id", async (c) => {
   }
 
   // Build update set
-  const now = new Date().toISOString();
+  const now = new Date();
   const updates: Record<string, any> = { updatedAt: now };
 
   if (body.title !== undefined) updates.title = body.title;
@@ -297,44 +282,27 @@ postsRouter.patch("/:id", async (c) => {
     updates.files = files.length > 0 ? JSON.stringify(files) : null;
   }
 
-  db.update(posts).set(updates).where(eq(posts.id, postId)).run();
-
-  // Update FTS if body or title changed
-  if (body.body !== undefined || body.title !== undefined) {
-    sqlite.exec(`DELETE FROM posts_fts WHERE post_id = '${escapeSql(postId)}'`);
-    const newTitle = body.title !== undefined ? body.title : post.title;
-    const newBody = body.body !== undefined ? body.body : post.body;
-    sqlite.exec(
-      `INSERT INTO posts_fts(post_id, title, body) VALUES ('${escapeSql(postId)}', '${escapeSql(newTitle)}', '${escapeSql(newBody)}')`
-    );
-  }
+  // Trigger auto-updates search_vector when title or body changes
+  await db.update(posts).set(updates).where(eq(posts.id, postId));
 
   // Read back the full post for response
-  const updated = db.select().from(posts).where(eq(posts.id, postId)).get()!;
+  const [updated] = await db.select().from(posts).where(eq(posts.id, postId));
   return c.json(formatPost(updated));
 });
 
 // DELETE /posts/:id — Permanently delete a post and all comments
-postsRouter.delete("/:id", (c) => {
+postsRouter.delete("/:id", async (c) => {
   const postId = c.req.param("id");
 
   const teamId = c.get("teamId");
-  const post = db.select().from(posts).where(and(eq(posts.id, postId), eq(posts.teamId, teamId))).get();
+  const [post] = await db.select().from(posts).where(and(eq(posts.id, postId), eq(posts.teamId, teamId)));
   if (!post) {
     return c.json({ error: "Post not found", code: "NOT_FOUND" }, 404);
   }
 
-  // Delete from FTS indexes
-  sqlite.exec(`DELETE FROM posts_fts WHERE post_id = '${escapeSql(postId)}'`);
-  sqlite.exec(`DELETE FROM comments_fts WHERE post_id = '${escapeSql(postId)}'`);
-
   // Delete comments then post (cascade should handle this, but be explicit)
-  db.delete(comments).where(eq(comments.postId, postId)).run();
-  db.delete(posts).where(eq(posts.id, postId)).run();
+  await db.delete(comments).where(eq(comments.postId, postId));
+  await db.delete(posts).where(eq(posts.id, postId));
 
   return c.json({ deleted: true, post_id: postId });
 });
-
-function escapeSql(str: string): string {
-  return str.replace(/'/g, "''");
-}

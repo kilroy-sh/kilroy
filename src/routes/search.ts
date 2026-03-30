@@ -1,11 +1,10 @@
 import { Hono } from "hono";
-import { sql } from "drizzle-orm";
-import { db, sqlite } from "../db";
+import { client } from "../db";
 import type { Env } from "../types";
 
 export const searchRouter = new Hono<Env>();
 
-searchRouter.get("/", (c) => {
+searchRouter.get("/", async (c) => {
   const query = c.req.query("query");
   if (!query) {
     return c.json(
@@ -31,7 +30,7 @@ searchRouter.get("/", (c) => {
   return ftsSearch(c, { query, teamId, topic, tagsParam, status, orderBy, limit, cursor });
 });
 
-function ftsSearch(
+async function ftsSearch(
   c: any,
   opts: {
     query: string;
@@ -45,55 +44,47 @@ function ftsSearch(
   }
 ) {
   const { query, teamId, topic, tagsParam, status, orderBy, limit, cursor } = opts;
+  const tsquery = toTsquery(query);
 
-  // Search posts FTS (joined to posts for team scoping)
-  const postMatches = sqlite
-    .prepare(
-      `
-      SELECT
-        pf.post_id,
-        snippet(posts_fts, 2, '**', '**', '...', 40) as snippet,
-        pf.rank,
-        'title_or_body' as match_location
-      FROM posts_fts pf
-      JOIN posts p ON p.id = pf.post_id
-      WHERE posts_fts MATCH ?
-        AND p.team_id = ?
-      ORDER BY pf.rank
-      LIMIT ?
-    `
-    )
-    .all(escapeQuery(query), teamId, limit * 2) as Array<{
+  // Search posts using tsvector
+  const postMatches = await client.unsafe(`
+    SELECT
+      p.id as post_id,
+      ts_headline('english', p.body, to_tsquery('english', $1),
+        'StartSel=**, StopSel=**, MaxFragments=1, MaxWords=40') as snippet,
+      ts_rank(p.search_vector, to_tsquery('english', $1)) as rank,
+      ts_headline('english', p.title, to_tsquery('english', $1),
+        'StartSel=**, StopSel=**') as title_headline
+    FROM posts p
+    WHERE p.search_vector @@ to_tsquery('english', $1)
+      AND p.team_id = $2
+    ORDER BY rank DESC
+    LIMIT $3
+  `, [tsquery, teamId, limit * 2]) as Array<{
     post_id: string;
     snippet: string;
     rank: number;
-    match_location: string;
+    title_headline: string;
   }>;
 
-  // Search comments FTS (joined to comments for team scoping)
-  const commentMatches = sqlite
-    .prepare(
-      `
-      SELECT
-        cf.post_id,
-        cf.comment_id,
-        snippet(comments_fts, 2, '**', '**', '...', 40) as snippet,
-        cf.rank,
-        'comment' as match_location
-      FROM comments_fts cf
-      JOIN comments cm ON cm.id = cf.comment_id
-      WHERE comments_fts MATCH ?
-        AND cm.team_id = ?
-      ORDER BY cf.rank
-      LIMIT ?
-    `
-    )
-    .all(escapeQuery(query), teamId, limit * 2) as Array<{
+  // Search comments using tsvector
+  const commentMatches = await client.unsafe(`
+    SELECT
+      cm.post_id,
+      cm.id as comment_id,
+      ts_headline('english', cm.body, to_tsquery('english', $1),
+        'StartSel=**, StopSel=**, MaxFragments=1, MaxWords=40') as snippet,
+      ts_rank(cm.search_vector, to_tsquery('english', $1)) as rank
+    FROM comments cm
+    WHERE cm.search_vector @@ to_tsquery('english', $1)
+      AND cm.team_id = $2
+    ORDER BY rank DESC
+    LIMIT $3
+  `, [tsquery, teamId, limit * 2]) as Array<{
     post_id: string;
     comment_id: string;
     snippet: string;
     rank: number;
-    match_location: string;
   }>;
 
   // Merge and dedupe by post_id, keeping best match per post
@@ -104,25 +95,18 @@ function ftsSearch(
 
   for (const m of postMatches) {
     const existing = bestByPost.get(m.post_id);
-    if (!existing || m.rank < existing.rank) {
-      // Check if match is in title by also checking title FTS
-      const titleMatch = sqlite
-        .prepare(
-          `SELECT snippet(posts_fts, 1, '**', '**', '...', 40) as snippet FROM posts_fts WHERE post_id = ? AND posts_fts MATCH ?`
-        )
-        .get(m.post_id, escapeQuery(query)) as { snippet: string } | undefined;
-
+    if (!existing || m.rank > existing.rank) {
       bestByPost.set(m.post_id, {
         snippet: m.snippet,
         rank: m.rank,
-        match_location: titleMatch?.snippet?.includes("**") ? "title" : "body",
+        match_location: m.title_headline?.includes("**") ? "title" : "body",
       });
     }
   }
 
   for (const m of commentMatches) {
     const existing = bestByPost.get(m.post_id);
-    if (!existing || m.rank < existing.rank) {
+    if (!existing || m.rank > existing.rank) {
       bestByPost.set(m.post_id, {
         snippet: m.snippet,
         rank: m.rank,
@@ -137,25 +121,29 @@ function ftsSearch(
     return c.json({ query, results: [], has_more: false });
   }
 
-  const placeholders = postIds.map(() => "?").join(",");
-  let postQuery = `SELECT * FROM posts WHERE id IN (${placeholders}) AND team_id = ?`;
+  const placeholders = postIds.map((_, i) => `$${i + 1}`).join(",");
+  let postQuery = `SELECT * FROM posts WHERE id IN (${placeholders}) AND team_id = $${postIds.length + 1}`;
   const params: any[] = [...postIds, teamId];
+  let paramIdx = postIds.length + 2;
 
   if (status !== "all") {
-    postQuery += ` AND status = ?`;
+    postQuery += ` AND status = $${paramIdx++}`;
     params.push(status);
   }
   if (topic) {
-    postQuery += ` AND (topic = ? OR topic LIKE ?)`;
+    postQuery += ` AND (topic = $${paramIdx} OR topic LIKE $${paramIdx + 1})`;
     params.push(topic, `${topic}/%`);
+    paramIdx += 2;
   }
 
-  const matchedPosts = sqlite.prepare(postQuery).all(...params) as Array<{
+  const matchedPosts = await client.unsafe(postQuery, params) as Array<{
     id: string;
     title: string;
     topic: string;
     status: string;
     tags: string | null;
+    updated_at: Date;
+    created_at: Date;
   }>;
 
   // Apply tag filter
@@ -181,8 +169,8 @@ function ftsSearch(
       match_location: match.match_location,
       rank: i + 1,
       _sort_rank: match.rank,
-      _updated_at: (p as any).updated_at,
-      _created_at: (p as any).created_at,
+      _updated_at: p.updated_at instanceof Date ? p.updated_at.toISOString() : p.updated_at,
+      _created_at: p.created_at instanceof Date ? p.created_at.toISOString() : p.created_at,
     };
   });
 
@@ -191,7 +179,7 @@ function ftsSearch(
   } else if (orderBy === "created_at") {
     results.sort((a, b) => b._created_at.localeCompare(a._created_at));
   } else {
-    results.sort((a, b) => a._sort_rank - b._sort_rank);
+    results.sort((a, b) => b._sort_rank - a._sort_rank);
   }
 
   // Apply cursor (offset-based for simplicity since FTS ranks aren't stable)
@@ -225,7 +213,7 @@ function ftsSearch(
   return c.json(response);
 }
 
-function regexSearch(
+async function regexSearch(
   c: any,
   opts: {
     query: string;
@@ -240,62 +228,49 @@ function regexSearch(
 ) {
   const { query, teamId, topic, tagsParam, status, orderBy, limit, cursor } = opts;
 
-  // For regex, we search directly against the posts and comments tables
-  let postQuery = `SELECT * FROM posts WHERE team_id = ? AND (title REGEXP ? OR body REGEXP ?)`;
+  // PostgreSQL native regex with ~* (case-insensitive)
+  let postQuery = `SELECT * FROM posts WHERE team_id = $1 AND (title ~* $2 OR body ~* $3)`;
   const params: any[] = [teamId, query, query];
+  let paramIdx = 4;
 
   if (status !== "all") {
-    postQuery += ` AND status = ?`;
+    postQuery += ` AND status = $${paramIdx++}`;
     params.push(status);
   }
   if (topic) {
-    postQuery += ` AND (topic = ? OR topic LIKE ?)`;
+    postQuery += ` AND (topic = $${paramIdx} OR topic LIKE $${paramIdx + 1})`;
     params.push(topic, `${topic}/%`);
+    paramIdx += 2;
   }
 
-  // SQLite doesn't have REGEXP by default in all builds, so we fall back
-  // to LIKE with % wildcards if REGEXP fails
-  let matchedPosts: any[];
-  try {
-    matchedPosts = sqlite.prepare(postQuery).all(...params);
-  } catch {
-    // Fallback: treat as LIKE pattern
-    const likeQuery = postQuery.replace(/REGEXP/g, "LIKE");
-    const likePattern = `%${query}%`;
-    matchedPosts = sqlite.prepare(likeQuery).all(teamId, likePattern, likePattern, ...params.slice(3));
-  }
+  let matchedPosts = await client.unsafe(postQuery, params) as any[];
 
   // Also search comments (scoped to team)
-  let commentPostIds: string[] = [];
-  try {
-    const commentResults = sqlite
-      .prepare(`SELECT DISTINCT post_id FROM comments WHERE team_id = ? AND body REGEXP ?`)
-      .all(teamId, query) as Array<{ post_id: string }>;
-    commentPostIds = commentResults.map((r) => r.post_id);
-  } catch {
-    const commentResults = sqlite
-      .prepare(`SELECT DISTINCT post_id FROM comments WHERE team_id = ? AND body LIKE ?`)
-      .all(teamId, `%${query}%`) as Array<{ post_id: string }>;
-    commentPostIds = commentResults.map((r) => r.post_id);
-  }
+  const commentResults = await client.unsafe(
+    `SELECT DISTINCT post_id FROM comments WHERE team_id = $1 AND body ~* $2`,
+    [teamId, query]
+  ) as Array<{ post_id: string }>;
+  const commentPostIds = commentResults.map((r) => r.post_id);
 
   // Merge post IDs
-  const allPostIds = new Set(matchedPosts.map((p) => p.id));
+  const allPostIds = new Set(matchedPosts.map((p: any) => p.id));
   const commentOnlyIds = commentPostIds.filter((id) => !allPostIds.has(id));
 
   if (commentOnlyIds.length > 0) {
-    const placeholders = commentOnlyIds.map(() => "?").join(",");
-    let extraQuery = `SELECT * FROM posts WHERE id IN (${placeholders}) AND team_id = ?`;
+    const placeholders = commentOnlyIds.map((_, i) => `$${i + 1}`).join(",");
+    let extraQuery = `SELECT * FROM posts WHERE id IN (${placeholders}) AND team_id = $${commentOnlyIds.length + 1}`;
     const extraParams: any[] = [...commentOnlyIds, teamId];
+    let extraIdx = commentOnlyIds.length + 2;
     if (status !== "all") {
-      extraQuery += ` AND status = ?`;
+      extraQuery += ` AND status = $${extraIdx++}`;
       extraParams.push(status);
     }
     if (topic) {
-      extraQuery += ` AND (topic = ? OR topic LIKE ?)`;
+      extraQuery += ` AND (topic = $${extraIdx} OR topic LIKE $${extraIdx + 1})`;
       extraParams.push(topic, `${topic}/%`);
+      extraIdx += 2;
     }
-    const extraPosts = sqlite.prepare(extraQuery).all(...extraParams) as any[];
+    const extraPosts = await client.unsafe(extraQuery, extraParams) as any[];
     matchedPosts.push(...extraPosts);
   }
 
@@ -328,6 +303,9 @@ function regexSearch(
       snippet = "Match found in comments";
     }
 
+    const updatedAt = p.updated_at instanceof Date ? p.updated_at.toISOString() : p.updated_at;
+    const createdAt = p.created_at instanceof Date ? p.created_at.toISOString() : p.created_at;
+
     return {
       post_id: p.id,
       title: p.title,
@@ -337,8 +315,8 @@ function regexSearch(
       snippet,
       match_location: matchLocation,
       rank: 0,
-      _updated_at: p.updated_at,
-      _created_at: p.created_at,
+      _updated_at: updatedAt,
+      _created_at: createdAt,
     };
   });
 
@@ -377,12 +355,14 @@ function regexSearch(
   return c.json(response);
 }
 
-function escapeQuery(query: string): string {
-  // Escape special FTS5 characters, then wrap each word in double quotes
+/**
+ * Convert a user search query into a PostgreSQL tsquery string.
+ * Each word is joined with & (AND) for matching all terms.
+ */
+function toTsquery(query: string): string {
   return query
-    .replace(/['"\\]/g, "")
+    .replace(/['"\\:&|!()]/g, "")
     .split(/\s+/)
     .filter(Boolean)
-    .map((word) => `"${word}"`)
-    .join(" ");
+    .join(" & ");
 }

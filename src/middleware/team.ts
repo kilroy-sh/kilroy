@@ -15,7 +15,7 @@ export const teamAuth = createMiddleware<Env>(async (c, next) => {
   const authHeader = c.req.header("Authorization");
   if (authHeader?.startsWith("Bearer ")) {
     const token = authHeader.slice(7);
-    const result = validateKey(slug, token);
+    const result = await validateKey(slug, token);
     if (result.valid) {
       c.set("teamId", result.teamId);
       c.set("teamSlug", slug);
@@ -26,7 +26,7 @@ export const teamAuth = createMiddleware<Env>(async (c, next) => {
   // Try session cookie (web UI)
   const cookie = getCookie(c.req.raw, "klry_session");
   if (cookie) {
-    const result = validateKey(slug, cookie);
+    const result = await validateKey(slug, cookie);
     if (result.valid) {
       c.set("teamId", result.teamId);
       c.set("teamSlug", slug);

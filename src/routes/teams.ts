@@ -20,7 +20,7 @@ teamsRouter.post("/", async (c) => {
   }
 
   try {
-    const team = createTeam(body.slug);
+    const team = await createTeam(body.slug);
     const baseUrl = new URL(c.req.url).origin;
 
     return c.json(
@@ -46,8 +46,8 @@ teamsRouter.post("/", async (c) => {
 // GET /:team/join — Validate token and set session cookie
 export const joinHandler = new Hono();
 
-joinHandler.get("/", (c) => {
-  const slug = c.req.param("team");
+joinHandler.get("/", async (c) => {
+  const slug = c.req.param("team")!;
   const token = c.req.query("token");
 
   if (!token) {
@@ -57,7 +57,7 @@ joinHandler.get("/", (c) => {
     );
   }
 
-  const result = validateKey(slug, token);
+  const result = await validateKey(slug, token);
   if (!result.valid) {
     return c.json(
       { error: "Invalid project key", code: "UNAUTHORIZED" },

@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { db, sqlite } from "../db";
+import { db } from "../db";
 import { teams } from "../db/schema";
 import { uuidv7 } from "../lib/uuid";
 
@@ -51,42 +51,38 @@ export function validateSlug(slug: string): { valid: boolean; error?: string } {
   return { valid: true };
 }
 
-export function createTeam(slug: string): {
+export async function createTeam(slug: string): Promise<{
   slug: string;
   id: string;
   projectKey: string;
-} {
+}> {
   const validation = validateSlug(slug);
   if (!validation.valid) {
     throw new Error(validation.error);
   }
 
-  const existing = db.select().from(teams).where(eq(teams.slug, slug)).get();
+  const [existing] = await db.select().from(teams).where(eq(teams.slug, slug));
   if (existing) {
     throw new Error(`Team "${slug}" already exists`);
   }
 
   const id = uuidv7();
   const projectKey = generateProjectKey();
-  const now = new Date().toISOString();
 
-  db.insert(teams)
-    .values({
-      id,
-      slug,
-      projectKeyHash: hashKey(projectKey),
-      createdAt: now,
-    })
-    .run();
+  await db.insert(teams).values({
+    id,
+    slug,
+    projectKeyHash: hashKey(projectKey),
+  });
 
   return { slug, id, projectKey };
 }
 
-export function validateKey(
+export async function validateKey(
   slug: string,
   key: string
-): { valid: true; teamId: string } | { valid: false } {
-  const team = db.select().from(teams).where(eq(teams.slug, slug)).get();
+): Promise<{ valid: true; teamId: string } | { valid: false }> {
+  const [team] = await db.select().from(teams).where(eq(teams.slug, slug));
   if (!team) {
     return { valid: false };
   }
@@ -99,15 +95,15 @@ export function validateKey(
   return { valid: true, teamId: team.id };
 }
 
-export function teamExists(slug: string): boolean {
-  const team = db.select().from(teams).where(eq(teams.slug, slug)).get();
+export async function teamExists(slug: string): Promise<boolean> {
+  const [team] = await db.select().from(teams).where(eq(teams.slug, slug));
   return !!team;
 }
 
-export function getTeamBySlug(
+export async function getTeamBySlug(
   slug: string
-): { id: string; slug: string; createdAt: string } | null {
-  const team = db.select().from(teams).where(eq(teams.slug, slug)).get();
+): Promise<{ id: string; slug: string; createdAt: string } | null> {
+  const [team] = await db.select().from(teams).where(eq(teams.slug, slug));
   if (!team) return null;
-  return { id: team.id, slug: team.slug, createdAt: team.createdAt };
+  return { id: team.id, slug: team.slug, createdAt: team.createdAt.toISOString() };
 }
