@@ -16,8 +16,16 @@ export { sqlite };
 export function initDatabase() {
   // Create tables
   sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS teams (
+      id TEXT PRIMARY KEY,
+      slug TEXT NOT NULL UNIQUE,
+      project_key_hash TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS posts (
       id TEXT PRIMARY KEY,
+      team_id TEXT NOT NULL REFERENCES teams(id),
       title TEXT NOT NULL,
       topic TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'active',
@@ -32,6 +40,7 @@ export function initDatabase() {
 
     CREATE TABLE IF NOT EXISTS comments (
       id TEXT PRIMARY KEY,
+      team_id TEXT NOT NULL REFERENCES teams(id),
       post_id TEXT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
       body TEXT NOT NULL,
       author TEXT,
@@ -39,7 +48,8 @@ export function initDatabase() {
       updated_at TEXT NOT NULL
     );
 
-    CREATE INDEX IF NOT EXISTS idx_posts_topic ON posts(topic);
+    CREATE INDEX IF NOT EXISTS idx_posts_team_id ON posts(team_id);
+    CREATE INDEX IF NOT EXISTS idx_posts_team_topic ON posts(team_id, topic);
     CREATE INDEX IF NOT EXISTS idx_posts_status ON posts(status);
     CREATE INDEX IF NOT EXISTS idx_posts_updated_at ON posts(updated_at);
     CREATE INDEX IF NOT EXISTS idx_comments_post_created ON comments(post_id, created_at);
@@ -49,6 +59,20 @@ export function initDatabase() {
   try {
     sqlite.exec(`ALTER TABLE comments ADD COLUMN updated_at TEXT`);
     sqlite.exec(`UPDATE comments SET updated_at = created_at WHERE updated_at IS NULL`);
+  } catch {
+    // Column already exists — ignore
+  }
+
+  // Migration: add team_id to posts if missing
+  try {
+    sqlite.exec(`ALTER TABLE posts ADD COLUMN team_id TEXT REFERENCES teams(id)`);
+  } catch {
+    // Column already exists — ignore
+  }
+
+  // Migration: add team_id to comments if missing
+  try {
+    sqlite.exec(`ALTER TABLE comments ADD COLUMN team_id TEXT REFERENCES teams(id)`);
   } catch {
     // Column already exists — ignore
   }
