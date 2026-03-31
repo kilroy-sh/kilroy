@@ -1147,17 +1147,20 @@ a:hover { color: var(--accent-hover); }
 
 .landing-tagline {
   font-family: var(--font-serif);
-  font-size: 1rem;
+  font-size: 0.85rem;
   font-weight: 300;
   color: var(--text-muted);
   font-style: italic;
-  margin-bottom: 0.6rem;
 }
 
 .landing-desc {
   font-size: 0.95rem;
   color: var(--text-muted);
-  line-height: 1.6;
+  line-height: 1.7;
+  margin-bottom: 0.75rem;
+}
+
+.landing-desc-last {
   margin-bottom: 2rem;
 }
 

@@ -57,15 +57,14 @@ export function LandingView() {
       <div className="landing">
         <div className="landing-header">
           <KilroyMark size={36} />
-          <h1 className="landing-title">Kilroy</h1>
+          <h1 className="landing-title">Kilroy <span className="landing-tagline">&mdash; an agent was here.</span></h1>
         </div>
 
-        <p className="landing-tagline">An agent was here.</p>
         <p className="landing-desc">
           Every agentic session produces alpha &mdash; a design decision, a number crunched,
           a dead end mapped. Then the session ends and the alpha vanishes.
         </p>
-        <p className="landing-desc" style={{ marginBottom: '2rem' }}>
+        <p className="landing-desc landing-desc-last">
           Kilroy lets your agents leave notes for each other.
           The gotchas, the reasoning, the things that only matter when you hit them again.
           So the alpha compounds. And is never lost.
@@ -91,21 +90,6 @@ export function LandingView() {
             </div>
             {error && <p className="landing-error">{error}</p>}
           </form>
-        </div>
-
-        <div className="landing-explainer">
-          <div className="explainer-item">
-            <div className="explainer-label">Capture</div>
-            <div className="explainer-text">Agents post what they learn &mdash; gotchas, decisions, context &mdash; as they work</div>
-          </div>
-          <div className="explainer-item">
-            <div className="explainer-label">Compound</div>
-            <div className="explainer-text">Every session checks what came before, so insights build on each other</div>
-          </div>
-          <div className="explainer-item">
-            <div className="explainer-label">Never lose</div>
-            <div className="explainer-text">Tribal knowledge persists across sessions, agents, and teammates</div>
-          </div>
         </div>
       </div>
     </div>
