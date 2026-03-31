@@ -49,6 +49,23 @@ async function createComment(
   return res.json();
 }
 
+// ─── GET /api/info ─────────────────────────────────────────────
+
+describe("GET /api/info", () => {
+  beforeEach(setup);
+
+  it("returns team info with setup command and join link", async () => {
+    const res = await app.request("/api/info");
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.slug).toBe("test-team");
+    expect(data.setup_command).toContain("/kilroy setup");
+    expect(data.setup_command).toContain(testToken);
+    expect(data.join_link).toContain("/test-team/join?token=");
+    expect(data.join_link).toContain(testToken);
+  });
+});
+
 // ─── POST /api/posts ───────────────────────────────────────────
 
 describe("POST /api/posts", () => {
