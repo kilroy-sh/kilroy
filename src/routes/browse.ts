@@ -127,7 +127,12 @@ async function getSubtopics(
   const prefixLen = prefix.length;
 
   // Build the CTE query with PostgreSQL string functions
-  const statusCondition = status !== "all" ? `AND status = '${status}'` : "";
+  const params: any[] = [prefix + "%", teamId, prefixLen];
+  let statusCondition = "";
+  if (status !== "all") {
+    params.push(status);
+    statusCondition = `AND status = $${params.length}`;
+  }
 
   const rows = await client.unsafe(`
     WITH child_posts AS (
@@ -158,7 +163,7 @@ async function getSubtopics(
     WHERE subtopic != ''
     GROUP BY subtopic
     ORDER BY max(updated_at) DESC
-  `, [prefix + "%", teamId, prefixLen]);
+  `, params);
 
   return rows.map((row: any) => {
     // Parse and dedupe tags from all posts

@@ -49,7 +49,11 @@ teamsRouter.post("/", async (c) => {
 export const joinApiHandler = new Hono<Env>();
 
 joinApiHandler.get("/", async (c) => {
-  const slug = c.req.param("team") || c.get("teamSlug");
+  // Extract team slug from URL path — this handler is mounted at /:team/api/join
+  // but Hono child routers don't inherit parent route params, and auth middleware
+  // (which sets teamSlug) is intentionally bypassed for this endpoint.
+  const url = new URL(c.req.url);
+  const slug = url.pathname.split("/")[1];
   const token = c.req.query("token");
 
   if (!token) {
