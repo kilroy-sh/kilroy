@@ -31,6 +31,24 @@ function client(): KilroyClient {
   return new KilroyClient(config.serverUrl, config.token || undefined);
 }
 
+// ─── team create ────────────────────────────────────────────────
+
+program
+  .command("team-create <slug>")
+  .description("Create a new team")
+  .option("--json", "Output raw JSON", false)
+  .action(async (slug: string, opts) => {
+    const data = await client().createTeam(slug);
+    if (opts.json) {
+      console.log(JSON.stringify(data, null, 2));
+    } else {
+      console.log(`Team "${data.slug}" created.`);
+      console.log();
+      console.log(`Join link:     ${data.join_url}`);
+      console.log(`Setup command: claude -p "/plugin marketplace add srijanpatel/kilroy" && claude -p "/plugin install kilroy@kilroy-marketplace" && claude -p "/kilroy-setup ${data.team_url} ${data.project_key}"`);
+    }
+  });
+
 // ─── ls ──────────────────────────────────────────────────────────
 
 program

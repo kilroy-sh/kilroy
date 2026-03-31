@@ -5,6 +5,18 @@ export class KilroyClient {
     this.token = token;
   }
 
+  async createTeam(slug: string): Promise<any> {
+    // POST /teams lives at the server root, not under a team path.
+    // Strip any team slug from the base URL to get the root.
+    const url = new URL(this.baseUrl);
+    const rootUrl = url.origin;
+    return this.request(`${rootUrl}/teams`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug }),
+    });
+  }
+
   async browse(params: Record<string, string>): Promise<any> {
     return this.get("/api/browse", params);
   }
