@@ -14,6 +14,20 @@ await initDatabase();
 
 const app = new Hono();
 
+// Serve web UI static assets at root level (for LandingView) and team level
+const webDistPath = resolve(import.meta.dir, "../web/dist");
+const indexHtml = existsSync(webDistPath)
+  ? readFileSync(resolve(webDistPath, "index.html"), "utf-8")
+  : null;
+
+if (indexHtml) {
+  // Root-level assets (JS/CSS bundles for the landing page)
+  app.use("/assets/*", serveStatic({ root: webDistPath }));
+
+  // Landing page — SPA shell at root
+  app.get("/", (c) => c.html(indexHtml));
+}
+
 // Team creation — no auth required
 app.route("/teams", teamsRouter);
 
@@ -42,13 +56,9 @@ teamApp.all("/mcp", async (c) => {
   return response;
 });
 
-// Serve web UI static assets
-const webDistPath = resolve(import.meta.dir, "../web/dist");
-if (existsSync(webDistPath)) {
+// Team-level static assets and SPA fallback
+if (indexHtml) {
   teamApp.use("/assets/*", serveStatic({ root: webDistPath, rewriteRequestPath: (p) => p.replace(/^\/[^/]+/, "") }));
-
-  // SPA fallback: serve index.html for all non-API, non-asset routes
-  const indexHtml = readFileSync(resolve(webDistPath, "index.html"), "utf-8");
   teamApp.get("*", (c) => c.html(indexHtml));
 }
 
