@@ -3,7 +3,7 @@ import { pgTable, text, index, timestamp } from "drizzle-orm/pg-core";
 export const teams = pgTable("teams", {
   id: text("id").primaryKey(),
   slug: text("slug").notNull().unique(),
-  projectKeyHash: text("project_key_hash").notNull(),
+  projectKey: text("project_key").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

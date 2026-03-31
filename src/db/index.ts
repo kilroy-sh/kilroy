@@ -13,7 +13,7 @@ export async function initDatabase() {
     CREATE TABLE IF NOT EXISTS teams (
       id TEXT PRIMARY KEY,
       slug TEXT NOT NULL UNIQUE,
-      project_key_hash TEXT NOT NULL,
+      project_key TEXT NOT NULL,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
 

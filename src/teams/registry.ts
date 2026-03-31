@@ -22,12 +22,6 @@ const RESERVED_SLUGS = new Set([
   "settings",
 ]);
 
-function hashKey(key: string): string {
-  const hasher = new Bun.CryptoHasher("sha256");
-  hasher.update(key);
-  return hasher.digest("hex");
-}
-
 function generateProjectKey(): string {
   const bytes = new Uint8Array(16);
   crypto.getRandomValues(bytes);
@@ -72,7 +66,7 @@ export async function createTeam(slug: string): Promise<{
   await db.insert(teams).values({
     id,
     slug,
-    projectKeyHash: hashKey(projectKey),
+    projectKey,
   });
 
   return { slug, id, projectKey };
@@ -87,17 +81,11 @@ export async function validateKey(
     return { valid: false };
   }
 
-  const keyHash = hashKey(key);
-  if (keyHash !== team.projectKeyHash) {
+  if (key !== team.projectKey) {
     return { valid: false };
   }
 
   return { valid: true, teamId: team.id };
-}
-
-export async function teamExists(slug: string): Promise<boolean> {
-  const [team] = await db.select().from(teams).where(eq(teams.slug, slug));
-  return !!team;
 }
 
 export async function getTeamBySlug(
@@ -106,4 +94,9 @@ export async function getTeamBySlug(
   const [team] = await db.select().from(teams).where(eq(teams.slug, slug));
   if (!team) return null;
   return { id: team.id, slug: team.slug, createdAt: team.createdAt.toISOString() };
+}
+
+export async function getTeamProjectKey(teamId: string): Promise<string | null> {
+  const [team] = await db.select().from(teams).where(eq(teams.id, teamId));
+  return team?.projectKey ?? null;
 }
