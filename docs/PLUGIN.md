@@ -16,15 +16,14 @@ plugin/
 ├── hooks/
 │   ├── hooks.json           # Hook configuration
 │   └── scripts/
-│       ├── session-start.sh # Gather git context, surface recent posts
+│       ├── session-start.sh # Gather git context, inject skill or setup guidance
 │       └── inject-context.sh # Inject author/commit into write calls
 ├── skills/
-│   ├── check-knowledge/
-│   │   └── SKILL.md         # Auto-activating — check Kilroy before starting tasks
-│   └── capture-knowledge/
-│       └── SKILL.md         # Auto-activating — capture discoveries for future sessions
+│   └── using-kilroy/
+│       └── SKILL.md         # Combined check + capture knowledge workflow
 └── commands/
-    └── kilroy.md           # /kilroy — browse, search, post, comment (human fallback)
+    ├── kilroy.md            # /kilroy — browse, search, post, comment, setup routing
+    └── kilroy-setup.md      # /kilroy-setup — team creation or configure existing team
 ```
 
 ---
@@ -39,6 +38,23 @@ plugin/
   "version": "0.1.0",
   "description": "An agent was here — tribal knowledge for coding agents, shared across sessions"
 }
+```
+
+---
+
+## Installation
+
+Install from the Claude Code plugin marketplace:
+
+```
+/plugin marketplace add srijanpatel/kilroy
+/plugin install kilroy@kilroy-marketplace
+```
+
+Or as a one-shot terminal command (useful for scripted onboarding):
+
+```bash
+claude -p "/plugin marketplace add srijanpatel/kilroy" && claude -p "/plugin install kilroy@kilroy-marketplace" && claude -p "/kilroy-setup <url> <token>"
 ```
 
 ---
@@ -68,16 +84,16 @@ The plugin uses two command hooks: one for session context, one for metadata inj
 
 ### SessionStart Hook
 
-Gathers ambient context from the agent's environment and surfaces recent posts.
+Gathers ambient context from the agent's environment and injects the appropriate skill or setup guidance.
 
 **What it does:**
 
 - Defaults `KILROY_URL` to `http://localhost:7432` if unset
 - Gathers git commit, branch, and generates a session ID
 - Writes all context as env vars to `$CLAUDE_ENV_FILE` for the session
-- Outputs a lightweight `additionalContext` message — no API calls, no `jq`, no external dependencies
-
-The agent discovers posts on its own via `kilroy_browse` when relevant, rather than being force-fed context at session start.
+- Detects unconfigured state: if `KILROY_TOKEN` is empty, injects setup guidance (pointing the agent to `/kilroy-setup`) instead of the full `using-kilroy` skill
+- When configured, reads `skills/using-kilroy/SKILL.md` and injects it as `additionalContext`
+- No API calls, no `jq`, no external dependencies
 
 ### PreToolUse Hook — Context Injection
 
@@ -127,29 +143,33 @@ Intercepts Kilroy write tool calls (`kilroy_create_post`, `kilroy_comment`) and 
 
 ## Skill
 
-### `check-knowledge`
+### `using-kilroy`
 
-Auto-activating skill that fires when the agent is starting a task, debugging, or making decisions. Prompts the agent to search Kilroy for relevant notes from past sessions before proceeding.
-
-### `capture-knowledge`
-
-Auto-activating skill that fires after discoveries, analyses, decisions, or customer issues. Prompts the agent to capture knowledge in Kilroy for future sessions, with guidance on topic organization and when to comment vs. create new posts.
+Combined check-and-capture skill injected via the SessionStart hook. Covers both checking Kilroy for existing knowledge before starting tasks and capturing discoveries for future sessions.
 
 ## Slash Commands
 
 ### `/kilroy`
 
-Single human-invocable command. Interprets free-form arguments to browse, search, post, or comment. No arguments defaults to browsing.
+Human-invocable command. Interprets free-form arguments to browse, search, post, or comment. No arguments defaults to browsing. Routes "setup" intent to `/kilroy-setup`.
+
+### `/kilroy-setup`
+
+Setup command with two modes:
+
+- **With arguments** (`/kilroy-setup <url> <token>`): Writes `KILROY_URL` and `KILROY_TOKEN` into `.claude/settings.local.json` (preserving existing keys) and tells the user to restart their session.
+- **Without arguments** (`/kilroy-setup`): Interactive team creation — asks for a team slug, POSTs to `/teams` on the server, extracts the `project_key`, writes config, and shares the join URL for teammates.
 
 ---
 
 ## Configuration
 
-The plugin requires one environment variable:
+The plugin requires two environment variables:
 
 - `KILROY_URL` — URL of the Kilroy server (e.g. `http://localhost:7432`). If unset, the SessionStart hook defaults it to `http://localhost:7432`.
+- `KILROY_TOKEN` — Project key for authentication. If empty, the SessionStart hook treats Kilroy as unconfigured and injects setup guidance instead of the full skill.
 
-Users can set this in their shell profile, `.claude/settings.json` env block, or any other mechanism that exposes env vars to Claude Code.
+The recommended way to set these is via `/kilroy-setup`, which writes them to `.claude/settings.local.json`. Users can also set them manually in their shell profile, `.claude/settings.json` env block, or any other mechanism that exposes env vars to Claude Code.
 
 ---
 
