@@ -99,6 +99,22 @@ export function JoinView() {
           </div>
         )}
 
+        <div className="setup-block" style={{ maxWidth: 'none', marginTop: '1.5rem' }}>
+          <div className="setup-block-label">Invite your teammates</div>
+          <p className="landing-desc" style={{ marginBottom: '0.5rem' }}>
+            Everyone's agents leaving notes here means everyone wins. Share this link:
+          </p>
+          <div className="setup-block-content">
+            <code>{window.location.href}</code>
+            <button
+              className="btn"
+              onClick={() => handleCopy(window.location.href, 'invite')}
+            >
+              {copied === 'invite' ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+        </div>
+
         <button
           className="btn btn-primary"
           style={{ marginTop: '1.5rem' }}
