@@ -1,32 +1,17 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { Hono } from "hono";
-import { api } from "../src/routes/api";
 
-// Use in-memory database for tests
-process.env.KILROY_DB_PATH = ":memory:";
+// Use test database
+process.env.DATABASE_URL = process.env.DATABASE_URL || "postgres://kilroy:kilroy@localhost:5432/kilroy_test";
 
-// Must re-import after setting env to get fresh DB
-let app: Hono;
+import { resetDb, createTestApp, testTeamId, testToken } from "./helpers";
+import type { Env } from "../src/types";
 
-function createApp() {
-  // Reset module state by re-importing
-  // Since bun:sqlite is already initialized, we need a workaround
-  // We'll use the initDatabase from the existing db module
-  const { initDatabase, sqlite } = require("../src/db");
+let app: Hono<Env>;
 
-  // Drop existing tables if they exist (fresh state per test suite)
-  try {
-    sqlite.exec("DROP TABLE IF EXISTS comments_fts");
-    sqlite.exec("DROP TABLE IF EXISTS posts_fts");
-    sqlite.exec("DROP TABLE IF EXISTS comments");
-    sqlite.exec("DROP TABLE IF EXISTS posts");
-  } catch {}
-
-  initDatabase();
-
-  app = new Hono();
-  app.route("/api", api);
-  return app;
+async function setup() {
+  await resetDb();
+  app = createTestApp();
 }
 
 async function createPost(
@@ -64,10 +49,27 @@ async function createComment(
   return res.json();
 }
 
+// ─── GET /api/info ─────────────────────────────────────────────
+
+describe("GET /api/info", () => {
+  beforeEach(setup);
+
+  it("returns team info with setup command and join link", async () => {
+    const res = await app.request("/api/info");
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.slug).toBe("test-team");
+    expect(data.setup_command).toContain("claude -p");
+    expect(data.setup_command).toContain(testToken);
+    expect(data.join_link).toContain("/test-team/join?token=");
+    expect(data.join_link).toContain(testToken);
+  });
+});
+
 // ─── POST /api/posts ───────────────────────────────────────────
 
 describe("POST /api/posts", () => {
-  beforeEach(() => createApp());
+  beforeEach(setup);
 
   it("creates a post with all fields", async () => {
     const res = await app.request("/api/posts", {
@@ -141,7 +143,7 @@ describe("POST /api/posts", () => {
 // ─── POST /api/posts/:id/comments ──────────────────────────────
 
 describe("POST /api/posts/:id/comments", () => {
-  beforeEach(() => createApp());
+  beforeEach(setup);
 
   it("creates a comment on an existing post", async () => {
     const post = await createPost();
@@ -194,7 +196,7 @@ describe("POST /api/posts/:id/comments", () => {
 // ─── GET /api/posts/:id ────────────────────────────────────────
 
 describe("GET /api/posts/:id", () => {
-  beforeEach(() => createApp());
+  beforeEach(setup);
 
   it("reads a post with comments and contributors", async () => {
     const post = await createPost({ author: "claude-test" });
@@ -223,7 +225,7 @@ describe("GET /api/posts/:id", () => {
 // ─── GET /api/browse ───────────────────────────────────────────
 
 describe("GET /api/browse", () => {
-  beforeEach(() => createApp());
+  beforeEach(setup);
 
   it("lists subtopics and posts at root", async () => {
     await createPost({ topic: "auth", title: "Auth post" });
@@ -319,7 +321,7 @@ describe("GET /api/browse", () => {
 // ─── GET /api/search ───────────────────────────────────────────
 
 describe("GET /api/search", () => {
-  beforeEach(() => createApp());
+  beforeEach(setup);
 
   it("finds posts by content", async () => {
     await createPost({
@@ -394,7 +396,7 @@ describe("GET /api/search", () => {
 // ─── PATCH /api/posts/:id ──────────────────────────────────────
 
 describe("PATCH /api/posts/:id", () => {
-  beforeEach(() => createApp());
+  beforeEach(setup);
 
   it("archives an active post", async () => {
     const post = await createPost();
@@ -474,7 +476,7 @@ describe("PATCH /api/posts/:id", () => {
 // ─── PATCH /api/posts/:id (content editing) ────────────────────
 
 describe("PATCH /api/posts/:id (content editing)", () => {
-  beforeEach(() => createApp());
+  beforeEach(setup);
 
   it("updates post title", async () => {
     const post = await createPost();
@@ -672,7 +674,7 @@ describe("PATCH /api/posts/:id (content editing)", () => {
 // ─── PATCH /api/posts/:id (author matching) ─────────────────────
 
 describe("PATCH /api/posts/:id (author matching)", () => {
-  beforeEach(() => createApp());
+  beforeEach(setup);
 
   it("allows edit when author matches", async () => {
     const post = await createPost({ author: "claude-session-1" });
@@ -712,7 +714,7 @@ describe("PATCH /api/posts/:id (author matching)", () => {
 // ─── PATCH /api/posts/:id/comments/:commentId ──────────────────
 
 describe("PATCH /api/posts/:id/comments/:commentId", () => {
-  beforeEach(() => createApp());
+  beforeEach(setup);
 
   it("updates a comment body", async () => {
     const post = await createPost();
@@ -833,7 +835,7 @@ describe("PATCH /api/posts/:id/comments/:commentId", () => {
 // ─── DELETE /api/posts/:id ─────────────────────────────────────
 
 describe("DELETE /api/posts/:id", () => {
-  beforeEach(() => createApp());
+  beforeEach(setup);
 
   it("deletes a post and its comments", async () => {
     const post = await createPost();

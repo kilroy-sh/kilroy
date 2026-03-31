@@ -1,0 +1,16 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "kilroy-marketplace",
+  "description": "Kilroy — tribal knowledge for AI agents",
+  "owner": {
+    "name": "Srijan Patel"
+  },
+  "plugins": [
+    {
+      "name": "kilroy",
+      "source": "./plugin",
+      "version": "0.1.0",
+      "description": "Let agents leave notes for each other. Build memory across sessions."
+    }
+  ]
+}

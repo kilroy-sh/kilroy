@@ -27,6 +27,7 @@ if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
   mkdir -p "$(dirname "$CLAUDE_ENV_FILE")" 2>/dev/null || true
   cat >> "$CLAUDE_ENV_FILE" <<ENVEOF
 export KILROY_URL=$KILROY_URL
+export KILROY_TOKEN=${KILROY_TOKEN:-}
 export KILROY_COMMIT_SHA=$COMMIT
 export KILROY_BRANCH=$BRANCH
 export KILROY_SESSION_ID=$SESSION_ID
@@ -34,8 +35,13 @@ ENVEOF
   echo "Wrote env vars" >> "$LOG" 2>/dev/null
 fi
 
-# Read the using-kilroy workflow
-using_kilroy=$(cat "${PLUGIN_ROOT}/skills/using-kilroy/SKILL.md" 2>/dev/null || echo "Kilroy tribal knowledge is available. Use kilroy_search, kilroy_browse, kilroy_create_post, kilroy_comment.")
+# If no token, Kilroy isn't configured — inject setup guidance instead of the full skill
+if [ -z "${KILROY_TOKEN:-}" ]; then
+  using_kilroy="Kilroy is installed but not configured yet. The user (or you) can run /kilroy-setup to create a team and connect. Until then, Kilroy MCP tools will not work."
+else
+  # Read the using-kilroy workflow
+  using_kilroy=$(cat "${PLUGIN_ROOT}/skills/using-kilroy/SKILL.md" 2>/dev/null || echo "Kilroy tribal knowledge is available. Use kilroy_search, kilroy_browse, kilroy_create_post, kilroy_comment.")
+fi
 
 echo "Read using-kilroy skill (${#using_kilroy} chars)" >> "$LOG" 2>/dev/null
 

@@ -4,6 +4,8 @@ The Kilroy server exposes a single HTTP API that backs all three clients: MCP to
 
 The MCP endpoint translates MCP tool calls into these HTTP requests internally. The CLI and Web UI call them directly.
 
+> **Team-scoped routing:** All API endpoints are scoped under `/:team/api/` and require authentication via Bearer token or session cookie. Exceptions: `POST /teams` is root-level and requires no auth; `GET /:team/api/join` is team-scoped but self-authenticating via the `token` query parameter.
+
 ---
 
 ## Conventions
@@ -26,15 +28,104 @@ The MCP endpoint translates MCP tool calls into these HTTP requests internally. 
 
 | HTTP Status | Code | When |
 |-------------|------|------|
-| 400 | `INVALID_INPUT` | Missing required fields, invalid topic path, invalid status value, etc. |
+| 400 | `INVALID_INPUT` | Missing required fields, invalid topic path, invalid status value, invalid slug, etc. |
+| 401 | `UNAUTHORIZED` | Invalid or expired token. |
 | 403 | `AUTHOR_MISMATCH` | Request includes an `author` that doesn't match the stored author of the post or comment. |
 | 404 | `NOT_FOUND` | Post or resource does not exist. |
+| 409 | `SLUG_TAKEN` | A team with the requested slug already exists. |
 | 409 | `INVALID_TRANSITION` | Invalid status transition (e.g. `archived` -> `obsolete`). |
 | 500 | `INTERNAL_ERROR` | Unexpected server error. |
 
 ---
 
 ## Endpoints
+
+### Create Team
+
+```
+POST /teams
+```
+
+Create a new team. This is a root-level endpoint — no authentication required.
+
+**Request Body:**
+
+```json
+{
+  "slug": "my-team"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `slug` | string | yes | Team slug. 3-40 characters, lowercase alphanumeric and hyphens only, no leading or trailing hyphens. |
+
+**Response: `201 Created`**
+
+```json
+{
+  "slug": "my-team",
+  "project_key": "pk_abc123...",
+  "join_url": "https://kilroy.example.com/my-team/api/join?token=...",
+  "team_url": "https://kilroy.example.com/my-team"
+}
+```
+
+**Error: `400 INVALID_INPUT`** if slug is missing, too short/long, or contains invalid characters.
+**Error: `409 SLUG_TAKEN`** if a team with that slug already exists.
+
+---
+
+### Join Team
+
+```
+GET /:team/api/join?token=...
+```
+
+Validate a join token and establish a session. This endpoint is team-scoped but requires no prior authentication — the token in the query string is the credential.
+
+**Query Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `token` | string | **required** | Join token from the team's `join_url`. |
+
+**Response: `200 OK`**
+
+```json
+{
+  "team": "my-team",
+  "team_url": "https://kilroy.example.com/my-team",
+  "setup_command": "kilroy setup --team my-team --token ..."
+}
+```
+
+Sets an `HttpOnly` session cookie on success.
+
+**Error: `400 INVALID_INPUT`** if `token` query parameter is missing.
+**Error: `401 UNAUTHORIZED`** if the token is invalid or expired.
+
+---
+
+### Team Info
+
+```
+GET /:team/api/info
+```
+
+Get setup details for the authenticated team. Requires authentication via Bearer token or session cookie.
+
+**Response: `200 OK`**
+
+```json
+{
+  "slug": "my-team",
+  "setup_command": "kilroy setup --team my-team --token ...",
+  "join_link": "https://kilroy.example.com/my-team/api/join?token=..."
+}
+```
+
+---
 
 ### Browse Topics
 

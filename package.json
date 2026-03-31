@@ -21,7 +21,8 @@
     "@modelcontextprotocol/sdk": "^1.27.1",
     "commander": "^14.0.3",
     "drizzle-orm": "^0.39.0",
-    "hono": "^4.7.0"
+    "hono": "^4.7.0",
+    "postgres": "^3.4.5"
   },
   "devDependencies": {
     "@types/bun": "latest",

@@ -1,12 +1,14 @@
 import { Hono } from "hono";
 import { eq, and, like, or, sql, desc, asc } from "drizzle-orm";
-import { db } from "../db";
+import { db, client } from "../db";
 import { posts, comments } from "../db/schema";
 import { formatPost } from "../lib/format";
+import type { Env } from "../types";
 
-export const browseRouter = new Hono();
+export const browseRouter = new Hono<Env>();
 
-browseRouter.get("/", (c) => {
+browseRouter.get("/", async (c) => {
+  const teamId = c.get("teamId");
   const topic = c.req.query("topic") || "";
   const status = c.req.query("status") || "active";
   const recursive = c.req.query("recursive") === "true";
@@ -16,7 +18,7 @@ browseRouter.get("/", (c) => {
   const cursor = c.req.query("cursor");
 
   // Build conditions for posts at this exact topic
-  const conditions: any[] = [];
+  const conditions: any[] = [eq(posts.teamId, teamId)];
 
   if (recursive) {
     // All posts at and below this topic
@@ -33,15 +35,16 @@ browseRouter.get("/", (c) => {
 
   // Status filter
   if (status !== "all") {
-    conditions.push(eq(posts.status, status));
+    conditions.push(eq(posts.status, status as "active" | "archived" | "obsolete"));
   }
 
   // Cursor-based pagination
   if (cursor) {
-    const cursorPost = db.select().from(posts).where(eq(posts.id, cursor)).get();
+    const [cursorPost] = await db.select().from(posts).where(eq(posts.id, cursor));
     if (cursorPost) {
       const col = orderBy === "created_at" ? posts.createdAt : orderBy === "title" ? posts.title : posts.updatedAt;
-      const cursorVal = orderBy === "created_at" ? cursorPost.createdAt : orderBy === "title" ? cursorPost.title : cursorPost.updatedAt;
+      const rawVal = orderBy === "created_at" ? cursorPost.createdAt : orderBy === "title" ? cursorPost.title : cursorPost.updatedAt;
+      const cursorVal = rawVal instanceof Date ? rawVal.toISOString() : rawVal;
       if (order === "desc") {
         conditions.push(sql`(${col} < ${cursorVal} OR (${col} = ${cursorVal} AND ${posts.id} < ${cursor}))`);
       } else {
@@ -57,13 +60,12 @@ browseRouter.get("/", (c) => {
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
   // Fetch one extra to detect has_more
-  const rows = db
+  const rows = await db
     .select()
     .from(posts)
     .where(where)
     .orderBy(sortDir(sortCol), sortDir(posts.id))
-    .limit(limit + 1)
-    .all();
+    .limit(limit + 1);
 
   const hasMore = rows.length > limit;
   const resultPosts = hasMore ? rows.slice(0, limit) : rows;
@@ -72,15 +74,14 @@ browseRouter.get("/", (c) => {
   const postIds = resultPosts.map((p) => p.id);
   const commentCounts = new Map<string, number>();
   if (postIds.length > 0) {
-    const counts = db
+    const counts = await db
       .select({
         postId: comments.postId,
-        count: sql<number>`count(*)`,
+        count: sql<number>`count(*)::int`,
       })
       .from(comments)
       .where(sql`${comments.postId} IN (${sql.join(postIds.map(id => sql`${id}`), sql`, `)})`)
-      .groupBy(comments.postId)
-      .all();
+      .groupBy(comments.postId);
     for (const row of counts) {
       commentCounts.set(row.postId, row.count);
     }
@@ -100,7 +101,7 @@ browseRouter.get("/", (c) => {
 
   // Subtopics (only in non-recursive mode)
   if (!recursive) {
-    response.subtopics = getSubtopics(topic, status);
+    response.subtopics = await getSubtopics(teamId, topic, status);
   }
 
   if (hasMore) {
@@ -111,57 +112,60 @@ browseRouter.get("/", (c) => {
   return c.json(response);
 });
 
-function getSubtopics(
+async function getSubtopics(
+  teamId: string,
   parentTopic: string,
   status: string
-): Array<{
+): Promise<Array<{
   name: string;
   post_count: number;
   contributor_count: number;
   updated_at: string | null;
   tags: string[];
-}> {
+}>> {
   const prefix = parentTopic ? `${parentTopic}/` : "";
-  const statusFilter = status !== "all" ? `AND status = '${status}'` : "";
+  const prefixLen = prefix.length;
 
-  // Get all unique immediate child topic segments
-  const rows = db.all<{
-    subtopic: string;
-    post_count: number;
-    contributor_count: number;
-    updated_at: string;
-    all_tags: string;
-  }>(sql`
+  // Build the CTE query with PostgreSQL string functions
+  const params: any[] = [prefix + "%", teamId, prefixLen];
+  let statusCondition = "";
+  if (status !== "all") {
+    params.push(status);
+    statusCondition = `AND status = $${params.length}`;
+  }
+
+  const rows = await client.unsafe(`
     WITH child_posts AS (
       SELECT *
       FROM posts
-      WHERE topic LIKE ${prefix + "%"}
-      ${sql.raw(statusFilter)}
+      WHERE topic LIKE $1
+      AND team_id = $2
+      ${statusCondition}
     ),
     immediate_children AS (
       SELECT
         CASE
-          WHEN ${prefix} = '' THEN
-            substr(topic, 1, instr(topic || '/', '/') - 1)
+          WHEN $3 = 0 THEN
+            substring(topic from 1 for position('/' in topic || '/') - 1)
           ELSE
-            substr(topic, ${prefix.length + 1}, instr(substr(topic, ${prefix.length + 1}) || '/', '/') - 1)
+            substring(topic from $3 + 1 for position('/' in substring(topic from $3 + 1) || '/') - 1)
         END AS subtopic,
         *
       FROM child_posts
     )
     SELECT
       subtopic,
-      count(*) as post_count,
-      count(DISTINCT author) as contributor_count,
-      max(updated_at) as updated_at,
-      group_concat(DISTINCT tags) as all_tags
+      count(*)::int as post_count,
+      count(DISTINCT author)::int as contributor_count,
+      max(updated_at)::text as updated_at,
+      string_agg(DISTINCT tags, ',') as all_tags
     FROM immediate_children
     WHERE subtopic != ''
     GROUP BY subtopic
     ORDER BY max(updated_at) DESC
-  `);
+  `, params);
 
-  return rows.map((row) => {
+  return rows.map((row: any) => {
     // Parse and dedupe tags from all posts
     const tagSet = new Set<string>();
     if (row.all_tags) {

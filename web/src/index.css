@@ -1124,6 +1124,314 @@ a:hover { color: var(--accent-hover); }
   .post-body { border-top: none; padding-top: 0; }
 }
 
+/* Landing page */
+.landing {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.landing-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: min(12vh, 100px) 0 0.5rem;
+}
+
+.landing-title {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.landing-tagline {
+  font-family: var(--font-serif);
+  font-size: 0.85rem;
+  font-weight: 300;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.landing-desc {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  line-height: 1.7;
+  margin-bottom: 0.75rem;
+}
+
+.landing-desc-last {
+  margin-bottom: 2rem;
+}
+
+.landing-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  max-width: 480px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.35rem 0.4rem 0.35rem 1rem;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  margin-bottom: 2rem;
+}
+
+.landing-bar:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 8px 32px rgba(44, 37, 32, 0.1);
+}
+
+[data-theme="dark"] .landing-bar:focus-within {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.landing-bar-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  color: var(--text);
+  outline: none;
+  padding: 0.4rem 0;
+}
+
+.landing-bar-input::placeholder { color: var(--text-dim); }
+
+.landing-bar-btn {
+  flex-shrink: 0;
+  padding: 0.45rem 1.1rem;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 7px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.landing-bar-btn:hover { background: var(--accent-hover); }
+.landing-bar-btn:active { transform: scale(0.97); }
+.landing-bar-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+.landing-error {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  left: 0;
+  font-size: 0.82rem;
+  color: var(--status-obsolete);
+}
+
+/* Join page — three-zone visual hierarchy */
+.join-instruction {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  margin-bottom: 0.4rem;
+}
+
+.join-command {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.join-command:last-of-type {
+  margin-bottom: 2.5rem;
+}
+
+.join-command code {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: var(--text);
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.join-command .btn {
+  flex-shrink: 0;
+}
+
+.join-secondary {
+  padding-top: 2rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.join-secondary-label {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--accent);
+  margin-bottom: 0.3rem;
+}
+
+.join-secondary-desc {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.join-browse {
+  display: inline-block;
+  margin-top: 2.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.join-browse:hover {
+  color: var(--text);
+}
+
+.join-browse-arrow {
+  color: var(--accent);
+  transition: transform 0.15s;
+  display: inline-block;
+}
+
+.join-browse:hover .join-browse-arrow {
+  transform: translateX(3px);
+}
+
+.landing-link {
+  display: inline-block;
+  margin-top: 1.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.landing-link:hover {
+  color: var(--accent);
+}
+
+.landing-hint {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  letter-spacing: 0.02em;
+}
+
+.landing-explainer {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 560px) {
+  .landing-explainer { grid-template-columns: 1fr; }
+}
+
+.explainer-item {
+  text-align: center;
+  padding: 0.75rem 0.5rem;
+}
+
+.explainer-icon {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--accent);
+  margin-bottom: 0.3rem;
+}
+
+.explainer-label {
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 0.3rem;
+  letter-spacing: -0.01em;
+}
+
+.explainer-text {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.landing-footer {
+  text-align: center;
+  padding: 1rem 0 2.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text-dim);
+}
+
+/* Setup command blocks */
+.setup-block {
+  margin: 0.75rem auto;
+  max-width: 520px;
+  text-align: left;
+}
+
+.setup-block-label {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  margin-bottom: 0.3rem;
+}
+
+.setup-block-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+}
+
+.setup-block-content code {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text);
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.setup-block-content .btn {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  padding: 0.2rem 0.5rem;
+}
+
+/* Team input (shared between landing and join) */
+.team-input {
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.7rem;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.team-input::placeholder { color: var(--text-dim); }
+.team-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
 /* Animation */
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(8px); }
