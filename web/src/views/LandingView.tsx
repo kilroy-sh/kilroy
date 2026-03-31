@@ -82,7 +82,7 @@ export function LandingView() {
             disabled={creating}
           />
           <button type="submit" className="landing-bar-btn" disabled={creating || !slug.trim()}>
-            {creating ? 'Creating...' : 'Go'}
+            {creating ? 'Creating...' : 'Start'}
           </button>
           {error && <p className="landing-error">{error}</p>}
         </form>
