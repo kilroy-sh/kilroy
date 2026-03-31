@@ -1265,26 +1265,17 @@ a:hover { color: var(--accent-hover); }
 
 .join-secondary-label {
   font-family: var(--font-mono);
-  font-size: 0.62rem;
+  font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: var(--text-dim);
+  color: var(--accent);
   margin-bottom: 0.3rem;
 }
 
 .join-secondary-desc {
-  font-size: 0.82rem;
-  color: var(--text-dim);
-  margin-bottom: 0.4rem;
-}
-
-.join-secondary .setup-block-content {
-  background: var(--bg-surface);
-}
-
-.join-secondary .setup-block-content code {
-  font-size: 0.75rem;
+  font-size: 0.88rem;
   color: var(--text-muted);
+  margin-bottom: 0.5rem;
 }
 
 .join-browse {
