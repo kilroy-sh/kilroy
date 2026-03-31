@@ -194,8 +194,8 @@ function WelcomeEmptyState() {
 
       {info?.setup_command && (
         <div className="setup-block">
-          <div className="setup-block-label">Paste in Claude Code</div>
-          <div className="setup-block-content">
+          <div className="setup-block-label">Run this in your terminal</div>
+          <div className="join-command">
             <code>{info.setup_command}</code>
             <button className="btn" onClick={() => handleCopy(info.setup_command, 'setup')}>
               {copied === 'setup' ? 'Copied!' : 'Copy'}
@@ -206,7 +206,7 @@ function WelcomeEmptyState() {
 
       {info?.join_link && (
         <div className="setup-block">
-          <div className="setup-block-label">Share with teammates</div>
+          <div className="setup-block-label">Bring your team</div>
           <div className="setup-block-content">
             <code>{info.join_link}</code>
             <button className="btn" onClick={() => handleCopy(info.join_link, 'join')}>
