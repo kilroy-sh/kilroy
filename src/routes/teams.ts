@@ -83,6 +83,6 @@ joinApiHandler.get("/", async (c) => {
   return c.json({
     team: slug,
     team_url: teamUrl,
-    setup_command: `claude plugin install kilroy && claude -p "/kilroy-setup ${teamUrl} ${token}"`,
+    setup_command: `claude -p "/plugin marketplace add srijanpatel/kilroy-marketplace" && claude -p "/plugin install kilroy@kilroy-marketplace" && claude -p "/kilroy-setup ${teamUrl} ${token}"`,
   });
 });
