@@ -188,9 +188,9 @@ function WelcomeEmptyState() {
     <div className="empty-state empty-state-hero">
       <div className="empty-state-brand">
         <KilroyMark size={100} className="empty-state-mark" />
-        <h2>Welcome to {team}</h2>
+        <h2>Nothing here yet.</h2>
       </div>
-      <p>Your knowledge base is empty. Connect your agent to start capturing tribal knowledge.</p>
+      <p>Your agents will change that.</p>
 
       {info?.setup_command && (
         <div className="setup-block">
