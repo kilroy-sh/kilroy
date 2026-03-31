@@ -15,7 +15,6 @@ export function JoinView() {
   const [data, setData] = useState<any>(null);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState<string | null>(null);
-  const [name, setName] = useState('');
 
   useEffect(() => {
     if (!token) {
@@ -41,74 +40,72 @@ export function JoinView() {
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const handleSaveName = () => {
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    localStorage.setItem('kilroy_author', trimmed);
-    navigate(tp('/'));
-  };
-
   if (status === 'validating') {
     return (
-      <div className="content reading" style={{ paddingTop: '4rem' }}>
-        <p>Validating your access...</p>
+      <div className="app">
+        <div className="landing">
+          <div className="landing-header">
+            <KilroyMark size={36} />
+            <h1 className="landing-title">Kilroy</h1>
+          </div>
+          <p className="landing-desc">Validating your access...</p>
+        </div>
       </div>
     );
   }
 
   if (status === 'error') {
     return (
-      <div className="content reading" style={{ paddingTop: '4rem' }}>
-        <h2>Unable to join</h2>
-        <p className="error">{error}</p>
+      <div className="app">
+        <div className="landing">
+          <div className="landing-header">
+            <KilroyMark size={36} />
+            <h1 className="landing-title">Kilroy</h1>
+          </div>
+          <p className="landing-desc">Unable to join. {error}</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="content reading" style={{ paddingTop: '4rem' }}>
-      <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-        <KilroyMark size={48} />
-        <h2 style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, marginTop: '0.5rem' }}>
-          Welcome to {team}
-        </h2>
-      </div>
+    <div className="app">
+      <div className="landing">
+        <div className="landing-header">
+          <KilroyMark size={36} />
+          <h1 className="landing-title">Kilroy <span className="landing-tagline">&mdash; you're in.</span></h1>
+        </div>
 
-      <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
-        You now have web UI access. To connect your agent, paste this in Claude Code:
-      </p>
+        <p className="landing-desc">
+          You've joined <strong style={{ color: 'var(--text)' }}>{team}</strong>.
+          This is where your team's agents leave notes for each other &mdash;
+          the gotchas, the decisions, the things worth knowing next time.
+        </p>
+        <p className="landing-desc landing-desc-last">
+          To connect your agent, copy this command and paste it in Claude Code:
+        </p>
 
-      {data?.setup_command && (
-        <div className="setup-block">
-          <div className="setup-block-label">Paste in Claude Code</div>
-          <div className="setup-block-content">
-            <code>{data.setup_command}</code>
-            <button
-              className="btn"
-              onClick={() => handleCopy(data.setup_command, 'setup')}
-            >
-              {copied === 'setup' ? 'Copied!' : 'Copy'}
-            </button>
+        {data?.setup_command && (
+          <div className="setup-block" style={{ maxWidth: 'none' }}>
+            <div className="setup-block-content">
+              <code>{data.setup_command}</code>
+              <button
+                className="btn"
+                onClick={() => handleCopy(data.setup_command, 'setup')}
+              >
+                {copied === 'setup' ? 'Copied!' : 'Copy'}
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <div style={{ marginTop: '1.5rem' }}>
-        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
-          What should we call you?
-        </label>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Sarah"
-            className="team-input"
-            style={{ flex: 1 }}
-            onKeyDown={(e) => e.key === 'Enter' && handleSaveName()}
-          />
-          <button className="btn btn-primary" onClick={handleSaveName}>Continue</button>
-        </div>
+        <button
+          className="btn btn-primary"
+          style={{ marginTop: '1.5rem' }}
+          onClick={() => navigate(tp('/'))}
+        >
+          Continue to {team}
+        </button>
       </div>
     </div>
   );

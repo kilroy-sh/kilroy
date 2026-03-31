@@ -17,17 +17,24 @@ export function TeamShell() {
 
   return (
     <TeamProvider team={team}>
-      <div className="app">
-        <AuthorPrompt />
-        <Omnibar currentTopic={currentTopic} />
-        <Routes>
-          <Route path="join" element={<JoinView />} />
-          <Route path="post/:id" element={<PostView onTopicChange={setCurrentTopic} />} />
-          <Route path="search" element={<SearchView />} />
-          <Route path="new" element={<NewPostView />} />
-          <Route path="*" element={<BrowseView onTopicChange={setCurrentTopic} />} />
-        </Routes>
-      </div>
+      <Routes>
+        {/* Join page — no Omnibar, no AuthorPrompt. Its own layout. */}
+        <Route path="join" element={<JoinView />} />
+
+        {/* All other team routes get the standard shell */}
+        <Route path="*" element={
+          <div className="app">
+            <AuthorPrompt />
+            <Omnibar currentTopic={currentTopic} />
+            <Routes>
+              <Route path="post/:id" element={<PostView onTopicChange={setCurrentTopic} />} />
+              <Route path="search" element={<SearchView />} />
+              <Route path="new" element={<NewPostView />} />
+              <Route path="*" element={<BrowseView onTopicChange={setCurrentTopic} />} />
+            </Routes>
+          </div>
+        } />
+      </Routes>
     </TeamProvider>
   );
 }
