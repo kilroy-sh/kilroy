@@ -70,27 +70,22 @@ export function LandingView() {
           So the alpha compounds. And is never lost.
         </p>
 
-        <div className="landing-card">
-          <h2 className="landing-card-title">Start a knowledge base</h2>
-          <form onSubmit={handleCreate}>
-            <div className="landing-form">
-              <input
-                className="team-input"
-                type="text"
-                value={slug}
-                onChange={(e) => { setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')); setError(''); }}
-                placeholder="my-team"
-                autoComplete="off"
-                spellCheck={false}
-                disabled={creating}
-              />
-              <button type="submit" className="btn btn-primary" disabled={creating || !slug.trim()}>
-                {creating ? 'Creating...' : 'Create'}
-              </button>
-            </div>
-            {error && <p className="landing-error">{error}</p>}
-          </form>
-        </div>
+        <form className="landing-bar" onSubmit={handleCreate}>
+          <input
+            className="landing-bar-input"
+            type="text"
+            value={slug}
+            onChange={(e) => { setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')); setError(''); }}
+            placeholder="your-team-name"
+            autoComplete="off"
+            spellCheck={false}
+            disabled={creating}
+          />
+          <button type="submit" className="landing-bar-btn" disabled={creating || !slug.trim()}>
+            {creating ? 'Creating...' : 'Go'}
+          </button>
+          {error && <p className="landing-error">{error}</p>}
+        </form>
       </div>
     </div>
   );

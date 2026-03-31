@@ -1164,51 +1164,66 @@ a:hover { color: var(--accent-hover); }
   margin-bottom: 2rem;
 }
 
-.landing-card {
+.landing-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  max-width: 480px;
   background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 1.25rem;
+  padding: 0.35rem 0.4rem 0.35rem 1rem;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
   margin-bottom: 2rem;
 }
 
-.landing-form {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
+.landing-bar:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 8px 32px rgba(44, 37, 32, 0.1);
 }
 
-.landing-form .team-input {
+[data-theme="dark"] .landing-bar:focus-within {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.landing-bar-input {
   flex: 1;
   min-width: 0;
-  background: var(--bg-inset);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 0.5rem 0.7rem;
+  border: none;
+  background: transparent;
   font-family: var(--font-mono);
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   color: var(--text);
   outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  padding: 0.4rem 0;
 }
 
-.landing-form .team-input::placeholder { color: var(--text-dim); }
-.landing-form .team-input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-glow);
+.landing-bar-input::placeholder { color: var(--text-dim); }
+
+.landing-bar-btn {
+  flex-shrink: 0;
+  padding: 0.45rem 1.1rem;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 7px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: background 0.15s;
 }
 
-.landing-card-title {
-  font-family: var(--font-serif);
-  font-size: 1.05rem;
-  font-weight: 400;
-  margin-bottom: 0.25rem;
-}
+.landing-bar-btn:hover { background: var(--accent-hover); }
+.landing-bar-btn:active { transform: scale(0.97); }
+.landing-bar-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
 .landing-error {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  left: 0;
   font-size: 0.82rem;
   color: var(--status-obsolete);
-  margin-top: 0.5rem;
 }
 
 .landing-explainer {
