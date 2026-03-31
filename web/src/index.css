@@ -1253,8 +1253,7 @@ a:hover { color: var(--accent-hover); }
   font-family: var(--font-mono);
   font-size: 0.9rem;
   color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-x: auto;
   white-space: nowrap;
 }
 
@@ -1404,8 +1403,7 @@ a:hover { color: var(--accent-hover); }
   font-family: var(--font-mono);
   font-size: 0.8rem;
   color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-x: auto;
   white-space: nowrap;
 }
 
