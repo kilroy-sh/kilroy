@@ -1,9 +1,12 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from "bun:test";
+import { describe, it, expect, beforeAll, afterAll, beforeEach, setDefaultTimeout } from "bun:test";
 import { spawn } from "child_process";
+
+// Server startup can take a while (DB init on remote RDS)
+setDefaultTimeout(30_000);
 
 const PORT = 7433;
 const SERVER_URL = `http://localhost:${PORT}`;
-const TEAM_SLUG = "cli-test-team";
+const TEAM_SLUG = `cli-test-${Date.now()}`;
 const TEAM_API = `${SERVER_URL}/${TEAM_SLUG}`;
 const CLI = ["bun", "run", "src/cli/index.ts", "--server", TEAM_API];
 
@@ -42,11 +45,11 @@ async function apiDelete(path: string): Promise<void> {
   });
 }
 
-async function waitForServer(url: string, maxMs = 5000) {
+async function waitForServer(url: string, maxMs = 30000) {
   const start = Date.now();
   while (Date.now() - start < maxMs) {
     try {
-      const res = await fetch(`${url}/teams`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug: "__healthcheck__" }) });
+      const res = await fetch(`${url}/teams`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug: "healthcheck" }) });
       // Either 201 (created) or 409 (already exists) means server is up
       if (res.status === 201 || res.status === 409) {
         // Clean up the healthcheck team
@@ -61,13 +64,14 @@ async function waitForServer(url: string, maxMs = 5000) {
 
 beforeAll(async () => {
   // Start server on test port with test database
+  // DATABASE_URL is set by test/preload.ts — pass it explicitly to the child process
   serverProc = spawn("bun", ["run", "src/server.ts"], {
-    env: { ...process.env, KILROY_PORT: String(PORT), DATABASE_URL: "postgres://kilroy:kilroy@localhost:5432/kilroy_test" },
+    env: { ...process.env, KILROY_PORT: String(PORT), DATABASE_URL: process.env.DATABASE_URL },
     stdio: "pipe",
   });
   await waitForServer(SERVER_URL);
 
-  // Create a test team
+  // Create a test team (unique slug per run)
   const res = await fetch(`${SERVER_URL}/teams`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

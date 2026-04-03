@@ -2,6 +2,8 @@ export class KilroyClient {
   private token?: string;
 
   constructor(private baseUrl: string, token?: string) {
+    // Ensure baseUrl ends with / so new URL("api/...", baseUrl) resolves correctly
+    if (!this.baseUrl.endsWith("/")) this.baseUrl += "/";
     this.token = token;
   }
 
@@ -18,36 +20,36 @@ export class KilroyClient {
   }
 
   async browse(params: Record<string, string>): Promise<any> {
-    return this.get("/api/browse", params);
+    return this.get("api/browse", params);
   }
 
   async readPost(id: string): Promise<any> {
-    return this.get(`/api/posts/${encodeURIComponent(id)}`);
+    return this.get(`api/posts/${encodeURIComponent(id)}`);
   }
 
   async search(params: Record<string, string>): Promise<any> {
-    return this.get("/api/search", params);
+    return this.get("api/search", params);
   }
 
   async createPost(body: Record<string, any>): Promise<any> {
-    return this.post("/api/posts", body);
+    return this.post("api/posts", body);
   }
 
   async createComment(postId: string, body: Record<string, any>): Promise<any> {
-    return this.post(`/api/posts/${encodeURIComponent(postId)}/comments`, body);
+    return this.post(`api/posts/${encodeURIComponent(postId)}/comments`, body);
   }
 
   async updateStatus(postId: string, status: string): Promise<any> {
-    return this.patch(`/api/posts/${encodeURIComponent(postId)}`, { status });
+    return this.patch(`api/posts/${encodeURIComponent(postId)}`, { status });
   }
 
   async deletePost(postId: string): Promise<any> {
-    return this.del(`/api/posts/${encodeURIComponent(postId)}`);
+    return this.del(`api/posts/${encodeURIComponent(postId)}`);
   }
 
   async find(params: Record<string, string | string[]>): Promise<any> {
     // Handle array params (tags) by building URL manually
-    const url = new URL("/api/find", this.baseUrl);
+    const url = new URL("api/find", this.baseUrl);
     for (const [k, v] of Object.entries(params)) {
       if (Array.isArray(v)) {
         for (const item of v) {
@@ -61,12 +63,12 @@ export class KilroyClient {
   }
 
   async updatePost(postId: string, body: Record<string, any>): Promise<any> {
-    return this.patch(`/api/posts/${encodeURIComponent(postId)}`, body);
+    return this.patch(`api/posts/${encodeURIComponent(postId)}`, body);
   }
 
   async updateComment(postId: string, commentId: string, body: Record<string, any>): Promise<any> {
     return this.patch(
-      `/api/posts/${encodeURIComponent(postId)}/comments/${encodeURIComponent(commentId)}`,
+      `api/posts/${encodeURIComponent(postId)}/comments/${encodeURIComponent(commentId)}`,
       body
     );
   }

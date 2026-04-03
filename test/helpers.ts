@@ -8,8 +8,8 @@
  * accidental data loss on production.
  */
 
-// Force test database — override any .env value
-process.env.DATABASE_URL = "postgres://kilroy:kilroy@localhost:5432/kilroy_test";
+// DATABASE_URL is set by test/preload.ts (via bunfig.toml) before any imports.
+// Do not override it here.
 
 import { Hono } from "hono";
 import { api } from "../src/routes/api";
