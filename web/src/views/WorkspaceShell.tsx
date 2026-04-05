@@ -59,8 +59,7 @@ function WorkspaceLayout({ workspace, currentTopic, onTopicChange }: {
 }) {
   const { expanded, toggle, expand } = useSidebarState(workspace);
   const [peeking, setPeeking] = useState(false);
-  // location will be used for activePostId in Task 3
-  useLocation();
+  const location = useLocation();
 
   // Keyboard shortcut: Cmd+\ or Ctrl+\ to toggle sidebar
   useEffect(() => {
@@ -74,7 +73,10 @@ function WorkspaceLayout({ workspace, currentTopic, onTopicChange }: {
     return () => window.removeEventListener('keydown', handler);
   }, [toggle]);
 
-  // activePostId will be used by TopicTree in Task 3
+  // Derive active post ID from URL (used by TopicTree in Task 4)
+  const postMatch = location.pathname.match(/\/post\/([^/]+)/);
+  const _activePostId = postMatch ? postMatch[1] : null;
+  void _activePostId;
 
   return (
     <div className="app">
