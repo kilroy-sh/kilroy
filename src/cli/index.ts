@@ -124,7 +124,6 @@ program
   .option("-b, --body <body>", "Post body")
   .option("--tag <tag>", "Tag (repeatable)", collect, [])
   .option("--author <author>", "Override author")
-  .option("--commit-sha <sha>", "Override commit SHA")
   .option("--json", "Output raw JSON", false)
   .action(async (topic: string, opts) => {
     let body = opts.body;
@@ -142,7 +141,6 @@ program
     const payload: Record<string, any> = { title: opts.title, topic, body };
     if (opts.tag.length) payload.tags = opts.tag;
     if (opts.author) payload.author = opts.author;
-    if (opts.commitSha) payload.commit_sha = opts.commitSha;
 
     if (!payload.author) {
       const config = getConfig();
@@ -233,8 +231,6 @@ program
   .option("--tag <tag>", "Filter by tag (repeatable)", collect, [])
   .option("--since <date>", "Posts updated after date (ISO 8601)")
   .option("--before <date>", "Posts updated before date")
-  .option("-f, --file <path>", "Posts referencing this file")
-  .option("--commit <sha>", "Posts from this commit")
   .option("-s, --status <status>", "Filter: active, archived, obsolete, all", "active")
   .option("--sort <field>", "Sort: updated_at, created_at, title", "updated_at")
   .option("--order <dir>", "Sort direction: asc, desc", "desc")
@@ -248,13 +244,11 @@ program
       opts.author ||
       opts.tag.length ||
       opts.since ||
-      opts.before ||
-      opts.file ||
-      opts.commit
+      opts.before
     );
 
     if (!hasFilter) {
-      console.error("Error: At least one filter required (--author, --tag, --since, --before, --file, --commit, or topic).");
+      console.error("Error: At least one filter required (--author, --tag, --since, --before, or topic).");
       process.exit(1);
     }
 
@@ -265,8 +259,6 @@ program
     if (opts.tag.length) params.tag = opts.tag;
     if (opts.since) params.since = opts.since;
     if (opts.before) params.before = opts.before;
-    if (opts.file) params.file = opts.file;
-    if (opts.commit) params.commit = opts.commit;
     if (opts.status !== "active") params.status = opts.status;
     if (opts.sort !== "updated_at") params.order_by = opts.sort;
     if (opts.order !== "desc") params.order = opts.order;

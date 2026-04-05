@@ -129,7 +129,6 @@ export function createMcpServer(teamId: string) {
       body: z.string().describe("Content of the post. Markdown supported."),
       tags: z.array(z.string()).optional().describe("Tags for cross-cutting concerns."),
       author: z.string().optional().describe("Injected by the plugin from session identity."),
-      commit_sha: z.string().optional().describe("Injected by the plugin from git rev-parse HEAD."),
     },
     async (args) => {
       const { status, data } = await apiRequest("POST", "/api/posts", {
@@ -138,7 +137,6 @@ export function createMcpServer(teamId: string) {
         body: args.body,
         tags: args.tags,
         author: args.author,
-        commit_sha: args.commit_sha,
       });
       return result(data, status >= 400);
     }

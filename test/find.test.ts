@@ -101,28 +101,6 @@ describe("GET /api/find", () => {
     expect(data.results[0].title).toBe("Old post");
   });
 
-  it("filters by file", async () => {
-    await createPost({ body: "See src/auth/oauth.ts for details", title: "Has file" });
-    await createPost({ body: "No files here", title: "No file" });
-
-    const res = await request("/find?file=src/auth/oauth.ts");
-    expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data.results.length).toBe(1);
-    expect(data.results[0].title).toBe("Has file");
-  });
-
-  it("filters by commit", async () => {
-    await createPost({ commit_sha: "abc123", title: "With commit" });
-    await createPost({ commit_sha: "def456", title: "Other commit" });
-
-    const res = await request("/find?commit=abc123");
-    expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data.results.length).toBe(1);
-    expect(data.results[0].title).toBe("With commit");
-  });
-
   it("filters by status", async () => {
     const active = await createPost({ title: "Active post", topic: "status-test" });
     const toArchive = await createPost({ title: "Archived post", topic: "status-test" });

@@ -9,8 +9,6 @@ findRouter.get("/", async (c) => {
   const tags = c.req.queries("tag") || [];
   const since = c.req.query("since");
   const before = c.req.query("before");
-  const file = c.req.query("file");
-  const commit = c.req.query("commit");
   const status = c.req.query("status") || "active";
   const topic = c.req.query("topic");
   const orderBy = c.req.query("order_by") || "updated_at";
@@ -19,7 +17,7 @@ findRouter.get("/", async (c) => {
   const cursor = c.req.query("cursor");
 
   // Require at least one filter (topic counts as a filter)
-  const hasFilter = author || tags.length > 0 || since || before || file || commit || topic;
+  const hasFilter = author || tags.length > 0 || since || before || topic;
   if (!hasFilter) {
     return c.json(
       { error: "At least one filter is required. Use kilroy ls for unfiltered listing.", code: "INVALID_INPUT" },
@@ -37,11 +35,6 @@ findRouter.get("/", async (c) => {
   if (author) {
     conditions.push(`author = $${paramIdx++}`);
     params.push(author);
-  }
-
-  if (commit) {
-    conditions.push(`commit_sha = $${paramIdx++}`);
-    params.push(commit);
   }
 
   if (since) {
@@ -82,13 +75,6 @@ findRouter.get("/", async (c) => {
     });
   }
 
-  if (file) {
-    rows = rows.filter((p: any) => {
-      const postFiles: string[] = p.files ? JSON.parse(p.files) : [];
-      return postFiles.includes(file);
-    });
-  }
-
   // Cursor-based pagination (offset style for simplicity)
   let startIdx = 0;
   if (cursor) {
@@ -105,8 +91,6 @@ findRouter.get("/", async (c) => {
     status: row.status,
     tags: row.tags ? JSON.parse(row.tags) : [],
     author: row.author,
-    files: row.files ? JSON.parse(row.files) : [],
-    commit_sha: row.commit_sha,
     created_at: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
     updated_at: row.updated_at instanceof Date ? row.updated_at.toISOString() : row.updated_at,
   }));

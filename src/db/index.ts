@@ -26,8 +26,6 @@ export async function initDatabase() {
       tags TEXT,
       body TEXT NOT NULL,
       author TEXT,
-      files TEXT,
-      commit_sha TEXT,
       search_vector TSVECTOR,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -86,6 +84,12 @@ export async function initDatabase() {
     CREATE TRIGGER comments_search_vector_trigger
       BEFORE INSERT OR UPDATE OF body ON comments
       FOR EACH ROW EXECUTE FUNCTION comments_search_vector_update();
+  `);
+
+  // Drop legacy columns (files, commit_sha) if they exist
+  await client.unsafe(`
+    ALTER TABLE posts DROP COLUMN IF EXISTS files;
+    ALTER TABLE posts DROP COLUMN IF EXISTS commit_sha;
   `);
 
   // Backfill search_vector for any existing rows that have NULL vectors

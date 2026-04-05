@@ -22,8 +22,6 @@ export const posts = pgTable(
     tags: text("tags"), // JSON array of strings
     body: text("body").notNull(),
     author: text("author"),
-    files: text("files"), // JSON array of file paths
-    commitSha: text("commit_sha"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

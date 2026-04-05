@@ -103,9 +103,6 @@ export function formatPost(data: any): { default: string; quiet: string } {
   lines.push(meta.join(" | "));
 
   if (data.tags?.length) lines.push(`tags: ${data.tags.join(", ")}`);
-  if (data.files?.length) lines.push(`files: ${data.files.join(", ")}`);
-  if (data.commit_sha) lines.push(`commit_sha: ${data.commit_sha}`);
-
   const created = data.created_at?.slice(0, 10) || "";
   const updated = data.updated_at?.slice(0, 10) || "";
   lines.push(`created: ${created}  updated: ${updated}`);

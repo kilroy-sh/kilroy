@@ -3,7 +3,6 @@ import { eq, and, asc } from "drizzle-orm";
 import { db } from "../db";
 import { posts, comments } from "../db/schema";
 import { uuidv7 } from "../lib/uuid";
-import { extractFilePaths } from "../lib/files";
 import { formatPost } from "../lib/format";
 import type { Env } from "../types";
 
@@ -60,7 +59,6 @@ postsRouter.post("/", async (c) => {
   const teamId = c.get("teamId");
   const now = new Date();
   const id = uuidv7();
-  const files = extractFilePaths(body.body);
 
   const post = {
     id,
@@ -71,8 +69,6 @@ postsRouter.post("/", async (c) => {
     tags: body.tags ? JSON.stringify(body.tags) : null,
     body: body.body,
     author: body.author || null,
-    files: files.length > 0 ? JSON.stringify(files) : null,
-    commitSha: body.commit_sha || null,
     createdAt: now,
     updatedAt: now,
   };
@@ -89,8 +85,6 @@ postsRouter.post("/", async (c) => {
       status: post.status,
       tags: body.tags || [],
       author: post.author,
-      files,
-      commit_sha: post.commitSha,
       created_at: post.createdAt.toISOString(),
       updated_at: post.updatedAt.toISOString(),
     },
@@ -275,12 +269,6 @@ postsRouter.patch("/:id", async (c) => {
   if (body.body !== undefined) updates.body = body.body;
   if (body.tags !== undefined) updates.tags = body.tags.length > 0 ? JSON.stringify(body.tags) : null;
   if (hasStatus) updates.status = body.status;
-
-  // Re-extract files if body changed
-  if (body.body !== undefined) {
-    const files = extractFilePaths(body.body);
-    updates.files = files.length > 0 ? JSON.stringify(files) : null;
-  }
 
   // Trigger auto-updates search_vector when title or body changes
   await db.update(posts).set(updates).where(eq(posts.id, postId));

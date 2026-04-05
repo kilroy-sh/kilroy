@@ -65,10 +65,9 @@ describe("kilroy_create_post", () => {
     const { data } = await callTool("kilroy_create_post", {
       title: "OAuth gotcha",
       topic: "auth/google",
-      body: "Redirect URI must match exactly. See src/auth/oauth.ts for details.",
+      body: "Redirect URI must match exactly.",
       tags: ["oauth", "gotcha"],
       author: "claude-session-abc",
-      commit_sha: "a1b2c3d",
     });
 
     expect(data.id).toMatch(/^[0-9a-f-]+$/);
@@ -76,7 +75,6 @@ describe("kilroy_create_post", () => {
     expect(data.topic).toBe("auth/google");
     expect(data.status).toBe("active");
     expect(data.tags).toEqual(["oauth", "gotcha"]);
-    expect(data.files).toEqual(["src/auth/oauth.ts"]);
   });
 
   it("returns error for missing fields", async () => {
@@ -348,7 +346,6 @@ describe("kilroy_update_post", () => {
     });
 
     expect(data.id).toBe(post.id);
-    expect(data.files).toContain("src/new/path.ts");
   });
 
   it("rejects when author does not match", async () => {

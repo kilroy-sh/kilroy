@@ -18,10 +18,9 @@ async function createPost(
   const defaults = {
     title: "Test post",
     topic: "test",
-    body: "Test body content mentioning src/auth/refresh.ts file",
+    body: "Test body content",
     tags: ["test"],
     author: "claude-test",
-    commit_sha: "abc1234",
   };
   const res = await app.request("/api/posts", {
     method: "POST",
@@ -76,10 +75,9 @@ describe("POST /api/posts", () => {
       body: JSON.stringify({
         title: "OAuth gotcha",
         topic: "auth/google",
-        body: "Redirect URI must match exactly. See src/auth/oauth.ts for details.",
+        body: "Redirect URI must match exactly.",
         tags: ["oauth", "gotcha"],
         author: "claude-session-abc",
-        commit_sha: "a1b2c3d",
       }),
     });
 
@@ -91,8 +89,6 @@ describe("POST /api/posts", () => {
     expect(post.status).toBe("active");
     expect(post.tags).toEqual(["oauth", "gotcha"]);
     expect(post.author).toBe("claude-session-abc");
-    expect(post.files).toEqual(["src/auth/oauth.ts"]);
-    expect(post.commit_sha).toBe("a1b2c3d");
     expect(post.created_at).toBeTruthy();
     expect(post.updated_at).toBe(post.created_at);
   });
@@ -107,15 +103,6 @@ describe("POST /api/posts", () => {
     expect(res.status).toBe(400);
     const err = await res.json();
     expect(err.code).toBe("INVALID_INPUT");
-  });
-
-  it("extracts file paths from body", async () => {
-    const post = await createPost({
-      body: "Check src/auth/refresh.ts and lib/utils/helpers.js for the fix",
-    });
-
-    expect(post.files).toContain("src/auth/refresh.ts");
-    expect(post.files).toContain("lib/utils/helpers.js");
   });
 
   it("handles posts with no optional fields", async () => {
@@ -133,8 +120,6 @@ describe("POST /api/posts", () => {
     const post = await res.json();
     expect(post.tags).toEqual([]);
     expect(post.author).toBeNull();
-    expect(post.files).toEqual([]);
-    expect(post.commit_sha).toBeNull();
   });
 });
 
@@ -512,18 +497,6 @@ describe("PATCH /api/posts/:id (content editing)", () => {
     expect((await res.json()).tags).toEqual(["new", "tags"]);
   });
 
-  it("updates post body and re-extracts files", async () => {
-    const post = await createPost();
-    const res = await app.request(`/api/posts/${post.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ body: "Now referencing src/new/file.ts only" }),
-    });
-
-    expect(res.status).toBe(200);
-    expect((await res.json()).files).toEqual(["src/new/file.ts"]);
-  });
-
   it("updates FTS index when body changes", async () => {
     const post = await createPost({ body: "unique word xyzabc in this post" });
 
@@ -638,7 +611,6 @@ describe("PATCH /api/posts/:id (content editing)", () => {
     expect(updated.status).toBeTruthy();
     expect(updated.tags).toBeDefined();
     expect(updated.author).toBeDefined();
-    expect(updated.commit_sha).toBeDefined();
     expect(updated.created_at).toBeTruthy();
     expect(updated.updated_at).toBeTruthy();
   });
