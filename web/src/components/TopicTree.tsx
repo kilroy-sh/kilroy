@@ -1,16 +1,59 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { browse } from '../lib/api';
 import { useWorkspace, useWorkspacePath } from '../context/WorkspaceContext';
 
-interface TopicData {
-  subtopics: Array<{ name: string; post_count: number }>;
-  posts: Array<{ id: string; title: string; topic: string; status: string }>;
+interface Post {
+  id: string;
+  title: string;
+  topic: string;
+  status: string;
+}
+
+interface TreeNode {
+  name: string;
+  fullPath: string;
+  posts: Post[];
+  children: Map<string, TreeNode>;
 }
 
 interface TopicTreeProps {
   activePostId: string | null;
   onNavigate?: () => void;
+}
+
+function buildTree(posts: Post[]): TreeNode {
+  const root: TreeNode = { name: '', fullPath: '', posts: [], children: new Map() };
+
+  for (const post of posts) {
+    const parts = post.topic ? post.topic.split('/') : [];
+    let node = root;
+
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i];
+      if (!node.children.has(part)) {
+        node.children.set(part, {
+          name: part,
+          fullPath: parts.slice(0, i + 1).join('/'),
+          posts: [],
+          children: new Map(),
+        });
+      }
+      node = node.children.get(part)!;
+    }
+
+    node.posts.push(post);
+  }
+
+  return root;
+}
+
+function countPosts(node: TreeNode): number {
+  let count = node.posts.length;
+  for (const child of node.children.values()) {
+    count += countPosts(child);
+  }
+  return count;
 }
 
 export function TopicTree({ activePostId, onNavigate }: TopicTreeProps) {
@@ -19,24 +62,28 @@ export function TopicTree({ activePostId, onNavigate }: TopicTreeProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Cache of fetched data per topic path ("" = root)
-  const [cache, setCache] = useState<Map<string, TopicData>>(new Map());
-  // Track which topics have been fetched (avoids stale closure on cache)
-  const fetchedRef = useRef<Set<string>>(new Set());
-  // Which topics are expanded
+  const [tree, setTree] = useState<TreeNode | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(() => {
     const stored = sessionStorage.getItem(`kilroy:tree:${workspace}`);
     return stored ? new Set(JSON.parse(stored)) : new Set<string>();
   });
-  const [loading, setLoading] = useState<Set<string>>(new Set());
 
-  // Reset cache when workspace changes
+  // Fetch all posts on mount
   useEffect(() => {
-    fetchedRef.current = new Set();
-    setCache(new Map());
+    browse(workspace, { recursive: 'true', status: 'all', limit: '500' })
+      .then((data) => {
+        const posts: Post[] = (data.posts || []).map((p: any) => ({
+          id: p.id,
+          title: p.title,
+          topic: p.topic || '',
+          status: p.status,
+        }));
+        setTree(buildTree(posts));
+      })
+      .catch(() => {});
   }, [workspace]);
 
-  // Persist expanded state to sessionStorage
+  // Persist expanded state
   useEffect(() => {
     sessionStorage.setItem(`kilroy:tree:${workspace}`, JSON.stringify([...expanded]));
   }, [expanded, workspace]);
@@ -50,91 +97,40 @@ export function TopicTree({ activePostId, onNavigate }: TopicTreeProps) {
     return after.replace(/\/$/, '');
   })();
 
-  // Fetch data for a topic path
-  const fetchTopic = useCallback(async (topicPath: string) => {
-    if (fetchedRef.current.has(topicPath)) return;
-    fetchedRef.current.add(topicPath);
-    setLoading((prev) => new Set(prev).add(topicPath));
-    try {
-      const params: Record<string, string> = {};
-      if (topicPath) params.topic = topicPath;
-      const data = await browse(workspace, params);
-      setCache((prev) => {
-        const next = new Map(prev);
-        next.set(topicPath, {
-          subtopics: data.subtopics || [],
-          posts: (data.posts || []).map((p: any) => ({
-            id: p.id,
-            title: p.title,
-            topic: p.topic,
-            status: p.status,
-          })),
-        });
-        return next;
-      });
-    } catch {
-      // Allow retry on failure
-      fetchedRef.current.delete(topicPath);
-    } finally {
-      setLoading((prev) => {
-        const next = new Set(prev);
-        next.delete(topicPath);
-        return next;
-      });
-    }
-  }, [workspace]);
-
-  // Fetch root on mount
+  // Auto-expand to current topic or active post
   useEffect(() => {
-    fetchTopic('');
-  }, [fetchTopic]);
+    if (!tree) return;
 
-  // Auto-expand path to current URL
-  useEffect(() => {
-    const topic = currentTopic;
-    if (topic === null) return;
-    if (!topic) return;
-    const parts = topic.split('/');
-    const paths: string[] = [];
-    for (let i = 1; i <= parts.length; i++) {
-      paths.push(parts.slice(0, i).join('/'));
+    let targetTopic: string | null = null;
+
+    if (currentTopic) {
+      targetTopic = currentTopic;
+    } else if (activePostId) {
+      // Find the post's topic
+      const findPost = (node: TreeNode): string | null => {
+        for (const p of node.posts) {
+          if (p.id === activePostId) return node.fullPath;
+        }
+        for (const child of node.children.values()) {
+          const found = findPost(child);
+          if (found !== null) return found;
+        }
+        return null;
+      };
+      targetTopic = findPost(tree);
     }
-    // Expand all ancestors and fetch their data
+
+    if (!targetTopic) return;
+
+    const parts = targetTopic.split('/');
     setExpanded((prev) => {
       const next = new Set(prev);
-      for (const p of paths) next.add(p);
+      for (let i = 1; i <= parts.length; i++) {
+        next.add(parts.slice(0, i).join('/'));
+      }
       return next;
     });
-    // Fetch data for each ancestor (no-ops if cached)
-    for (const p of ['', ...paths]) {
-      fetchTopic(p);
-    }
-  }, [currentTopic, workspace, fetchTopic]);
-
-  // Auto-expand to active post's topic
-  useEffect(() => {
-    if (!activePostId) return;
-    // Find the post in cache to get its topic
-    for (const [, data] of cache) {
-      const post = data.posts.find((p) => p.id === activePostId);
-      if (post && post.topic) {
-        const parts = post.topic.split('/');
-        const paths: string[] = [];
-        for (let i = 1; i <= parts.length; i++) {
-          paths.push(parts.slice(0, i).join('/'));
-        }
-        setExpanded((prev) => {
-          const next = new Set(prev);
-          for (const p of paths) next.add(p);
-          return next;
-        });
-        for (const p of ['', ...paths]) {
-          fetchTopic(p);
-        }
-        break;
-      }
-    }
-  }, [activePostId, cache, fetchTopic]);
+  }, [currentTopic, activePostId, tree]);
 
   const toggleTopic = (topicPath: string) => {
     setExpanded((prev) => {
@@ -143,7 +139,6 @@ export function TopicTree({ activePostId, onNavigate }: TopicTreeProps) {
         next.delete(topicPath);
       } else {
         next.add(topicPath);
-        fetchTopic(topicPath);
       }
       return next;
     });
@@ -154,44 +149,42 @@ export function TopicTree({ activePostId, onNavigate }: TopicTreeProps) {
     onNavigate?.();
   };
 
-  const renderTopic = (parentPath: string, depth: number = 0) => {
-    const data = cache.get(parentPath);
-    if (!data) return null;
+  const renderNode = (node: TreeNode, depth: number = 0) => {
+    const sortedChildren = [...node.children.values()].sort((a, b) => a.name.localeCompare(b.name));
 
     return (
       <>
-        {data.subtopics.map((st) => {
-          const fullPath = parentPath ? `${parentPath}/${st.name}` : st.name;
-          const isExpanded = expanded.has(fullPath);
-          const isActive = currentTopic === fullPath;
-          const isLoading = loading.has(fullPath);
+        {sortedChildren.map((child) => {
+          const isExpanded = expanded.has(child.fullPath);
+          const isActive = currentTopic === child.fullPath;
+          const total = countPosts(child);
 
           return (
-            <div key={fullPath}>
+            <div key={child.fullPath}>
               <div
                 className={`tree-node ${isActive ? 'tree-node-active' : ''}`}
                 style={{ paddingLeft: `${depth * 1 + 0.5}rem` }}
               >
                 <span
                   className="tree-chevron"
-                  onClick={(e) => { e.stopPropagation(); toggleTopic(fullPath); }}
+                  onClick={(e) => { e.stopPropagation(); toggleTopic(child.fullPath); }}
                 >
-                  {isLoading ? '·' : isExpanded ? '▼' : '▶'}
+                  {isExpanded ? '▼' : '▶'}
                 </span>
                 <span
                   className="tree-topic-name"
-                  onClick={() => handleNavigate(wp(`/${fullPath}/`))}
+                  onClick={() => handleNavigate(wp(`/${child.fullPath}/`))}
                 >
-                  {st.name}
+                  {child.name}
                 </span>
-                <span className="tree-count">{st.post_count}</span>
+                <span className="tree-count">{total}</span>
               </div>
-              {isExpanded && renderTopic(fullPath, depth + 1)}
+              {isExpanded && renderNode(child, depth + 1)}
             </div>
           );
         })}
 
-        {data.posts.map((post) => {
+        {node.posts.map((post) => {
           const isActive = post.id === activePostId;
           return (
             <div
@@ -209,5 +202,7 @@ export function TopicTree({ activePostId, onNavigate }: TopicTreeProps) {
     );
   };
 
-  return <div>{renderTopic('')}</div>;
+  if (!tree) return null;
+
+  return <div>{renderNode(tree)}</div>;
 }

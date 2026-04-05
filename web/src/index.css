@@ -1800,12 +1800,6 @@ a:hover { color: var(--accent-hover); }
   cursor: pointer;
   padding: 0.15rem 0.3rem;
   border-radius: 4px;
-  opacity: 0;
-  transition: opacity 0.1s;
-}
-
-.sidebar-header:hover .sidebar-toggle {
-  opacity: 1;
 }
 
 .sidebar-toggle:hover {
