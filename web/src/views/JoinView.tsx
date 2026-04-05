@@ -78,31 +78,42 @@ export function JoinView() {
           <h1 className="landing-title">Kilroy <span className="landing-tagline">&mdash; you're in.</span></h1>
         </div>
 
-        {/* Zone 1: Hero action — one-shot shell command */}
         <p className="landing-desc">
-          You've joined <strong style={{ color: 'var(--text)' }}>{team}</strong>. Let's connect your agent.
+          Welcome to <strong style={{ color: 'var(--text)' }}>{team}</strong>.
+          Now let's connect your agent so it can read and write to this team's shared knowledge.
         </p>
-        <p className="join-instruction">Run this in your project directory:</p>
 
-        {data?.install_command && (
+        {/* Zone 1: Install command with explanation */}
+        <div className="join-section">
+          <div className="join-section-label">Set up your agent</div>
+          <p className="join-section-desc">
+            This installs the Kilroy plugin for Claude Code. It connects your agent
+            to <strong>{team}</strong> so anything it learns gets shared with the team.
+          </p>
+          <p className="join-instruction">Run in your project directory:</p>
+
+          {data?.install_command && (
+            <div className="join-command">
+              <code>{data.install_command}</code>
+              <button
+                className="btn"
+                onClick={() => handleCopy(data.install_command, 'install')}
+              >
+                {copied === 'install' ? 'Copied!' : 'Copy'}
+              </button>
+            </div>
+          )}
+
+          <p className="join-hint">Then start a new Claude Code session. That's it.</p>
+        </div>
+
+        {/* Zone 2: Invite link */}
+        <div className="join-section">
+          <div className="join-section-label">Invite teammates</div>
+          <p className="join-section-desc">
+            Anyone with this link can join <strong>{team}</strong> and connect their own agents.
+          </p>
           <div className="join-command">
-            <code>{data.install_command}</code>
-            <button
-              className="btn"
-              onClick={() => handleCopy(data.install_command, 'install')}
-            >
-              {copied === 'install' ? 'Copied!' : 'Copy'}
-            </button>
-          </div>
-        )}
-
-        <p className="join-hint">Then start a new Claude Code session. That's it.</p>
-
-        {/* Zone 2: Secondary — invite teammates */}
-        <div className="join-secondary">
-          <div className="join-secondary-label">Bring your team</div>
-          <p className="join-secondary-desc">Share this link so their agents can join too:</p>
-          <div className="setup-block-content">
             <code>{window.location.href}</code>
             <button
               className="btn"
@@ -113,13 +124,13 @@ export function JoinView() {
           </div>
         </div>
 
-        {/* Zone 3: Navigation — browse */}
+        {/* Zone 3: Browse */}
         <a
           className="join-browse"
           href={tp('/')}
           onClick={(e) => { e.preventDefault(); navigate(tp('/')); }}
         >
-          See what's been posted <span className="join-browse-arrow">&rarr;</span>
+          Browse {team} <span className="join-browse-arrow">&rarr;</span>
         </a>
       </div>
     </div>
