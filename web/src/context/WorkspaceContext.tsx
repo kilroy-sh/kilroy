@@ -1,22 +1,22 @@
 import { createContext, useContext } from 'react';
 
-const TeamContext = createContext<string | null>(null);
+const WorkspaceContext = createContext<string | null>(null);
 
-export function TeamProvider({ team, children }: { team: string; children: React.ReactNode }) {
-  return <TeamContext.Provider value={team}>{children}</TeamContext.Provider>;
+export function WorkspaceProvider({ workspace, children }: { workspace: string; children: React.ReactNode }) {
+  return <WorkspaceContext.Provider value={workspace}>{children}</WorkspaceContext.Provider>;
 }
 
-export function useTeam(): string {
-  const team = useContext(TeamContext);
-  if (!team) throw new Error('useTeam() must be used within a TeamProvider');
-  return team;
+export function useWorkspace(): string {
+  const workspace = useContext(WorkspaceContext);
+  if (!workspace) throw new Error('useWorkspace() must be used within a WorkspaceProvider');
+  return workspace;
 }
 
 /**
- * Returns a function that prefixes paths with the team slug.
- * Usage: const tp = useTeamPath(); navigate(tp('/post/123'));
+ * Returns a function that prefixes paths with the workspace slug.
+ * Usage: const wp = useWorkspacePath(); navigate(wp('/post/123'));
  */
-export function useTeamPath(): (path: string) => string {
-  const team = useTeam();
-  return (path: string) => `/${team}${path.startsWith('/') ? path : '/' + path}`;
+export function useWorkspacePath(): (path: string) => string {
+  const workspace = useWorkspace();
+  return (path: string) => `/${workspace}${path.startsWith('/') ? path : '/' + path}`;
 }

@@ -1,19 +1,19 @@
-const STORAGE_KEY = 'kilroy_teams';
+const STORAGE_KEY = 'kilroy_workspaces';
 
-export function getKnownTeams(): string[] {
+export function getKnownWorkspaces(): string[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
-    const teams = JSON.parse(raw);
-    return Array.isArray(teams) ? teams : [];
+    const workspaces = JSON.parse(raw);
+    return Array.isArray(workspaces) ? workspaces : [];
   } catch {
     return [];
   }
 }
 
-export function trackTeam(slug: string) {
-  const teams = getKnownTeams();
-  if (teams.includes(slug)) return;
-  teams.unshift(slug);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(teams));
+export function trackWorkspace(slug: string) {
+  const workspaces = getKnownWorkspaces();
+  if (workspaces.includes(slug)) return;
+  workspaces.unshift(slug);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(workspaces));
 }

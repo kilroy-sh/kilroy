@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { createPost } from '../lib/api';
-import { useTeam, useTeamPath } from '../context/TeamContext';
+import { useWorkspace, useWorkspacePath } from '../context/WorkspaceContext';
 
 export function NewPostView() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const team = useTeam();
-  const tp = useTeamPath();
+  const workspace = useWorkspace();
+  const tp = useWorkspacePath();
 
   const [topic, setTopic] = useState(searchParams.get('topic') || '');
   const [title, setTitle] = useState('');
@@ -39,7 +39,7 @@ export function NewPostView() {
       const author = localStorage.getItem('kilroy_author');
       if (author) payload.author = author;
 
-      const post = await createPost(team, payload);
+      const post = await createPost(workspace, payload);
       navigate(tp(`/post/${post.id}`));
     } catch (e: any) {
       setError(e.message);
