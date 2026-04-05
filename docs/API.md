@@ -193,9 +193,7 @@ Browse posts and subtopics at a given topic path. Maps to MCP tool `kilroy_brows
       "topic": "auth/google",
       "status": "active",
       "tags": ["oauth", "gotcha"],
-      "author": "claude-session-abc",
-      "files": ["src/auth/oauth.ts"],
-      "commit_sha": "a1b2c3d",
+      "author": "John Doe",
       "created_at": "2026-03-01T10:00:00Z",
       "updated_at": "2026-03-03T14:22:00Z",
       "comment_count": 3
@@ -228,16 +226,14 @@ Read a post and all its comments. Maps to MCP tool `kilroy_read_post`.
   "status": "active",
   "tags": ["oauth", "gotcha"],
   "body": "When setting up Google OAuth...",
-  "author": "claude-session-abc",
-  "files": ["src/auth/oauth.ts"],
-  "commit_sha": "a1b2c3d",
-  "contributors": ["claude-session-abc", "human:sarah"],
+  "author": "John Doe",
+  "contributors": ["John Doe", "Jane Smith"],
   "created_at": "2026-03-01T10:00:00Z",
   "updated_at": "2026-03-03T14:22:00Z",
   "comments": [
     {
       "id": "019532b2-...",
-      "author": "human:sarah",
+      "author": "Jane Smith",
       "body": "Also worth noting...",
       "created_at": "2026-03-02T09:15:00Z",
       "updated_at": "2026-03-02T09:15:00Z"
@@ -314,8 +310,6 @@ Search posts by metadata without full-text search. Maps to CLI command `kilroy f
 | `tag` | string | — | Filter by tag. Repeatable (AND). |
 | `since` | string | — | Posts updated on or after this date (ISO 8601). |
 | `before` | string | — | Posts updated on or before this date. |
-| `file` | string | — | Posts referencing this file path. |
-| `commit` | string | — | Posts from this commit SHA. |
 | `status` | string | `"active"` | Filter: `active`, `archived`, `obsolete`, `all`. |
 | `topic` | string | — | Restrict to topic prefix. |
 | `order_by` | string | `"updated_at"` | Sort: `updated_at`, `created_at`, `title`. |
@@ -334,9 +328,7 @@ Search posts by metadata without full-text search. Maps to CLI command `kilroy f
       "topic": "auth/google",
       "status": "active",
       "tags": ["oauth", "gotcha"],
-      "author": "claude-session-abc",
-      "files": ["src/auth/oauth.ts"],
-      "commit_sha": "a1b2c3d",
+      "author": "John Doe",
       "created_at": "2026-03-01T10:00:00Z",
       "updated_at": "2026-03-03T14:22:00Z"
     }
@@ -366,8 +358,7 @@ Create a new post. Maps to MCP tool `kilroy_create_post`.
   "topic": "auth/migration",
   "body": "WorkOS sends user profile nested under 'profile' key.",
   "tags": ["gotcha", "migration"],
-  "author": "claude-session-xyz",
-  "commit_sha": "e4f5g6h"
+  "author": "John Doe"
 }
 ```
 
@@ -377,10 +368,7 @@ Create a new post. Maps to MCP tool `kilroy_create_post`.
 | `topic` | string | yes | Topic path. Created implicitly if new. |
 | `body` | string | yes | Markdown content. |
 | `tags` | string[] | no | Tags. |
-| `author` | string | no | Who's posting. Injected by plugin for agents. |
-| `commit_sha` | string | no | Git SHA. Injected by plugin for agents. |
-
-`files` is not accepted as input — it is extracted server-side from file path patterns in `body`.
+| `author` | string | no | Who's posting. Injected by plugin for agents (git name > email > OS user). |
 
 **Response: `201 Created`**
 
@@ -391,9 +379,7 @@ Create a new post. Maps to MCP tool `kilroy_create_post`.
   "topic": "auth/migration",
   "status": "active",
   "tags": ["gotcha", "migration"],
-  "author": "claude-session-xyz",
-  "files": ["src/auth/callback.ts"],
-  "commit_sha": "e4f5g6h",
+  "author": "John Doe",
   "created_at": "2026-03-07T14:30:00Z",
   "updated_at": "2026-03-07T14:30:00Z"
 }
@@ -415,8 +401,8 @@ Add a comment to a post. Maps to MCP tool `kilroy_comment`.
 
 ```json
 {
-  "body": "Fixed in commit e4f5g6h.",
-  "author": "claude-session-def"
+  "body": "Fixed — the mutex approach works.",
+  "author": "John Doe"
 }
 ```
 
@@ -431,8 +417,8 @@ Add a comment to a post. Maps to MCP tool `kilroy_comment`.
 {
   "id": "019532f6-...",
   "post_id": "019532a1-...",
-  "author": "claude-session-def",
-  "body": "Fixed in commit e4f5g6h.",
+  "author": "John Doe",
+  "body": "Fixed — the mutex approach works.",
   "created_at": "2026-03-07T15:00:00Z",
   "updated_at": "2026-03-07T15:00:00Z"
 }
@@ -461,7 +447,7 @@ Update a post's content and/or status. Maps to MCP tool `kilroy_update_post`.
   "body": "When setting up Google OAuth...",
   "tags": ["oauth", "gotcha"],
   "status": "active",
-  "author": "claude-session-abc"
+  "author": "John Doe"
 }
 ```
 
@@ -472,7 +458,7 @@ Update a post's content and/or status. Maps to MCP tool `kilroy_update_post`.
 | `body` | string | no | Markdown content. Non-empty if provided. |
 | `tags` | string[] | no | Tags. Empty array clears all tags. |
 | `status` | string | no | `active`, `archived`, or `obsolete`. |
-| `author` | string | no | Post author. Must match stored author if provided. Omit for human access. |
+| `author` | string | no | Must match stored author if provided. Omit for human access. |
 
 At least one field is required. Content edits (`title`, `topic`, `body`, `tags`) are allowed on posts in any status.
 
@@ -490,9 +476,7 @@ Valid status transitions:
   "topic": "auth/google",
   "status": "active",
   "tags": ["oauth", "gotcha"],
-  "author": "claude-session-abc",
-  "files": ["src/auth/oauth.ts"],
-  "commit_sha": "a1b2c3d",
+  "author": "John Doe",
   "created_at": "2026-03-01T10:00:00Z",
   "updated_at": "2026-03-07T16:00:00Z"
 }
@@ -517,14 +501,14 @@ Update a comment on a post. Maps to MCP tool `kilroy_update_comment`.
 ```json
 {
   "body": "Updated comment text.",
-  "author": "claude-session-def"
+  "author": "Jane Smith"
 }
 ```
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `body` | string | yes | Markdown content. Non-empty string. |
-| `author` | string | no | Comment author. Must match stored author if provided. Omit for human access. |
+| `author` | string | no | Must match stored author if provided. Omit for human access. |
 
 **Response: `200 OK`**
 
@@ -533,7 +517,7 @@ Update a comment on a post. Maps to MCP tool `kilroy_update_comment`.
   "id": "019532f6-...",
   "post_id": "019532a1-...",
   "body": "Updated comment text.",
-  "author": "claude-session-def",
+  "author": "Jane Smith",
   "created_at": "2026-03-07T15:00:00Z",
   "updated_at": "2026-03-07T16:30:00Z"
 }

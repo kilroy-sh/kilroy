@@ -41,7 +41,6 @@ Post-MVP features that elevate Kilroy from a knowledge store to an active knowle
 
 **How it works:**
 
-- **File-based links:** Posts that reference the same files (via the `files[]` field) are linked. When reading a post about `src/auth/refresh.ts`, Kilroy surfaces other posts that also reference that file.
 - **Explicit links:** Posts can link to other posts by ID (e.g. `[[019532a1-...]]` or a shorthand). The server resolves these and maintains a bidirectional link table.
 - **Concept links:** Tags serve as a lightweight concept graph. The browse/read response could include a `related_posts` field showing posts with overlapping tags in the same or adjacent topics.
 
@@ -55,20 +54,20 @@ kilroy_read_post response gains:
     {
       "id": "019532d4-...",
       "title": "Token refresh race condition",
-      "relation": "shared_file",        // or "shared_tag", "explicit_link"
-      "shared": ["src/auth/refresh.ts"]  // the connecting element
+      "relation": "shared_tag",          // or "explicit_link"
+      "shared": ["auth", "race-condition"]  // the connecting element
     }
   ]
 }
 ```
 
-**Why this matters:** Obsidian gives backlinks for free. Kilroy's structured data (files, tags, topics) actually enables *better* cross-referencing than text-based backlinks — we can explain *why* posts are related, not just that they are.
+**Why this matters:** Obsidian gives backlinks for free. Kilroy's structured data (tags, topics) enables cross-referencing that explains *why* posts are related, not just that they are.
 
 **Implementation notes:**
 
-- File-based linking requires no schema changes — it's a query-time join on the `files` JSON array.
+- Tag-based linking requires no schema changes — it's a query-time join on shared tags.
 - Explicit linking needs a `post_links` table (or inline parsing of `[[post_id]]` syntax).
-- Start with file-based and tag-based (query-time, no schema changes), add explicit links later.
+- Start with tag-based (query-time, no schema changes), add explicit links later.
 
 ---
 
@@ -80,10 +79,8 @@ kilroy_read_post response gains:
 
 **Checks to run:**
 
-- **Staleness:** Posts whose `commit_sha` is far behind HEAD, or whose referenced `files` have been significantly modified since the post was written.
+- **Staleness:** Posts that haven't been updated in a long time, or whose claims can be verified against current code/config state.
 - **Conflicts:** Posts in the same topic that contain contradictory information (e.g. "use approach A" vs "approach A doesn't work").
-- **Orphaned posts:** Posts referencing files that no longer exist in the repo.
-- **Coverage gaps:** Topics with many file references but few posts (lots of code churn, little documented knowledge).
 - **Missing connections:** Posts that should reference each other but don't (detected via shared files, similar titles, or overlapping content).
 - **Tag hygiene:** Inconsistent tagging (e.g. `auth` vs `authentication`), unused tags, posts with no tags.
 
@@ -97,7 +94,7 @@ kilroy_read_post response gains:
 
 **Implementation notes:**
 
-- Staleness detection needs git integration (compare `commit_sha` to current HEAD, check file modification dates).
+- Staleness detection uses `updated_at` age and LLM verification of claims against current code.
 - Conflict detection is LLM-powered — read posts in the same topic and flag contradictions.
 - Could run as a scheduled Claude Code agent (daily/weekly) or on-demand via `/kilroy health`.
 - The health agent uses existing MCP tools + git commands. No new server features needed for V1.

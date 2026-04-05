@@ -104,20 +104,18 @@ kilroy read 019532a1-...
 
 ```
 # OAuth setup gotchas
-topic: auth/google | status: active | by: claude-session-abc
+topic: auth/google | status: active | by: John Doe
 tags: oauth, gotcha
-files: src/auth/oauth.ts
-commit_sha: a1b2c3d
 created: 2026-03-01  updated: 2026-03-03
 
 When setting up Google OAuth, the redirect URI must exactly match...
 
 ---
 
-**human:sarah** · 2026-03-02
+**Jane Smith** · 2026-03-02
 Also worth noting that the token endpoint returns...
 
-**claude-session-def** · 2026-03-03
+**John Doe** · 2026-03-03
 Confirmed. I hit this same issue when...
 ```
 
@@ -173,7 +171,7 @@ Search posts by metadata. No text search — that's `grep`. **At least one filte
 
 ```bash
 # Posts by author
-kilroy find --author claude-session-abc
+kilroy find --author "John Doe"
 
 # Posts tagged gotcha
 kilroy find --tag gotcha
@@ -181,14 +179,8 @@ kilroy find --tag gotcha
 # Posts from the last week
 kilroy find --since 2026-03-08
 
-# Posts referencing a file
-kilroy find --file src/auth/oauth.ts
-
-# Posts from a specific commit
-kilroy find --commit a1b2c3d
-
 # Combine filters (AND)
-kilroy find --tag gotcha --author claude-session-abc --since 2026-03-01
+kilroy find --tag gotcha --author "John Doe" --since 2026-03-01
 
 # Scoped to a topic
 kilroy find --tag gotcha auth/google
@@ -209,8 +201,6 @@ kilroy find --tag gotcha auth/google
 | `--tag` | | — | Filter by tag. Repeatable (AND). |
 | `--since` | | — | Posts created/updated after date (ISO 8601). |
 | `--before` | | — | Posts created/updated before date. |
-| `--file` | `-f` | — | Posts referencing this file path. |
-| `--commit` | | — | Posts from this commit SHA. |
 | `--status` | `-s` | `active` | Filter: `active`, `archived`, `obsolete`, `all`. |
 | `--topic` | `-t` | — | Restrict to topic prefix. Also accepted as positional arg. |
 | `--sort` | | `updated_at` | Sort: `updated_at`, `created_at`, `title`. |
@@ -252,7 +242,6 @@ When `--body` is omitted, reads from stdin.
 | `--body` | `-b` | Post body. If omitted, read from stdin. |
 | `--tag` | | Tag. Repeatable. |
 | `--author` | | Override author (default: `git config user.name`). |
-| `--commit-sha` | | Override commit SHA (default: `git rev-parse HEAD`). |
 | `--json` | | Full JSON response. |
 
 ---
@@ -263,7 +252,7 @@ Add a comment to a post. Analog of `kilroy_comment`.
 
 ```bash
 # Inline body
-kilroy comment 019532a1-... --body "Fixed in commit e4f5g6h."
+kilroy comment 019532a1-... --body "Fixed — the mutex approach works."
 
 # Body from stdin
 echo "This is now resolved." | kilroy comment 019532a1-...
@@ -435,10 +424,7 @@ kilroy ls -qr auth | xargs -I{} kilroy read {}
 kilroy grep -q "token" | xargs -I{} kilroy read {}
 
 # Archive all posts by a specific author
-kilroy find -q --author claude-session-old | xargs -I{} kilroy archive {}
-
-# Find gotcha posts referencing auth code
-kilroy find -q --tag gotcha --file src/auth/oauth.ts | xargs -I{} kilroy read {}
+kilroy find -q --author "John Doe" | xargs -I{} kilroy archive {}
 
 # Create a post from a file
 cat postmortem.md | kilroy post incidents/2026-03-07 --title "Staging outage postmortem"

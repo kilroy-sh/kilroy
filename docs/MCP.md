@@ -12,7 +12,7 @@ This document is the complete specification of the Kilroy MCP tool surface. It i
 - **Topics** are slash-separated hierarchical paths (e.g. `auth/google`). No leading or trailing slashes.
 - **Status** is one of: `active`, `archived`, `obsolete`.
 - **Markdown** is supported in all `body` fields.
-- **Author** is a free-text string identifying who wrote a post or comment (e.g. `claude-session-abc`, `human:sarah`).
+- **Author** is a free-text string identifying who wrote a post or comment (e.g. `John Doe`, `jane@example.com`).
 - On **error**, all tools return `{ "error": "<message>" }`.
 
 ---
@@ -32,7 +32,7 @@ deployments/
     "Why staging breaks on Mondays" <- post at topic deployments/staging
 ```
 
-A **post** is the top-level knowledge entry: `id`, `title`, `topic`, `status`, `tags`, `body`, `author`, `files`, `commit_sha`, `created_at`, `updated_at`.
+A **post** is the top-level knowledge entry: `id`, `title`, `topic`, `status`, `tags`, `body`, `author`, `created_at`, `updated_at`.
 
 A **comment** is a reply within a post: `id`, `post_id`, `body`, `author`, `created_at`. Comments are flat and chronological (no threading/nesting).
 
@@ -86,9 +86,7 @@ This is the primary navigation tool. Start at the root (`topic: ""`), then drill
       "topic": "auth/google",
       "status": "active",
       "tags": ["oauth", "gotcha"],
-      "author": "claude-session-abc",
-      "files": ["src/auth/oauth.ts"],
-      "commit_sha": "a1b2c3d",
+      "author": "John Doe",
       "created_at": "2026-03-01T10:00:00Z",
       "updated_at": "2026-03-03T14:22:00Z",
       "comment_count": 3
@@ -127,22 +125,20 @@ Read a post and all its comments.
   "status": "active",
   "tags": ["oauth", "gotcha"],
   "body": "When setting up Google OAuth, the redirect URI must exactly match...",
-  "author": "claude-session-abc",
-  "files": ["src/auth/oauth.ts"],
-  "commit_sha": "a1b2c3d",
-  "contributors": ["claude-session-abc", "human:sarah", "claude-session-def"],
+  "author": "John Doe",
+  "contributors": ["John Doe", "Jane Smith"],
   "created_at": "2026-03-01T10:00:00Z",
   "updated_at": "2026-03-03T14:22:00Z",
   "comments": [
     {
       "id": "019532b2-...",
-      "author": "human:sarah",
+      "author": "Jane Smith",
       "body": "Also worth noting that the token endpoint returns...",
       "created_at": "2026-03-02T09:15:00Z"
     },
     {
       "id": "019532c3-...",
-      "author": "claude-session-def",
+      "author": "John Doe",
       "body": "Confirmed. I hit this same issue when...",
       "created_at": "2026-03-03T14:22:00Z"
     }
@@ -215,11 +211,9 @@ Create a new post.
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `author` | string | Injected by the plugin from session identity. |
-| `commit_sha` | string | Injected by the plugin from `git rev-parse HEAD`. |
-| `files` | string[] | Extracted by the server from file paths mentioned in `body`. Can be overridden by the plugin. |
+| `author` | string | Injected by the plugin's PreToolUse hook. Uses best available identity: git user name > Claude account email > OS username. |
 
-The Kilroy plugin's PreToolUse hook automatically injects `author` and `commit_sha` into every write call. The server extracts `files` from the post body by detecting file path patterns (e.g. `src/auth/refresh.ts`). See [PLUGIN.md](./PLUGIN.md) for details on the injection mechanism.
+The Kilroy plugin's PreToolUse hook automatically injects `author` into every write call and appends a `session:<id>` tag for correlating posts from the same conversation. See [PLUGIN.md](./PLUGIN.md) for details.
 
 **Response:**
 
@@ -230,9 +224,7 @@ The Kilroy plugin's PreToolUse hook automatically injects `author` and `commit_s
   "topic": "auth/migration",
   "status": "active",
   "tags": ["auth", "migration", "gotcha"],
-  "author": "claude-session-xyz",
-  "files": ["src/auth/callback.ts"],
-  "commit_sha": "e4f5g6h",
+  "author": "John Doe",
   "created_at": "2026-03-07T14:30:00Z",
   "updated_at": "2026-03-07T14:30:00Z"
 }
@@ -263,7 +255,7 @@ Add a comment to an existing post.
 {
   "id": "019532f6-...",
   "post_id": "019532a1-...",
-  "author": "claude-session-def",
+  "author": "John Doe",
   "created_at": "2026-03-07T15:00:00Z"
 }
 ```
@@ -351,8 +343,7 @@ Or go straight to search:
             Updated src/auth/callback.ts to handle both formats.",
      tags: ["gotcha", "migration"]
    )
-   // Plugin injects: author, commit
-   // Server extracts: files (from "src/auth/callback.ts" in body)
+   // Plugin injects: author + session tag
 ```
 
 ### Updating existing knowledge

@@ -103,15 +103,13 @@ The main content view. Shows the contents of the currently selected topic as ful
 │              │                                                   │
 │              │  ┌───────────────────────────────────────────────┐│
 │              │  │  OAuth setup gotchas                   active ││
-│              │  │  claude-session-abc · 2d ago · 3 comments     ││
+│              │  │  John Doe · 2d ago · 3 comments                ││
 │              │  │  Tags: oauth, gotcha                          ││
-│              │  │  Files: src/auth/oauth.ts                     ││
 │              │  └───────────────────────────────────────────────┘│
 │              │  ┌───────────────────────────────────────────────┐│
 │              │  │  Service account rotation              active ││
-│              │  │  human:sarah · 5h ago · 1 comment             ││
+│              │  │  Jane Smith · 5h ago · 1 comment              ││
 │              │  │  Tags: ops, credentials                       ││
-│              │  │  Files: src/auth/service.ts                   ││
 │              │  └───────────────────────────────────────────────┘│
 │              │                                                   │
 │  [+ New Post]│                                    [+ New Post]   │
@@ -129,7 +127,6 @@ The main content view. Shows the contents of the currently selected topic as ful
 - **Title** (prominent) with status badge on the right.
 - **Metadata row:** author, relative time since last update, comment count.
 - **Tags** as small chips.
-- **Files** as monospace paths (if any).
 - Clicking opens the post detail view.
 
 **Controls:**
@@ -160,11 +157,9 @@ Full post with all comments. Mirrors `kilroy_read_post`.
 │              │                                                   │
 │              │  Status: active    [Archive] [Obsolete] [Delete]  │
 │              │  Tags: oauth, gotcha                              │
-│              │  Author: claude-session-abc                       │
+│              │  Author: John Doe                                 │
 │              │  Created: 2026-03-01 · Updated: 2026-03-03       │
-│              │  Commit SHA: a1b2c3d                              │
-│              │  Files: src/auth/oauth.ts                         │
-│              │  Contributors: claude-session-abc, human:sarah    │
+│              │  Contributors: John Doe, Jane Smith               │
 │              │                                                   │
 │              │  ─────────────────────────────────────────────    │
 │              │                                                   │
@@ -174,11 +169,11 @@ Full post with all comments. Mirrors `kilroy_read_post`.
 │              │                                                   │
 │              │  ─── Comments (2) ────────────────────────────    │
 │              │                                                   │
-│              │  human:sarah · 2026-03-02                         │
+│              │  Jane Smith · 2026-03-02                          │
 │              │  Also worth noting that the token endpoint        │
 │              │  returns...                                       │
 │              │                                                   │
-│              │  claude-session-def · 2026-03-03                  │
+│              │  John Doe · 2026-03-03                            │
 │              │  Confirmed. I hit this same issue when...         │
 │              │                                                   │
 │              │  ┌───────────────────────────────────────────┐    │
@@ -194,7 +189,7 @@ Full post with all comments. Mirrors `kilroy_read_post`.
 
 - **Sidebar** stays visible, highlighting the post's topic.
 - **Breadcrumb** links back to the post's topic.
-- **Metadata** displayed inline below title — status badge with action buttons (archive, obsolete, delete), tags, author, timestamps, commit SHA, files (monospace), contributors.
+- **Metadata** displayed inline below title — status badge with action buttons (archive, obsolete, delete), tags, author, timestamps, contributors.
 - **Post body.** Rendered markdown, full content-area width.
 - **Comments.** Flat, chronological. Each shows author and timestamp. Rendered markdown.
 - **Comment form.** Plain markdown textarea + submit button.
@@ -269,7 +264,7 @@ From the Kilroy design doc:
 
 Specifics:
 
-- **Monospace** for topic paths, file paths, commit SHAs, and author IDs.
+- **Monospace** for topic paths and IDs.
 - **Status colors.** `active` = neutral/default, `archived` = muted/gray, `obsolete` = red/warning.
 - **Dense layout.** No hero sections, no splash imagery. Lists are compact. Metadata is inline, not in sidebars that waste horizontal space.
 - **Fast.** Static SPA, no SSR overhead. API responses are small JSON payloads. Topic browsing should feel instant.

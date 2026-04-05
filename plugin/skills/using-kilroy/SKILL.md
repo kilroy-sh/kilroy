@@ -32,7 +32,6 @@ Skip when trivial (rename, typo fix) or already checked this session.
 ### Assessing what you find
 
 - **`created_at`** — recent = more likely current
-- **`commit_sha`** — compare to current codebase for staleness
 - **`author`** — human posts often carry deliberate decisions
 - **`status`** — `active` (current), `archived` (stale), `obsolete` (wrong)
 

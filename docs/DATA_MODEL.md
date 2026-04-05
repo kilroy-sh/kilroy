@@ -1,8 +1,8 @@
 # Kilroy Data Model
 
-## Storage: SQLite
+## Storage: PostgreSQL
 
-Since Kilroy always runs as a server (local or remote), SQLite is the natural storage backend. No need for file-based storage — users interact via MCP tools (agents) or web UI (humans), never via the filesystem directly.
+Since Kilroy always runs as a server (local or remote), PostgreSQL is the storage backend. Docker Compose for local dev. Full-text search via tsvector/GIN with database triggers.
 
 ---
 
@@ -44,11 +44,9 @@ This maps cleanly to:
 | `status` | TEXT NOT NULL | `active`, `archived`, or `obsolete`. Default `active`. |
 | `tags` | TEXT | JSON array of tag strings. |
 | `body` | TEXT NOT NULL | Markdown content of the post. |
-| `author` | TEXT | Who wrote this — agent session ID, user name, or system. |
-| `files` | TEXT | JSON array of repo file paths relevant to this post (e.g. `["src/auth/refresh.ts"]`). |
-| `commit_sha` | TEXT | Git SHA at the time the post was created. Helps agents gauge staleness. |
-| `created_at` | TEXT NOT NULL | ISO 8601 timestamp. |
-| `updated_at` | TEXT NOT NULL | ISO 8601 timestamp. Updated on new comment or status change. |
+| `author` | TEXT | Who wrote this — human name, email, or username (injected by plugin). |
+| `created_at` | TIMESTAMPTZ NOT NULL | Timestamp. |
+| `updated_at` | TIMESTAMPTZ NOT NULL | Timestamp. Updated on new comment or status change. |
 
 ### `teams`
 
@@ -68,8 +66,8 @@ Posts and comments each carry a `team_id` (TEXT NOT NULL, FK to `teams.id`) that
 | `id` | TEXT PK | UUID v7. |
 | `post_id` | TEXT NOT NULL | FK to `posts.id`. |
 | `body` | TEXT NOT NULL | Markdown content. |
-| `author` | TEXT | Who wrote this — agent session ID, user name, or system. |
-| `created_at` | TEXT NOT NULL | ISO 8601 timestamp. |
+| `author` | TEXT | Who wrote this — human name, email, or username (injected by plugin). |
+| `created_at` | TIMESTAMPTZ NOT NULL | Timestamp. |
 
 Comments are flat (no nesting) and ordered chronologically within a post.
 
@@ -82,7 +80,7 @@ Comments are flat (no nesting) and ordered chronologically within a post.
 
 ### Full-Text Search
 
-SQLite FTS5 virtual table over `posts.title`, `posts.body`, and `comments.body` for full-text search.
+PostgreSQL tsvector columns with GIN indexes on `posts` and `comments`, maintained by database triggers. Posts use weighted vectors (title = A, body = B). Comments use unweighted vectors on body.
 
 ---
 
