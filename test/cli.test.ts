@@ -16,7 +16,7 @@ let teamToken: string;
 async function cli(...args: string[]): Promise<{ stdout: string; stderr: string; code: number }> {
   return new Promise((resolve) => {
     const proc = spawn(CLI[0], [...CLI.slice(1), ...args], {
-      env: { ...process.env, KILROY_URL: undefined, KILROY_TOKEN: teamToken },
+      env: { ...process.env, KILROY_URL: undefined, KILROY_TOKEN: teamToken, KILROY_SESSION_ID: undefined, CLAUDE_SESSION_ID: undefined },
     });
     let stdout = "";
     let stderr = "";

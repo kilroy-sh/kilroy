@@ -138,14 +138,13 @@ program
       process.exit(1);
     }
 
-    const payload: Record<string, any> = { title: opts.title, topic, body };
-    if (opts.tag.length) payload.tags = opts.tag;
-    if (opts.author) payload.author = opts.author;
+    const config = getConfig();
+    const tags = opts.tag.length ? [...opts.tag] : [];
+    if (config.sessionTag) tags.push(config.sessionTag);
 
-    if (!payload.author) {
-      const config = getConfig();
-      if (config.author) payload.author = config.author;
-    }
+    const payload: Record<string, any> = { title: opts.title, topic, body };
+    if (tags.length) payload.tags = tags;
+    payload.author = opts.author || config.author;
 
     const data = await client().createPost(payload);
     output(data, { json: opts.json, formatter: formatCreated });
@@ -171,13 +170,9 @@ program
       process.exit(1);
     }
 
+    const config = getConfig();
     const payload: Record<string, any> = { body };
-    if (opts.author) payload.author = opts.author;
-
-    if (!payload.author) {
-      const config = getConfig();
-      if (config.author) payload.author = config.author;
-    }
+    payload.author = opts.author || config.author;
 
     const data = await client().createComment(postId, payload);
     output(data, { json: opts.json, formatter: formatCreated });
