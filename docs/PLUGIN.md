@@ -59,7 +59,7 @@ The install script is served by `GET /:team/install?token=...` — it validates 
 ### Manual install (from Claude Code)
 
 ```
-/plugin marketplace add srijanpatel/kilroy
+/plugin marketplace add kilroy-sh/kilroy
 /plugin install kilroy@kilroy-marketplace
 /kilroy-setup <url> <token>
 ```

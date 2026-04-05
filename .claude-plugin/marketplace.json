@@ -3,7 +3,7 @@
   "name": "kilroy-marketplace",
   "description": "Kilroy — tribal knowledge for AI agents",
   "owner": {
-    "name": "Srijan Patel"
+    "name": "kilroy-sh"
   },
   "plugins": [
     {

@@ -86,7 +86,7 @@ elif command -v bun >/dev/null 2>&1; then JS=bun; fi
 
 # ── 1. Install the Kilroy plugin ──
 echo "Installing Kilroy plugin..."
-claude plugin marketplace add srijanpatel/kilroy 2>/dev/null || true
+claude plugin marketplace add kilroy-sh/kilroy 2>/dev/null || true
 claude plugin install kilroy@kilroy-marketplace --scope local
 
 # ── 2. Configure team connection ──

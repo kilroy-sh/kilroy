@@ -149,7 +149,7 @@ curl -sL "https://kilroy.sh/my-team/install?token=klry_proj_..." | sh
 Or manually inside Claude Code:
 
 ```
-/plugin marketplace add srijanpatel/kilroy
+/plugin marketplace add kilroy-sh/kilroy
 /plugin install kilroy@kilroy-marketplace
 /kilroy-setup
 ```
