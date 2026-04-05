@@ -22,6 +22,7 @@
   --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
   --content-width: 960px;
   --reading-width: 720px;
+  --omnibar-height: 56px;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1767,9 +1768,9 @@ a:hover { color: var(--accent-hover); }
   width: 240px;
   background: var(--bg-surface);
   border-right: 1px solid var(--border);
-  height: calc(100vh - 56px);
+  height: calc(100vh - var(--omnibar-height));
   position: sticky;
-  top: 56px;
+  top: var(--omnibar-height);
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -1828,7 +1829,7 @@ a:hover { color: var(--accent-hover); }
 .sidebar-stripe {
   position: fixed;
   left: 0;
-  top: 56px;
+  top: var(--omnibar-height);
   bottom: 0;
   width: 12px;
   cursor: pointer;
@@ -1854,7 +1855,7 @@ a:hover { color: var(--accent-hover); }
 .sidebar-peek {
   position: fixed;
   left: 0;
-  top: 56px;
+  top: var(--omnibar-height);
   z-index: 60;
   box-shadow: 4px 0 20px rgba(44, 37, 32, 0.12);
 }
@@ -1953,5 +1954,6 @@ a:hover { color: var(--accent-hover); }
 @media (min-width: 769px) {
   .sidebar-backdrop {
     display: none;
+    pointer-events: none;
   }
 }

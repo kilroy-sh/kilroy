@@ -13,6 +13,7 @@ interface Post {
 interface TreeNode {
   name: string;
   fullPath: string;
+  totalPosts: number;
   posts: Post[];
   children: Map<string, TreeNode>;
 }
@@ -23,7 +24,7 @@ interface TopicTreeProps {
 }
 
 function buildTree(posts: Post[]): TreeNode {
-  const root: TreeNode = { name: '', fullPath: '', posts: [], children: new Map() };
+  const root: TreeNode = { name: '', fullPath: '', totalPosts: 0, posts: [], children: new Map() };
 
   for (const post of posts) {
     const parts = post.topic ? post.topic.split('/') : [];
@@ -35,6 +36,7 @@ function buildTree(posts: Post[]): TreeNode {
         node.children.set(part, {
           name: part,
           fullPath: parts.slice(0, i + 1).join('/'),
+          totalPosts: 0,
           posts: [],
           children: new Map(),
         });
@@ -45,15 +47,37 @@ function buildTree(posts: Post[]): TreeNode {
     node.posts.push(post);
   }
 
+  // Compute totalPosts bottom-up
+  function computeCounts(node: TreeNode): number {
+    let count = node.posts.length;
+    for (const child of node.children.values()) {
+      count += computeCounts(child);
+    }
+    node.totalPosts = count;
+    return count;
+  }
+  computeCounts(root);
+
   return root;
 }
 
-function countPosts(node: TreeNode): number {
-  let count = node.posts.length;
-  for (const child of node.children.values()) {
-    count += countPosts(child);
-  }
-  return count;
+async function fetchAllPosts(workspace: string): Promise<Post[]> {
+  const allPosts: Post[] = [];
+  let cursor: string | undefined;
+
+  do {
+    const params: Record<string, string> = { recursive: 'true', status: 'all', limit: '100' };
+    if (cursor) params.cursor = cursor;
+    const data = await browse(workspace, params);
+
+    for (const p of data.posts || []) {
+      allPosts.push({ id: p.id, title: p.title, topic: p.topic || '', status: p.status });
+    }
+
+    cursor = data.has_more ? data.next_cursor : undefined;
+  } while (cursor);
+
+  return allPosts;
 }
 
 export function TopicTree({ activePostId, onNavigate }: TopicTreeProps) {
@@ -68,20 +92,26 @@ export function TopicTree({ activePostId, onNavigate }: TopicTreeProps) {
     return stored ? new Set(JSON.parse(stored)) : new Set<string>();
   });
 
+  const loadTree = () => {
+    fetchAllPosts(workspace)
+      .then((posts) => setTree(buildTree(posts)))
+      .catch(() => {});
+  };
+
   // Fetch all posts on mount
   useEffect(() => {
-    browse(workspace, { recursive: 'true', status: 'all', limit: '500' })
-      .then((data) => {
-        const posts: Post[] = (data.posts || []).map((p: any) => ({
-          id: p.id,
-          title: p.title,
-          topic: p.topic || '',
-          status: p.status,
-        }));
-        setTree(buildTree(posts));
-      })
-      .catch(() => {});
+    loadTree();
   }, [workspace]);
+
+  // Re-fetch when navigating back to browse (catches create/edit/delete)
+  useEffect(() => {
+    const isBrowse = !location.pathname.includes('/post/') &&
+                     !location.pathname.includes('/search') &&
+                     !location.pathname.includes('/new');
+    if (isBrowse && tree) {
+      loadTree();
+    }
+  }, [location.pathname]);
 
   // Persist expanded state
   useEffect(() => {
@@ -106,7 +136,6 @@ export function TopicTree({ activePostId, onNavigate }: TopicTreeProps) {
     if (currentTopic) {
       targetTopic = currentTopic;
     } else if (activePostId) {
-      // Find the post's topic
       const findPost = (node: TreeNode): string | null => {
         for (const p of node.posts) {
           if (p.id === activePostId) return node.fullPath;
@@ -157,7 +186,6 @@ export function TopicTree({ activePostId, onNavigate }: TopicTreeProps) {
         {sortedChildren.map((child) => {
           const isExpanded = expanded.has(child.fullPath);
           const isActive = currentTopic === child.fullPath;
-          const total = countPosts(child);
 
           return (
             <div key={child.fullPath}>
@@ -177,7 +205,7 @@ export function TopicTree({ activePostId, onNavigate }: TopicTreeProps) {
                 >
                   {child.name}
                 </span>
-                <span className="tree-count">{total}</span>
+                <span className="tree-count">{child.totalPosts}</span>
               </div>
               {isExpanded && renderNode(child, depth + 1)}
             </div>

@@ -75,7 +75,6 @@ function WorkspaceLayout({ workspace, currentTopic, onTopicChange }: {
     return () => window.removeEventListener('keydown', handler);
   }, [toggle]);
 
-  // Derive active post ID from URL (used by TopicTree in Task 4)
   const postMatch = location.pathname.match(/\/post\/([^/]+)/);
   const activePostId = postMatch ? postMatch[1] : null;
 
