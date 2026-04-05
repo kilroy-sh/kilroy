@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Routes, Route, useParams } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import { Routes, Route, useParams, useLocation } from 'react-router-dom';
 import { WorkspaceProvider } from '../context/WorkspaceContext';
 import { trackWorkspace } from '../lib/workspaces';
 import { Omnibar } from '../components/Omnibar';
@@ -9,6 +9,28 @@ import { PostView } from './PostView';
 import { SearchView } from './SearchView';
 import { PostEditorView } from './NewPostView';
 import { JoinView } from './JoinView';
+
+function useSidebarState(workspace: string) {
+  const key = `kilroy:sidebar:${workspace}`;
+  const [expanded, setExpanded] = useState(() => {
+    const stored = localStorage.getItem(key);
+    return stored === null ? true : stored === 'true';
+  });
+
+  const toggle = useCallback(() => {
+    setExpanded((prev) => {
+      localStorage.setItem(key, String(!prev));
+      return !prev;
+    });
+  }, [key]);
+
+  const expand = useCallback(() => {
+    setExpanded(true);
+    localStorage.setItem(key, 'true');
+  }, [key]);
+
+  return { expanded, toggle, expand };
+}
 
 export function WorkspaceShell() {
   const { workspace } = useParams();
@@ -21,24 +43,88 @@ export function WorkspaceShell() {
   return (
     <WorkspaceProvider workspace={workspace}>
       <Routes>
-        {/* Join page — no Omnibar, no AuthorPrompt. Its own layout. */}
         <Route path="join" element={<JoinView />} />
-
-        {/* All other workspace routes get the standard shell */}
         <Route path="*" element={
-          <div className="app">
-            <AuthorPrompt />
-            <Omnibar currentTopic={currentTopic} />
-            <Routes>
-              <Route path="post/:id/edit" element={<PostEditorView onTopicChange={setCurrentTopic} />} />
-              <Route path="post/:id" element={<PostView onTopicChange={setCurrentTopic} />} />
-              <Route path="search" element={<SearchView />} />
-              <Route path="new" element={<PostEditorView onTopicChange={setCurrentTopic} />} />
-              <Route path="*" element={<BrowseView onTopicChange={setCurrentTopic} />} />
-            </Routes>
-          </div>
+          <WorkspaceLayout workspace={workspace} currentTopic={currentTopic} onTopicChange={setCurrentTopic} />
         } />
       </Routes>
     </WorkspaceProvider>
+  );
+}
+
+function WorkspaceLayout({ workspace, currentTopic, onTopicChange }: {
+  workspace: string;
+  currentTopic: string;
+  onTopicChange: (t: string) => void;
+}) {
+  const { expanded, toggle, expand } = useSidebarState(workspace);
+  const [peeking, setPeeking] = useState(false);
+  // location will be used for activePostId in Task 3
+  useLocation();
+
+  // Keyboard shortcut: Cmd+\ or Ctrl+\ to toggle sidebar
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === '\\' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        toggle();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [toggle]);
+
+  // activePostId will be used by TopicTree in Task 3
+
+  return (
+    <div className="app">
+      <AuthorPrompt />
+      <Omnibar currentTopic={currentTopic} />
+      <div className={`workspace-layout ${expanded ? '' : 'workspace-layout-collapsed'}`}>
+        <div className="sidebar-region">
+          {expanded ? (
+            <aside className="sidebar">
+              <div className="sidebar-header">
+                <span className="sidebar-title">{workspace}</span>
+                <button className="sidebar-toggle" onClick={toggle} title="Collapse sidebar (⌘\\)">«</button>
+              </div>
+              <div className="sidebar-tree">
+                {/* TopicTree goes here in Task 3 */}
+              </div>
+            </aside>
+          ) : (
+            <>
+              <div
+                className="sidebar-stripe"
+                onMouseEnter={() => setPeeking(true)}
+              />
+              {peeking && (
+                <aside
+                  className="sidebar sidebar-peek"
+                  onMouseLeave={() => setTimeout(() => setPeeking(false), 300)}
+                >
+                  <div className="sidebar-header">
+                    <span className="sidebar-title">{workspace}</span>
+                    <button className="sidebar-toggle" onClick={() => { expand(); setPeeking(false); }} title="Pin sidebar (⌘\\)">»</button>
+                  </div>
+                  <div className="sidebar-tree">
+                    {/* TopicTree goes here in Task 3 */}
+                  </div>
+                </aside>
+              )}
+            </>
+          )}
+        </div>
+        <div className="workspace-content">
+          <Routes>
+            <Route path="post/:id/edit" element={<PostEditorView onTopicChange={onTopicChange} />} />
+            <Route path="post/:id" element={<PostView onTopicChange={onTopicChange} />} />
+            <Route path="search" element={<SearchView />} />
+            <Route path="new" element={<PostEditorView onTopicChange={onTopicChange} />} />
+            <Route path="*" element={<BrowseView onTopicChange={onTopicChange} />} />
+          </Routes>
+        </div>
+      </div>
+    </div>
   );
 }
