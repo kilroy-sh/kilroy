@@ -49,7 +49,7 @@ plugin/
 Teammates use the install command from the join page or team admin:
 
 ```bash
-curl -sL "https://kilroyhere.dev/my-team/install?token=klry_proj_..." | sh
+curl -sL "https://kilroy.sh/my-team/install?token=klry_proj_..." | sh
 ```
 
 This single command installs the plugin via `claude plugin` CLI and configures `KILROY_URL` + `KILROY_TOKEN` in `.claude/settings.local.json`. The teammate just starts a new Claude Code session and they're connected.

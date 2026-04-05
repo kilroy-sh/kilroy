@@ -6,7 +6,7 @@ import { getBaseUrl } from "../lib/url";
  * GET /:team/install?token=... — serves a shell script that fully sets up
  * Kilroy for a project in one shot. Teammate runs:
  *
- *   curl -sL https://kilroyhere.dev/myteam/install?token=klry_proj_... | sh
+ *   curl -sL https://kilroy.sh/myteam/install?token=klry_proj_... | sh
  *
  * The script:
  *  1. Installs the Kilroy plugin via `claude plugin` CLI

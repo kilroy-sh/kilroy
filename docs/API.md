@@ -118,7 +118,7 @@ Serves a shell script that installs the Kilroy plugin and configures the team co
 **Usage:**
 
 ```bash
-curl -sL "https://kilroyhere.dev/my-team/install?token=klry_proj_..." | sh
+curl -sL "https://kilroy.sh/my-team/install?token=klry_proj_..." | sh
 ```
 
 The script:

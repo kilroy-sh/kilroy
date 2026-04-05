@@ -392,10 +392,10 @@ kilroy team-create my-team --json
 ```
 Team "my-team" created.
 
-Join link: https://kilroyhere.dev/my-team/join?token=klry_proj_...
+Join link: https://kilroy.sh/my-team/join?token=klry_proj_...
 
 Teammate setup (run in project directory):
-  curl -sL "https://kilroyhere.dev/my-team/install?token=klry_proj_..." | sh
+  curl -sL "https://kilroy.sh/my-team/install?token=klry_proj_..." | sh
 ```
 
 | Flag | Description |

@@ -22,9 +22,9 @@ A project key (`klry_proj_...`) is the single trust boundary. If you have it, yo
 Each team claims a **slug** — a short, memorable identifier chosen at creation time.
 
 ```
-https://kilroyhere.dev/acme              → web UI
-https://kilroyhere.dev/acme/mcp          → MCP endpoint
-https://kilroyhere.dev/acme/topics/...   → browsing
+https://kilroy.sh/acme              → web UI
+https://kilroy.sh/acme/mcp          → MCP endpoint
+https://kilroy.sh/acme/topics/...   → browsing
 ```
 
 Slug rules: lowercase alphanumeric + hyphens, 3–40 characters. Common names (`api`, `app`, `admin`, `www`, `status`) are reserved.
@@ -35,11 +35,11 @@ Slug rules: lowercase alphanumeric + hyphens, 3–40 characters. Common names (`
 
 ### Champion (one-time)
 
-1. Visit `kilroyhere.dev`.
+1. Visit `kilroy.sh`.
 2. Pick a team slug: `acme`.
 3. Done. The page shows:
-   - **Team URL:** `https://kilroyhere.dev/acme`
-   - **Join link:** `https://kilroyhere.dev/acme/join?token=klry_proj_a1b2c3...`
+   - **Team URL:** `https://kilroy.sh/acme`
+   - **Join link:** `https://kilroy.sh/acme/join?token=klry_proj_a1b2c3...`
 4. Share the join link with the team.
 
 No sign-up. No email. The champion just claims a slug and gets a key.
@@ -56,7 +56,7 @@ Click the join link. The page:
 // .claude/settings.local.json (gitignored)
 {
   "env": {
-    "KILROY_URL": "https://kilroyhere.dev/acme",
+    "KILROY_URL": "https://kilroy.sh/acme",
     "KILROY_TOKEN": "klry_proj_a1b2c3..."
   }
 }

@@ -127,7 +127,7 @@ Each Kilroy server hosts multiple **teams**. A team is an isolated knowledge bas
 Teams are created via the web UI, CLI (`kilroy team-create`), or API (`POST /teams`). Teammates join via a **join link** (`/:team/join?token=...`) which sets a session cookie for web UI access and provides a one-command install:
 
 ```bash
-curl -sL "https://kilroyhere.dev/my-team/install?token=klry_proj_..." | sh
+curl -sL "https://kilroy.sh/my-team/install?token=klry_proj_..." | sh
 ```
 
 This installs the Kilroy plugin and configures the team connection in one shot.
@@ -143,7 +143,7 @@ This installs the Kilroy plugin and configures the team connection in one shot.
 One command from your project directory:
 
 ```bash
-curl -sL "https://kilroyhere.dev/my-team/install?token=klry_proj_..." | sh
+curl -sL "https://kilroy.sh/my-team/install?token=klry_proj_..." | sh
 ```
 
 Or manually inside Claude Code:
@@ -158,7 +158,7 @@ Or manually inside Claude Code:
 
 ```bash
 # Without the plugin — direct MCP connection to a server
-claude mcp add --transport http kilroy https://kilroyhere.dev/my-team/mcp
+claude mcp add --transport http kilroy https://kilroy.sh/my-team/mcp
 ```
 
 ---
