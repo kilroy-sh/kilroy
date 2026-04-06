@@ -81,7 +81,7 @@ function WorkspaceLayout({ workspace, currentTopic, onTopicChange }: {
       <AuthorPrompt />
       <div className="omnibar-row">
         <button
-          className="sidebar-toggle-btn"
+          className={`sidebar-toggle-btn${expanded ? ' sidebar-open' : ''}`}
           onClick={toggle}
           title={expanded ? 'Collapse sidebar (⌘\\)' : 'Expand sidebar (⌘\\)'}
           aria-label="Toggle sidebar"
