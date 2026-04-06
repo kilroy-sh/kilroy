@@ -1879,19 +1879,19 @@ a:hover { color: var(--accent-hover); }
   min-width: 0;
 }
 
-/* Topic tree nodes */
+/* Compact tree */
 .tree-node {
   display: flex;
   align-items: center;
-  gap: 0.3rem;
-  padding: 0.2rem 0.5rem;
   cursor: pointer;
-  border-radius: 4px;
-  font-size: 0.82rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
   color: var(--text);
-  text-decoration: none;
+  padding: 0.15rem 0.5rem 0.15rem 0;
   margin: 0 0.25rem;
+  border-radius: 4px;
   min-width: 0;
+  border-left: 2px solid transparent;
 }
 
 .tree-node:hover {
@@ -1900,46 +1900,117 @@ a:hover { color: var(--accent-hover); }
 
 .tree-node-active {
   background: var(--bg-hover);
+  border-left-color: var(--accent);
 }
 
-.tree-chevron {
-  color: var(--text-dim);
-  font-size: 0.6rem;
-  width: 0.75rem;
-  text-align: center;
+.tree-node-active .tree-topic-name {
+  color: var(--accent);
+}
+
+.tree-node-active .tree-post-name {
+  color: var(--accent);
+}
+
+/* Connector line infrastructure */
+.tree-indent {
+  display: inline-block;
+  width: 12px;
   flex-shrink: 0;
 }
 
+.tree-indent-line {
+  border-left: 1px solid var(--text-dim);
+  height: 100%;
+  position: relative;
+}
+
+.tree-branch {
+  display: inline-block;
+  width: 12px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.tree-branch::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 50%;
+  border-left: 1px solid var(--text-dim);
+  border-bottom: 1px solid var(--text-dim);
+  width: 8px;
+}
+
+.tree-branch-last::before {
+  top: 0;
+  bottom: 50%;
+  border-left: 1px solid var(--text-dim);
+  border-bottom: 1px solid var(--text-dim);
+}
+
+/* After the last branch, no continuing vertical line */
+.tree-branch::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  bottom: 0;
+  border-left: 1px solid var(--text-dim);
+}
+
+.tree-branch-last::after {
+  display: none;
+}
+
+/* Topic names */
 .tree-topic-name {
-  font-family: var(--font-mono);
-  font-weight: 600;
-  color: var(--accent);
-  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex: 1;
+  min-width: 0;
 }
 
+/* Post names */
 .tree-post-name {
-  font-size: 0.78rem;
+  font-weight: 400;
   color: var(--text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex: 1;
+  min-width: 0;
 }
 
-.tree-post-icon {
-  color: var(--text-dim);
-  font-size: 0.7rem;
+/* Status dot before posts */
+.tree-status-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
   flex-shrink: 0;
+  margin-right: 0.3rem;
 }
 
+/* Post count */
 .tree-count {
   margin-left: auto;
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
   color: var(--text-dim);
   flex-shrink: 0;
+  padding-left: 0.5rem;
+}
+
+/* +N more link */
+.tree-more {
+  color: var(--text-dim);
+  font-size: 0.72rem;
+  font-style: italic;
+}
+
+.tree-node-more:hover .tree-more {
+  color: var(--accent);
 }
 
 @media (min-width: 769px) {
