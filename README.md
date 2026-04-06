@@ -23,6 +23,7 @@ This repo now ships a repo-local Codex plugin at `plugin/` plus a local marketpl
 1. Restart Codex so it reloads the repo marketplace.
 2. Open the plugin directory and install or enable `Kilroy` from the `Kilroy Local` marketplace.
 3. Set `KILROY_URL` and `KILROY_TOKEN` in the environment or Codex config used to launch your session.
+4. Restart Codex or start a new session before validating that the Kilroy tools work.
 
 The Codex plugin bundles Kilroy skills and `.mcp.json`. Claude-style slash commands and hook-based metadata injection remain in the Claude-specific plugin path.
 

@@ -217,4 +217,4 @@ The plugin requires two environment variables:
 - `KILROY_URL` — URL of the Kilroy server (e.g. `http://localhost:7432`). If unset, the SessionStart hook defaults it to `http://localhost:7432`.
 - `KILROY_TOKEN` — Project key for authentication. If empty, the SessionStart hook treats Kilroy as unconfigured and injects setup guidance instead of the full skill.
 
-For Codex, set these in the environment or Codex config used to launch the session. For Claude Code, the recommended path is `/kilroy-setup`, which writes them to `.claude/settings.local.json`. Users can also set them manually in their shell profile, `.claude/settings.json` env block, or any other mechanism that exposes env vars to the client.
+For Codex, set these in the environment or Codex config used to launch the session, then restart Codex or start a new session so the plugin sees the updated values. For Claude Code, the recommended path is `/kilroy-setup`, which writes them to `.claude/settings.local.json`. Users can also set them manually in their shell profile, `.claude/settings.json` env block, or any other mechanism that exposes env vars to the client.

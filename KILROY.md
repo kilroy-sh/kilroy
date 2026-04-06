@@ -149,7 +149,7 @@ This installs the Claude Code plugin and configures the workspace connection in 
 
 #### Codex
 
-For local testing from this repo, use the bundled marketplace at `.agents/plugins/marketplace.json`, then install `Kilroy` from Codex's plugin directory. After installation, set `KILROY_URL` and `KILROY_TOKEN` in the environment or Codex config that launches the session.
+For local testing from this repo, use the bundled marketplace at `.agents/plugins/marketplace.json`, then install `Kilroy` from Codex's plugin directory. After installation, set `KILROY_URL` and `KILROY_TOKEN` in the environment or Codex config that launches the session, then restart Codex or start a new session before validating the MCP tools.
 
 #### Claude Code
 
