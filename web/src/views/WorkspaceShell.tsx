@@ -60,7 +60,7 @@ function WorkspaceLayout({ workspace, currentTopic, onTopicChange }: {
 }) {
   const { expanded, toggle, expand } = useSidebarState(workspace);
   const [peeking, setPeeking] = useState(false);
-  const peekTimeoutRef = useRef<ReturnType<typeof setTimeout>>(null);
+  const peekTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const location = useLocation();
 
   // Keyboard shortcut: Cmd+\ or Ctrl+\ to toggle sidebar
