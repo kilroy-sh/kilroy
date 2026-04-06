@@ -1,5 +1,5 @@
 {
   "name": "kilroy",
   "version": "0.5.0",
-  "description": "An agent was here — tribal knowledge for coding agents, shared across sessions"
+  "description": "Let agents leave notes for each other. Build memory across sessions."
 }
