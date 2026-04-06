@@ -11,9 +11,9 @@ export const postsRouter = new Hono<Env>();
 // GET /posts/:id — Read a post with all comments
 postsRouter.get("/:id", async (c) => {
   const postId = c.req.param("id");
-  const workspaceId = c.get("workspaceId");
+  const projectId = c.get("projectId");
 
-  const [post] = await db.select().from(posts).where(and(eq(posts.id, postId), eq(posts.workspaceId, workspaceId)));
+  const [post] = await db.select().from(posts).where(and(eq(posts.id, postId), eq(posts.projectId, projectId)));
   if (!post) {
     return c.json({ error: "Post not found", code: "NOT_FOUND" }, 404);
   }
@@ -56,13 +56,13 @@ postsRouter.post("/", async (c) => {
     );
   }
 
-  const workspaceId = c.get("workspaceId");
+  const projectId = c.get("projectId");
   const now = new Date();
   const id = uuidv7();
 
   const post = {
     id,
-    workspaceId,
+    projectId,
     title: body.title,
     topic: body.topic,
     status: "active" as const,
@@ -104,10 +104,10 @@ postsRouter.post("/:id/comments", async (c) => {
     );
   }
 
-  const workspaceId = c.get("workspaceId");
+  const projectId = c.get("projectId");
 
-  // Check post exists and belongs to this workspace
-  const [post] = await db.select().from(posts).where(and(eq(posts.id, postId), eq(posts.workspaceId, workspaceId)));
+  // Check post exists and belongs to this project
+  const [post] = await db.select().from(posts).where(and(eq(posts.id, postId), eq(posts.projectId, projectId)));
   if (!post) {
     return c.json({ error: "Post not found", code: "NOT_FOUND" }, 404);
   }
@@ -117,7 +117,7 @@ postsRouter.post("/:id/comments", async (c) => {
 
   const comment = {
     id,
-    workspaceId,
+    projectId,
     postId,
     body: body.body,
     author: body.author || null,
@@ -157,11 +157,11 @@ postsRouter.patch("/:id/comments/:commentId", async (c) => {
     );
   }
 
-  const workspaceId = c.get("workspaceId");
+  const projectId = c.get("projectId");
 
-  // Find the comment and verify it belongs to this post and workspace
+  // Find the comment and verify it belongs to this post and project
   const [comment] = await db.select().from(comments)
-    .where(and(eq(comments.id, commentId), eq(comments.workspaceId, workspaceId)));
+    .where(and(eq(comments.id, commentId), eq(comments.projectId, projectId)));
 
   if (!comment || comment.postId !== postId) {
     return c.json({ error: "Comment not found", code: "NOT_FOUND" }, 404);
@@ -230,8 +230,8 @@ postsRouter.patch("/:id", async (c) => {
     );
   }
 
-  const workspaceId = c.get("workspaceId");
-  const [post] = await db.select().from(posts).where(and(eq(posts.id, postId), eq(posts.workspaceId, workspaceId)));
+  const projectId = c.get("projectId");
+  const [post] = await db.select().from(posts).where(and(eq(posts.id, postId), eq(posts.projectId, projectId)));
   if (!post) {
     return c.json({ error: "Post not found", code: "NOT_FOUND" }, 404);
   }
@@ -282,8 +282,8 @@ postsRouter.patch("/:id", async (c) => {
 postsRouter.delete("/:id", async (c) => {
   const postId = c.req.param("id");
 
-  const workspaceId = c.get("workspaceId");
-  const [post] = await db.select().from(posts).where(and(eq(posts.id, postId), eq(posts.workspaceId, workspaceId)));
+  const projectId = c.get("projectId");
+  const [post] = await db.select().from(posts).where(and(eq(posts.id, postId), eq(posts.projectId, projectId)));
   if (!post) {
     return c.json({ error: "Post not found", code: "NOT_FOUND" }, 404);
   }

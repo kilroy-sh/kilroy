@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { validateKey } from "../workspaces/registry";
+import { validateProjectKey } from "../projects/registry";
 import { getBaseUrl } from "../lib/url";
 
 /**
@@ -16,30 +16,32 @@ export const installHandler = new Hono();
 
 installHandler.get("/", async (c) => {
   const url = new URL(c.req.url);
-  const slug = url.pathname.split("/")[1];
+  const segments = url.pathname.split("/").filter(Boolean);
+  const accountSlug = segments[0];
+  const projectSlug = segments[1];
   const token = c.req.query("token");
 
   if (!token) {
     return c.text(
-      "echo 'Error: missing token. Use the join link from your workspace admin.'\nexit 1",
+      "echo 'Error: missing token. Use the join link from your project admin.'\nexit 1",
       400,
       { "Content-Type": "text/plain" },
     );
   }
 
-  const result = await validateKey(slug, token);
+  const result = await validateProjectKey(accountSlug, projectSlug, token);
   if (!result.valid) {
     return c.text(
-      "echo 'Error: invalid token. Ask your workspace admin for a fresh join link.'\nexit 1",
+      "echo 'Error: invalid token. Ask your project admin for a fresh join link.'\nexit 1",
       401,
       { "Content-Type": "text/plain" },
     );
   }
 
   const baseUrl = getBaseUrl(c.req.url);
-  const workspaceUrl = `${baseUrl}/${slug}`;
+  const projectUrl = `${baseUrl}/${accountSlug}/${projectSlug}`;
 
-  const script = generateInstallScript(workspaceUrl, token, slug);
+  const script = generateInstallScript(projectUrl, token, projectSlug);
 
   return c.text(script, 200, {
     "Content-Type": "text/plain",
@@ -48,12 +50,12 @@ installHandler.get("/", async (c) => {
 });
 
 function generateInstallScript(
-  workspaceUrl: string,
+  projectUrl: string,
   token: string,
   slug: string,
 ): string {
   const settingsJson = JSON.stringify(
-    { env: { KILROY_URL: workspaceUrl, KILROY_TOKEN: token } },
+    { env: { KILROY_URL: projectUrl, KILROY_TOKEN: token } },
     null,
     2,
   );
@@ -69,7 +71,7 @@ fs.writeFileSync(path, JSON.stringify(prev, null, 2) + '\\n');
 `.trim();
 
   return `#!/usr/bin/env sh
-# Kilroy installer for workspace "${slug}"
+# Kilroy installer for project "${slug}"
 set -eu
 
 # ── Preflight ──
@@ -90,7 +92,7 @@ claude plugin marketplace add kilroy-sh/kilroy </dev/null 2>/dev/null || true
 claude plugin install kilroy@kilroy-marketplace --scope local </dev/null
 
 # ── 2. Configure workspace connection ──
-echo "Configuring workspace ${slug}..."
+echo "Configuring project ${slug}..."
 mkdir -p .claude
 SETTINGS=".claude/settings.local.json"
 if [ -n "$JS" ]; then
