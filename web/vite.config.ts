@@ -13,9 +13,10 @@ export default defineConfig({
       clientPort: 5173,
     },
     proxy: {
-      '/api': 'http://localhost:7432',
-      '/mcp': 'http://localhost:7432',
-      '/workspaces': 'http://localhost:7432',
+      '^/workspaces$': {
+        target: 'http://localhost:7432',
+        changeOrigin: true,
+      },
       '/_/api': 'http://localhost:7432',
       '^/[^/]+/api(?:/.*)?$': {
         target: 'http://localhost:7432',
