@@ -1785,7 +1785,6 @@ a:hover { color: var(--accent-hover); }
   display: flex;
   width: 100%;
   flex: 1;
-  transition: all 0.15s ease-out;
 }
 
 .sidebar-region {
@@ -1938,7 +1937,7 @@ a:hover { color: var(--accent-hover); }
 
 .tree-indent-line {
   border-left: 1px solid var(--text-dim);
-  height: 100%;
+  align-self: stretch;
   position: relative;
 }
 
@@ -1958,13 +1957,6 @@ a:hover { color: var(--accent-hover); }
   border-left: 1px solid var(--text-dim);
   border-bottom: 1px solid var(--text-dim);
   width: 8px;
-}
-
-.tree-branch-last::before {
-  top: 0;
-  bottom: 50%;
-  border-left: 1px solid var(--text-dim);
-  border-bottom: 1px solid var(--text-dim);
 }
 
 /* After the last branch, no continuing vertical line */
@@ -2008,6 +2000,7 @@ a:hover { color: var(--accent-hover); }
   width: 5px;
   height: 5px;
   border-radius: 50%;
+  background: var(--text-dim);
   flex-shrink: 0;
   margin-right: 0.3rem;
 }

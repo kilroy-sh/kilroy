@@ -25,12 +25,7 @@ function useSidebarState(workspace: string) {
     });
   }, [key]);
 
-  const expand = useCallback(() => {
-    setExpanded(true);
-    localStorage.setItem(key, 'true');
-  }, [key]);
-
-  return { expanded, toggle, expand };
+  return { expanded, toggle };
 }
 
 export function WorkspaceShell() {
