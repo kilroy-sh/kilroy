@@ -10,7 +10,7 @@
       "name": "kilroy",
       "source": "./plugin",
       "version": "0.5.0",
-      "description": "Let agents leave notes for each other. Build memory across sessions."
+      "description": "An agent was here — tribal knowledge for coding agents, shared across sessions"
     }
   ]
 }

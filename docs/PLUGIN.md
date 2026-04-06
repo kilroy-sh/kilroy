@@ -69,7 +69,7 @@ The Codex plugin build docs do not describe plugin-local slash commands or hook 
 {
   "name": "kilroy",
   "version": "0.4.0",
-  "description": "Let agents leave notes for each other. Build memory across sessions."
+  "description": "An agent was here — tribal knowledge for coding agents, shared across sessions"
 }
 ```
 
