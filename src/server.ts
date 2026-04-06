@@ -2,10 +2,13 @@ import { Hono } from "hono";
 import { serveStatic } from "hono/bun";
 import { initDatabase } from "./db";
 import { api } from "./routes/api";
-import { workspacesRouter, joinApiHandler } from "./routes/workspaces";
+import { globalApi } from "./routes/global-api";
+import { joinHandler } from "./routes/join";
 import { installHandler } from "./routes/install";
-import { workspaceAuth } from "./middleware/workspace";
+import { projectAuth } from "./middleware/project";
+import { resolveSession } from "./middleware/auth";
 import { statsRouter } from "./routes/stats";
+import { auth } from "./auth";
 import { createMcpServer } from "./mcp/server";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { existsSync, readFileSync } from "fs";
@@ -19,8 +22,8 @@ const app = new Hono();
 const viteDevUrl = process.env.KILROY_WEB_DEV_URL?.replace(/\/$/, "");
 
 function isBackendRoute(path: string): boolean {
-  if (path === "/workspaces" || path.startsWith("/_/")) return true;
-  return /^\/[^/]+\/_\/(api|mcp|install)(\/|$)/.test(path);
+  if (path.startsWith("/api/")) return true;
+  return /^\/[^/]+\/[^/]+\/(api|mcp|install|join)(\/|$)/.test(path);
 }
 
 async function proxyToVite(c: Context, baseUrl: string): Promise<Response> {
@@ -54,14 +57,14 @@ if (viteDevUrl) {
   });
 }
 
-// Serve web UI static assets at root level (for LandingView) and workspace level
+// Serve web UI static assets
 const webDistPath = resolve(import.meta.dir, "../web/dist");
 const indexHtml = existsSync(webDistPath)
   ? readFileSync(resolve(webDistPath, "index.html"), "utf-8")
   : null;
 
 if (!viteDevUrl && indexHtml) {
-  // Root-level assets (JS/CSS bundles for the landing page)
+  // Root-level assets (JS/CSS bundles)
   app.use("/assets/*", serveStatic({ root: webDistPath }));
 
   // Favicon
@@ -71,40 +74,41 @@ if (!viteDevUrl && indexHtml) {
   app.get("/", (c) => c.html(indexHtml));
 }
 
-// Workspace creation — no auth required
-app.route("/workspaces", workspacesRouter);
+// Better Auth handles all auth routes
+app.all("/api/auth/*", (c) => auth.handler(c.req.raw));
 
-// System namespace — public, no auth
-app.route("/_/api", statsRouter);
+// Global stats — public, no auth
+app.route("/api/stats", statsRouter);
 
-// Serve SPA for system pages
+// Global API — session-authed via resolveSession
+app.use("/api/*", resolveSession);
+app.route("/api", globalApi);
+
+// SPA pages for web UI
 if (!viteDevUrl && indexHtml) {
-  app.get("/_/*", (c) => c.html(indexHtml));
+  app.get("/login", (c) => c.html(indexHtml));
+  app.get("/onboarding", (c) => c.html(indexHtml));
+  app.get("/projects", (c) => c.html(indexHtml));
 }
 
-// Workspace-scoped routes
-const workspaceApp = new Hono<Env>();
+// Project-scoped routes
+const projectApp = new Hono<Env>();
 
-// All workspace system routes live under /_/ to avoid conflicts with topic paths.
-// e.g. a topic called "api" won't collide with /_/api/* routes.
+// Join and install bypass projectAuth — token in query IS the auth
+projectApp.route("/join", joinHandler);
+projectApp.route("/install", installHandler);
 
-// Join API — validates token, sets cookie (before auth middleware — the token IS the auth)
-workspaceApp.route("/_/api/join", joinApiHandler);
+// projectAuth middleware for API and MCP
+projectApp.use("/api/*", projectAuth);
+projectApp.use("/mcp", projectAuth);
 
-// Install script — serves a shell script for one-command setup (no auth — token in query)
-workspaceApp.route("/_/install", installHandler);
-
-// Auth middleware for all other workspace routes
-workspaceApp.use("/_/api/*", workspaceAuth);
-workspaceApp.use("/_/mcp", workspaceAuth);
-
-// API routes
-workspaceApp.route("/_/api", api);
+// Project API routes
+projectApp.route("/api", api);
 
 // MCP endpoint — stateless streamable HTTP transport
-workspaceApp.all("/_/mcp", async (c) => {
-  const workspaceId = c.get("workspaceId");
-  const mcp = createMcpServer(workspaceId);
+projectApp.all("/mcp", async (c) => {
+  const projectId = c.get("projectId");
+  const mcp = createMcpServer(projectId);
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
   });
@@ -113,14 +117,14 @@ workspaceApp.all("/_/mcp", async (c) => {
   return response;
 });
 
-// Workspace-level static assets and SPA fallback
+// Project-level static assets and SPA fallback
 if (!viteDevUrl && indexHtml) {
-  workspaceApp.use("/assets/*", serveStatic({ root: webDistPath, rewriteRequestPath: (p) => p.replace(/^\/[^/]+/, "") }));
-  workspaceApp.get("*", (c) => c.html(indexHtml));
+  projectApp.use("/assets/*", serveStatic({ root: webDistPath, rewriteRequestPath: (p) => p.replace(/^\/[^/]+\/[^/]+/, "") }));
+  projectApp.get("*", (c) => c.html(indexHtml));
 }
 
-// Mount workspace routes under /:workspace
-app.route("/:workspace", workspaceApp);
+// Mount project routes under /:account/:project
+app.route("/:account/:project", projectApp);
 
 const port = parseInt(process.env.KILROY_PORT || "7432");
 console.log(`Kilroy server running on http://localhost:${port}`);
