@@ -20,7 +20,6 @@ interface TreeNode {
 
 interface TopicTreeProps {
   activePostId: string | null;
-  onNavigate?: () => void;
 }
 
 function buildTree(posts: Post[]): TreeNode {
@@ -80,7 +79,7 @@ async function fetchAllPosts(workspace: string, signal?: AbortSignal): Promise<P
   return allPosts;
 }
 
-export function TopicTree({ activePostId, onNavigate }: TopicTreeProps) {
+export function TopicTree({ activePostId }: TopicTreeProps) {
   const workspace = useWorkspace();
   const wp = useWorkspacePath();
   const navigate = useNavigate();
@@ -185,7 +184,6 @@ export function TopicTree({ activePostId, onNavigate }: TopicTreeProps) {
 
   const handleNavigate = (path: string) => {
     navigate(path);
-    onNavigate?.();
   };
 
   const renderNode = (node: TreeNode, depth: number = 0) => {
