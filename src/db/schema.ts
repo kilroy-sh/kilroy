@@ -14,11 +14,35 @@ export const projects = pgTable(
     id: text("id").primaryKey(),
     slug: text("slug").notNull(),
     accountId: text("account_id").references(() => accounts.id),
-    projectKey: text("project_key").notNull().unique(),
+    projectKey: text("project_key").unique(),
+    inviteToken: text("invite_token").unique(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     unique("uq_projects_account_slug").on(table.accountId, table.slug),
+  ]
+);
+
+export const projectMembers = pgTable(
+  "project_members",
+  {
+    id: text("id").primaryKey(),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id),
+    accountId: text("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    memberKey: text("member_key").notNull().unique(),
+    role: text("role", { enum: ["owner", "member"] })
+      .notNull()
+      .default("member"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    unique("uq_project_members_project_account").on(table.projectId, table.accountId),
+    index("idx_project_members_project").on(table.projectId),
+    index("idx_project_members_account").on(table.accountId),
   ]
 );
 

@@ -79,9 +79,28 @@ export async function initDatabase() {
       id TEXT PRIMARY KEY,
       slug TEXT NOT NULL,
       account_id TEXT REFERENCES accounts(id),
-      project_key TEXT NOT NULL UNIQUE,
+      project_key TEXT UNIQUE,
+      invite_token TEXT UNIQUE,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
       UNIQUE(account_id, slug)
+    );
+  `);
+
+  // Migration: add invite_token column to existing projects tables
+  await client.unsafe(`
+    ALTER TABLE projects ADD COLUMN IF NOT EXISTS invite_token TEXT UNIQUE;
+  `);
+
+  // Create project_members table
+  await client.unsafe(`
+    CREATE TABLE IF NOT EXISTS project_members (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES projects(id),
+      account_id TEXT NOT NULL REFERENCES accounts(id),
+      member_key TEXT NOT NULL UNIQUE,
+      role TEXT NOT NULL DEFAULT 'member',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      UNIQUE(project_id, account_id)
     );
   `);
 
@@ -125,6 +144,9 @@ export async function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_comments_post_created ON comments(post_id, created_at);
     CREATE INDEX IF NOT EXISTS idx_posts_search ON posts USING GIN(search_vector);
     CREATE INDEX IF NOT EXISTS idx_comments_search ON comments USING GIN(search_vector);
+    CREATE INDEX IF NOT EXISTS idx_project_members_project ON project_members(project_id);
+    CREATE INDEX IF NOT EXISTS idx_project_members_account ON project_members(account_id);
+    CREATE INDEX IF NOT EXISTS idx_project_members_key ON project_members(member_key);
   `);
 
   // Full-text search triggers for posts
