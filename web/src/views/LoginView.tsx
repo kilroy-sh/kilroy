@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { KilroyMark } from '../components/KilroyMark';
+import { GitHubIcon, GoogleIcon } from '../components/ProviderIcons';
 
 export function LoginView() {
   const { user, account, loading, signIn } = useAuth();
@@ -23,11 +24,13 @@ export function LoginView() {
           <h1 className="landing-title">Sign in to Kilroy</h1>
         </div>
         <div className="login-buttons">
-          <button className="btn btn-primary login-btn" onClick={() => signIn('github')}>
-            Sign in with GitHub
+          <button className="login-btn login-btn-github" onClick={() => signIn('github')}>
+            <span className="login-btn-icon"><GitHubIcon /></span>
+            Continue with GitHub
           </button>
-          <button className="btn login-btn" onClick={() => signIn('google')}>
-            Sign in with Google
+          <button className="login-btn login-btn-google" onClick={() => signIn('google')}>
+            <span className="login-btn-icon"><GoogleIcon /></span>
+            Continue with Google
           </button>
         </div>
       </div>

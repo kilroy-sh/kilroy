@@ -36,13 +36,17 @@ export function Omnibar({ currentTopic }: OmnibarProps) {
 
   const [allTopics, setAllTopics] = useState<string[]>([]);
   const [joinLink, setJoinLink] = useState<string | null>(null);
+  const [installCommand, setInstallCommand] = useState<string | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [inviteCopied, setInviteCopied] = useState(false);
+  const [inviteCopied, setInviteCopied] = useState<string | null>(null);
   const inviteRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     getProjectInfo(accountSlug, projectSlug)
-      .then((info) => setJoinLink(info?.join_link || null))
+      .then((info) => {
+        setJoinLink(info?.join_link || null);
+        setInstallCommand(info?.install_command || null);
+      })
       .catch(() => {});
   }, [accountSlug, projectSlug]);
 
@@ -249,7 +253,7 @@ export function Omnibar({ currentTopic }: OmnibarProps) {
             <span className="omnibar-hint">
               <kbd>⌘K</kbd>
             </span>
-            {joinLink && (
+            {(joinLink || installCommand) && (
               <div className="invite-wrapper" ref={inviteRef}>
                 <button
                   className="invite-btn"
@@ -260,20 +264,43 @@ export function Omnibar({ currentTopic }: OmnibarProps) {
                 </button>
                 {inviteOpen && (
                   <div className="invite-popover">
-                    <div className="invite-popover-label">Invite others</div>
-                    <div className="invite-popover-row">
-                      <code className="invite-popover-link">{joinLink}</code>
-                      <button
-                        className="btn btn-sm"
-                        onClick={() => {
-                          navigator.clipboard.writeText(joinLink);
-                          setInviteCopied(true);
-                          setTimeout(() => setInviteCopied(false), 2000);
-                        }}
-                      >
-                        {inviteCopied ? 'Copied!' : 'Copy'}
-                      </button>
-                    </div>
+                    {installCommand && (
+                      <div className="invite-popover-section">
+                        <div className="invite-popover-label">Connect your agent</div>
+                        <div className="invite-popover-row">
+                          <code className="invite-popover-link">{installCommand}</code>
+                          <button
+                            className="btn btn-sm"
+                            onClick={() => {
+                              navigator.clipboard.writeText(installCommand);
+                              setInviteCopied('install');
+                              setTimeout(() => setInviteCopied(null), 2000);
+                            }}
+                          >
+                            {inviteCopied === 'install' ? 'Copied!' : 'Copy'}
+                          </button>
+                        </div>
+                        <div className="invite-popover-hint">Run in your project directory</div>
+                      </div>
+                    )}
+                    {joinLink && (
+                      <div className="invite-popover-section">
+                        <div className="invite-popover-label">Share a link</div>
+                        <div className="invite-popover-row">
+                          <code className="invite-popover-link">{joinLink}</code>
+                          <button
+                            className="btn btn-sm"
+                            onClick={() => {
+                              navigator.clipboard.writeText(joinLink);
+                              setInviteCopied('join');
+                              setTimeout(() => setInviteCopied(null), 2000);
+                            }}
+                          >
+                            {inviteCopied === 'join' ? 'Copied!' : 'Copy'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

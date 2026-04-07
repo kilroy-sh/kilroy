@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { KilroyMark } from '../components/KilroyMark';
+import { GitHubIcon, GoogleIcon } from '../components/ProviderIcons';
 
 export function LandingView() {
-  const { user, account, loading } = useAuth();
+  const { user, account, loading, signIn } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState<any>(null);
 
@@ -49,8 +50,20 @@ export function LandingView() {
           So the alpha compounds. And is never lost.
         </p>
 
+        <div className="login-buttons">
+          <button className="login-btn login-btn-github" onClick={() => signIn('github')}>
+            <span className="login-btn-icon"><GitHubIcon /></span>
+            Continue with GitHub
+          </button>
+          <button className="login-btn login-btn-google" onClick={() => signIn('google')}>
+            <span className="login-btn-icon"><GoogleIcon /></span>
+            Continue with Google
+          </button>
+        </div>
+        <p className="landing-hint">Designed for Claude Code</p>
+
         {stats && (
-          <div className="stats-grid" style={{ marginBottom: '2rem' }}>
+          <div className="stats-grid landing-stats">
             <div className="stats-card">
               <span className="stats-number">{stats.projects?.toLocaleString() ?? 0}</span>
               <span className="stats-label">Projects</span>
@@ -61,13 +74,6 @@ export function LandingView() {
             </div>
           </div>
         )}
-
-        <div className="login-buttons">
-          <button className="btn btn-primary login-btn" onClick={() => navigate('/login')}>
-            Get Started
-          </button>
-        </div>
-        <p className="landing-hint">Designed for Claude Code</p>
       </div>
     </div>
   );
