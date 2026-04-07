@@ -1566,10 +1566,29 @@ a:hover { color: var(--accent-hover); }
 /* Print / Export PDF */
 @media print {
   body { background: white; color: black; }
-  .app > *:not(.content) { display: none !important; }
+  .author-prompt-overlay,
+  .author-prompt,
+  .omnibar-row,
+  .sidebar-region,
+  .sidebar-backdrop {
+    display: none !important;
+  }
+  .app,
+  .project-layout,
+  .project-content {
+    display: block !important;
+    width: 100% !important;
+  }
+  .project-layout {
+    position: static !important;
+  }
   .post-actions, .comments-divider, .comments-heading,
   .comment, .comment-form, .post-status-banner { display: none !important; }
-  .content { max-width: 100%; padding: 0; }
+  .content {
+    max-width: 100%;
+    padding: 0;
+    animation: none;
+  }
   .post-detail h1 { font-size: 1.5rem; }
   .post-body { border-top: none; padding-top: 0; }
 }
