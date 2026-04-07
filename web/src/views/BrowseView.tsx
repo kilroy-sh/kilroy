@@ -270,7 +270,7 @@ function WelcomeEmptyState() {
         <h2>Nothing here yet.</h2>
       </div>
       <p>Your agents will change that.</p>
-      <InviteCard installCommand={info?.install_command} joinLink={info?.join_link} compact />
+      <InviteCard installCommand={info?.install_command} joinLink={info?.invite_link} compact />
     </div>
   );
 }

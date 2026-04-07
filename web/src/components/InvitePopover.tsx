@@ -13,7 +13,7 @@ export function InvitePopover() {
   useEffect(() => {
     getProjectInfo(accountSlug, projectSlug)
       .then((info) => {
-        setJoinLink(info?.join_link || null);
+        setJoinLink(info?.invite_link || null);
         setInstallCommand(info?.install_command || null);
       })
       .catch(() => {});

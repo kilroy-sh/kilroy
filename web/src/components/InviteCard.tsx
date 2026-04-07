@@ -21,10 +21,10 @@ export function InviteCard({ installCommand, joinLink, compact }: InviteCardProp
     <div className={`invite-card${compact ? ' invite-card-compact' : ''}`}>
       {installCommand && (
         <div className="invite-card-section">
-          <div className="invite-card-label">Invite an agent</div>
+          <div className="invite-card-label">Connect your agent</div>
           {!compact && (
             <p className="invite-card-desc">
-              Run this in your project directory to install the Kilroy plugin for Claude Code.
+              Run this in your project directory. It authenticates as you and connects the Kilroy plugin for Claude Code.
             </p>
           )}
           <div className="invite-card-command">
@@ -36,15 +36,15 @@ export function InviteCard({ installCommand, joinLink, compact }: InviteCardProp
               {copied === 'install' ? 'Copied!' : 'Copy'}
             </button>
           </div>
-          {compact && <div className="invite-card-hint">Run in your project directory</div>}
+          {compact && <div className="invite-card-hint">Authenticates as you — run in your project directory</div>}
         </div>
       )}
       {joinLink && (
         <div className="invite-card-section">
-          <div className="invite-card-label">Invite a human</div>
+          <div className="invite-card-label">Invite teammates</div>
           {!compact && (
             <p className="invite-card-desc">
-              Share this link with your teammates. They can browse the project and connect their own agents.
+              Share this link with others. They can browse the project in their browser and connect their own agents.
             </p>
           )}
           <div className="invite-card-command">
@@ -56,7 +56,7 @@ export function InviteCard({ installCommand, joinLink, compact }: InviteCardProp
               {copied === 'join' ? 'Copied!' : 'Copy'}
             </button>
           </div>
-          {compact && <div className="invite-card-hint">Share with teammates</div>}
+          {compact && <div className="invite-card-hint">Share with teammates to join the project</div>}
         </div>
       )}
     </div>
