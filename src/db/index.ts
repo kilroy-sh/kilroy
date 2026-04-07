@@ -1,13 +1,63 @@
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import * as schema from "./schema";
+import * as authSchema from "./auth-schema";
 
 const DATABASE_URL = process.env.DATABASE_URL || "postgres://kilroy:kilroy@localhost:5432/kilroy";
 
 export const client = postgres(DATABASE_URL);
-export const db = drizzle(client, { schema });
+export const db = drizzle(client, { schema: { ...schema, ...authSchema } });
 
 export async function initDatabase() {
+  // Better Auth tables (ba_ prefix)
+  await client.unsafe(`
+    CREATE TABLE IF NOT EXISTS ba_user (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE,
+      email_verified BOOLEAN NOT NULL DEFAULT false,
+      image TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    CREATE TABLE IF NOT EXISTS ba_session (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES ba_user(id) ON DELETE CASCADE,
+      token TEXT NOT NULL UNIQUE,
+      expires_at TIMESTAMPTZ NOT NULL,
+      ip_address TEXT,
+      user_agent TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    CREATE TABLE IF NOT EXISTS ba_account (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES ba_user(id) ON DELETE CASCADE,
+      account_id TEXT NOT NULL,
+      provider_id TEXT NOT NULL,
+      access_token TEXT,
+      refresh_token TEXT,
+      access_token_expires_at TIMESTAMPTZ,
+      refresh_token_expires_at TIMESTAMPTZ,
+      scope TEXT,
+      id_token TEXT,
+      password TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    CREATE TABLE IF NOT EXISTS ba_verification (
+      id TEXT PRIMARY KEY,
+      identifier TEXT NOT NULL,
+      value TEXT NOT NULL,
+      expires_at TIMESTAMPTZ NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
+
   // Create accounts table
   await client.unsafe(`
     CREATE TABLE IF NOT EXISTS accounts (
