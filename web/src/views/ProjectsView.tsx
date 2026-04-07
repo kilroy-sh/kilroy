@@ -11,10 +11,18 @@ interface Project {
   created_at: string;
 }
 
+interface JoinedProject {
+  id: string;
+  slug: string;
+  owner: string;
+  joined_at: string;
+}
+
 interface NewProject extends Project {
-  project_key: string;
+  member_key: string;
   project_url: string;
-  install_url: string;
+  install_command: string;
+  invite_link: string;
   account_slug: string;
 }
 
@@ -22,6 +30,7 @@ export function ProjectsView() {
   const { user, account, loading } = useAuth();
   const navigate = useNavigate();
   const [projects, setProjects] = useState<Project[]>([]);
+  const [joinedProjects, setJoinedProjects] = useState<JoinedProject[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [slug, setSlug] = useState('');
   const [error, setError] = useState('');
@@ -35,7 +44,10 @@ export function ProjectsView() {
 
     fetch('/api/projects', { credentials: 'include' })
       .then((r) => r.json())
-      .then((d) => setProjects(d.projects || []))
+      .then((d) => {
+        setProjects(d.owned || []);
+        setJoinedProjects(d.joined || []);
+      })
       .catch(() => {})
       .finally(() => setLoadingProjects(false));
   }, [user, account, loading]);
@@ -94,8 +106,8 @@ export function ProjectsView() {
           <div className="join-section">
             <div className="join-section-label">Project created: {created.slug}</div>
             <InviteCard
-              installCommand={`curl -sL "${created.install_url}" | sh`}
-              joinLink={`${created.project_url}/join?token=${created.project_key}`}
+              installCommand={created.install_command}
+              joinLink={created.invite_link}
             />
           </div>
         )}
@@ -113,6 +125,26 @@ export function ProjectsView() {
                 >
                   <KilroyMark size={18} />
                   <span className="landing-project-slug">{p.slug}</span>
+                  <span className="landing-project-arrow">&rarr;</span>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {joinedProjects.length > 0 && (
+          <div className="landing-projects">
+            <div className="landing-projects-label">Projects you've joined</div>
+            <div className="landing-projects-list">
+              {joinedProjects.map((p) => (
+                <a
+                  key={p.id}
+                  href={`/${p.owner}/${p.slug}/`}
+                  className="landing-project-card"
+                  onClick={(e) => { e.preventDefault(); navigate(`/${p.owner}/${p.slug}/`); }}
+                >
+                  <KilroyMark size={18} />
+                  <span className="landing-project-slug">{p.owner}/{p.slug}</span>
                   <span className="landing-project-arrow">&rarr;</span>
                 </a>
               ))}
