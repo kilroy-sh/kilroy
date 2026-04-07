@@ -2,6 +2,7 @@ import { eq, and } from "drizzle-orm";
 import { db } from "../db";
 import { projects, accounts } from "../db/schema";
 import { uuidv7 } from "../lib/uuid";
+import { addMember } from "../members/registry";
 
 const SLUG_PATTERN = /^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$/;
 
@@ -17,13 +18,12 @@ const RESERVED_PROJECT_SLUGS = new Set([
   "new",
 ]);
 
-function generateProjectKey(): string {
+function generateInviteToken(): string {
   const bytes = new Uint8Array(16);
   crypto.getRandomValues(bytes);
-  const hex = Array.from(bytes)
+  return Array.from(bytes)
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
-  return `klry_proj_${hex}`;
 }
 
 export function validateProjectSlug(slug: string): { valid: boolean; error?: string } {
@@ -42,7 +42,8 @@ export function validateProjectSlug(slug: string): { valid: boolean; error?: str
 export async function createProject(accountId: string, slug: string): Promise<{
   slug: string;
   id: string;
-  projectKey: string;
+  memberKey: string;
+  inviteToken: string;
 }> {
   const validation = validateProjectSlug(slug);
   if (!validation.valid) {
@@ -58,31 +59,56 @@ export async function createProject(accountId: string, slug: string): Promise<{
   }
 
   const id = uuidv7();
-  const projectKey = generateProjectKey();
+  const inviteToken = generateInviteToken();
 
   await db.insert(projects).values({
     id,
     slug,
     accountId,
-    projectKey,
+    inviteToken,
   });
 
-  return { slug, id, projectKey };
+  // Create owner membership
+  const member = await addMember(id, accountId, "owner");
+
+  return { slug, id, memberKey: member.memberKey, inviteToken };
 }
 
-export async function validateProjectKey(
+export async function getProjectInviteToken(projectId: string): Promise<string | null> {
+  const [project] = await db
+    .select({ inviteToken: projects.inviteToken })
+    .from(projects)
+    .where(eq(projects.id, projectId));
+  return project?.inviteToken ?? null;
+}
+
+export async function regenerateInviteToken(projectId: string): Promise<string> {
+  const newToken = generateInviteToken();
+  await db
+    .update(projects)
+    .set({ inviteToken: newToken })
+    .where(eq(projects.id, projectId));
+  return newToken;
+}
+
+export async function validateInviteToken(
   accountSlug: string,
   projectSlug: string,
-  key: string
+  token: string
 ): Promise<{ valid: true; projectId: string } | { valid: false }> {
   const rows = await db
-    .select({ projectId: projects.id, projectKey: projects.projectKey })
+    .select({ projectId: projects.id })
     .from(projects)
     .innerJoin(accounts, eq(projects.accountId, accounts.id))
-    .where(and(eq(accounts.slug, accountSlug), eq(projects.slug, projectSlug)));
+    .where(
+      and(
+        eq(accounts.slug, accountSlug),
+        eq(projects.slug, projectSlug),
+        eq(projects.inviteToken, token)
+      )
+    );
 
   if (rows.length === 0) return { valid: false };
-  if (key !== rows[0].projectKey) return { valid: false };
   return { valid: true, projectId: rows[0].projectId };
 }
 
@@ -108,11 +134,6 @@ export async function getProjectBySlugs(
     accountId: rows[0].accountId,
     createdAt: rows[0].createdAt.toISOString(),
   };
-}
-
-export async function getProjectKey(projectId: string): Promise<string | null> {
-  const [project] = await db.select().from(projects).where(eq(projects.id, projectId));
-  return project?.projectKey ?? null;
 }
 
 export async function listProjectsByAccount(accountId: string) {
