@@ -1,18 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { browse, search, getProjectInfo } from '../lib/api';
+import { browse, search } from '../lib/api';
 import { useProject, useProjectPath } from '../context/ProjectContext';
 import { KilroyMark } from './KilroyMark';
-import { InviteCard } from './InviteCard';
-
 interface OmnibarProps {
   currentTopic: string;
-}
-
-function getInitialTheme(): string {
-  const stored = localStorage.getItem('kilroy_theme');
-  if (stored) return stored;
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
 export function Omnibar({ currentTopic }: OmnibarProps) {
@@ -20,14 +12,6 @@ export function Omnibar({ currentTopic }: OmnibarProps) {
   const { accountSlug, projectSlug } = useProject();
   const pp = useProjectPath();
   const [active, setActive] = useState(false);
-  const [theme, setTheme] = useState(getInitialTheme);
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('kilroy_theme', theme);
-  }, [theme]);
-
-  const toggleTheme = () => setTheme((t) => t === 'dark' ? 'light' : 'dark');
   const [query, setQuery] = useState('');
   const [topics, setTopics] = useState<any[]>([]);
   const [posts, setPosts] = useState<any[]>([]);
@@ -36,30 +20,6 @@ export function Omnibar({ currentTopic }: OmnibarProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   const [allTopics, setAllTopics] = useState<string[]>([]);
-  const [joinLink, setJoinLink] = useState<string | null>(null);
-  const [installCommand, setInstallCommand] = useState<string | null>(null);
-  const [inviteOpen, setInviteOpen] = useState(false);
-  const inviteRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    getProjectInfo(accountSlug, projectSlug)
-      .then((info) => {
-        setJoinLink(info?.join_link || null);
-        setInstallCommand(info?.install_command || null);
-      })
-      .catch(() => {});
-  }, [accountSlug, projectSlug]);
-
-  useEffect(() => {
-    if (!inviteOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (inviteRef.current && !inviteRef.current.contains(e.target as Node)) {
-        setInviteOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [inviteOpen]);
 
   useEffect(() => {
     browse(accountSlug, projectSlug, { recursive: 'true', status: 'all', limit: '200' })
@@ -253,29 +213,6 @@ export function Omnibar({ currentTopic }: OmnibarProps) {
             <span className="omnibar-hint">
               <kbd>⌘K</kbd>
             </span>
-            {(joinLink || installCommand) && (
-              <div className="invite-wrapper" ref={inviteRef}>
-                <button
-                  className="invite-btn"
-                  onClick={(e) => { e.stopPropagation(); setInviteOpen((o) => !o); }}
-                  title="Invite others"
-                >
-                  + Invite
-                </button>
-                {inviteOpen && (
-                  <div className="invite-popover">
-                    <InviteCard installCommand={installCommand} joinLink={joinLink} />
-                  </div>
-                )}
-              </div>
-            )}
-            <button
-              className="theme-toggle"
-              onClick={(e) => { e.stopPropagation(); toggleTheme(); }}
-              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            >
-              {theme === 'dark' ? '\u2600' : '\u263E'}
-            </button>
           </div>
         )}
     </div>
