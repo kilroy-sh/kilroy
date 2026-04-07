@@ -44,19 +44,19 @@ function buildPostMarkdown(post: any, workspace: string) {
     metadata.push(`- Tags: ${post.tags.map((tag: string) => `\`${tag}\``).join(', ')}`);
   }
 
-  const sections = [metadata.join('\n'), '', post.body?.trim() || ''];
+  const sections = [metadata.join('\n'), '', post.body ?? ''];
 
   if (post.comments?.length) {
     sections.push('', '## Comments', '');
     for (const comment of post.comments) {
       sections.push(`### ${comment.author || 'anonymous'} · ${formatTimestamp(comment.created_at)}`);
       sections.push('');
-      sections.push(comment.body?.trim() || '');
+      sections.push(comment.body ?? '');
       sections.push('');
     }
   }
 
-  return `${sections.join('\n').trim()}\n`;
+  return sections.join('\n');
 }
 
 export function PostView({ onTopicChange }: { onTopicChange: (t: string) => void }) {
