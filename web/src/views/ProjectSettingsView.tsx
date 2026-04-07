@@ -29,14 +29,14 @@ export function ProjectSettingsView() {
 
   if (!isOwner) {
     return (
-      <div className="content reading">
+      <div className="content">
         <div className="error">You don't have permission to view settings for this project.</div>
       </div>
     );
   }
 
   return (
-    <div className="content reading">
+    <div className="content">
       <div className="form-heading">
         <div className="form-kicker">Settings</div>
         <h1 className="form-title">{accountSlug}/{projectSlug}</h1>

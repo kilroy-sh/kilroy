@@ -95,10 +95,10 @@ export function PostEditorView({ onTopicChange }: { onTopicChange: (t: string) =
     el.style.height = el.scrollHeight + 'px';
   };
 
-  if (loading) return <div className="content reading"><SkeletonCards count={1} /></div>;
+  if (loading) return <div className="content"><SkeletonCards count={1} /></div>;
 
   return (
-    <div className="content reading">
+    <div className="content">
       {error && <div className="error">{error}</div>}
 
       <form onSubmit={handleSubmit}>

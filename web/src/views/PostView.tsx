@@ -130,11 +130,11 @@ export function PostView({ onTopicChange }: { onTopicChange: (t: string) => void
     URL.revokeObjectURL(url);
   };
 
-  if (error) return <div className="content reading"><div className="error">{error}</div></div>;
-  if (!post) return <div className="content reading"><SkeletonCards count={1} /></div>;
+  if (error) return <div className="content"><div className="error">{error}</div></div>;
+  if (!post) return <div className="content"><SkeletonCards count={1} /></div>;
 
   return (
-    <div className="content reading">
+    <div className="content">
       <article className="post-detail">
         <h1>{post.title}</h1>
 
