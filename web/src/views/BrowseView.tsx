@@ -15,6 +15,7 @@ export function BrowseView({ onTopicChange }: { onTopicChange: (t: string) => vo
   const pp = useProjectPath();
 
   const [data, setData] = useState<any>(null);
+  const [nestedPosts, setNestedPosts] = useState<any[] | null>(null);
   const [status, setStatus] = useState('active');
   const [sort, setSort] = useState('updated_at');
   const [error, setError] = useState('');
@@ -41,22 +42,58 @@ export function BrowseView({ onTopicChange }: { onTopicChange: (t: string) => vo
   }, [sortOpen]);
 
   useEffect(() => {
+    let cancelled = false;
+
     setError('');
     setData(null);
+    setNestedPosts(null);
+
     const queryParams: Record<string, string> = {};
     if (topic) queryParams.topic = topic;
     if (status !== 'active') queryParams.status = status;
     if (sort !== 'updated_at') queryParams.order_by = sort;
 
-    browse(accountSlug, projectSlug, queryParams)
-      .then(setData)
-      .catch((e) => setError(e.message));
-  }, [topic, status, sort]);
+    async function load() {
+      try {
+        const browseData = await browse(accountSlug, projectSlug, queryParams);
+        if (cancelled) return;
+        setData(browseData);
+
+        const needsNestedPosts =
+          (browseData.posts?.length || 0) === 0 &&
+          (browseData.subtopics?.length || 0) > 0;
+
+        if (!needsNestedPosts) return;
+
+        try {
+          const recursiveData = await browse(accountSlug, projectSlug, {
+            ...queryParams,
+            recursive: 'true',
+            limit: '12',
+          });
+          if (cancelled) return;
+          setNestedPosts(recursiveData.posts || []);
+        } catch {
+          if (cancelled) return;
+          setNestedPosts([]);
+        }
+      } catch (e: any) {
+        if (cancelled) return;
+        setError(e.message);
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [accountSlug, projectSlug, topic, status, sort]);
 
   if (error) return <div className="content"><div className="error">{error}</div></div>;
   if (!data) return <div className="content"><SkeletonCards count={5} /></div>;
 
   const hasContent = (data.subtopics?.length || 0) + (data.posts?.length || 0) > 0;
+  const showNestedPosts = (nestedPosts?.length || 0) > 0;
 
   const statusFilters = [
     { value: 'active', label: 'Active' },
@@ -128,6 +165,45 @@ export function BrowseView({ onTopicChange }: { onTopicChange: (t: string) => vo
           {st.tags?.length > 0 && (
             <div className="card-tags">
               {st.tags.map((t: string) => <span key={t} className="tag">{t}</span>)}
+            </div>
+          )}
+        </div>
+      ))}
+
+      {showNestedPosts && (
+        <div className="browse-section-heading">
+          Recent posts
+        </div>
+      )}
+
+      {showNestedPosts && nestedPosts?.map((p: any, i: number) => (
+        <div
+          key={p.id}
+          className={`card card-animate${p.status !== 'active' ? ` card-${p.status}` : ''}`}
+          style={{ animationDelay: `${(data.subtopics?.length || 0) * 30 + i * 30}ms` }}
+          onClick={() => navigate(pp(`/post/${p.id}`))}
+        >
+          <div className="card-title">
+            <span className="card-title-text">{p.title}</span>
+            <div className="card-title-actions">
+              <button
+                className="text-action card-edit-action"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(pp(`/post/${p.id}/edit`));
+                }}
+              >
+                edit
+              </button>
+              {p.status !== 'active' && <span className={`status-dot status-dot-${p.status}`} />}
+            </div>
+          </div>
+          <div className="card-meta">
+            {p.topic || '/'} · {p.author || 'anonymous'} · {timeAgo(p.updated_at)} · {p.comment_count} {p.comment_count === 1 ? 'comment' : 'comments'}
+          </div>
+          {p.tags?.length > 0 && (
+            <div className="card-tags">
+              {p.tags.map((t: string) => <span key={t} className="tag">{t}</span>)}
             </div>
           )}
         </div>
