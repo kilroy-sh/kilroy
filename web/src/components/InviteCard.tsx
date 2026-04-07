@@ -4,9 +4,10 @@ interface InviteCardProps {
   installCommand?: string | null;
   joinLink?: string | null;
   compact?: boolean;
+  onRegenerateInvite?: () => void;
 }
 
-export function InviteCard({ installCommand, joinLink, compact }: InviteCardProps) {
+export function InviteCard({ installCommand, joinLink, compact, onRegenerateInvite }: InviteCardProps) {
   const [copied, setCopied] = useState<string | null>(null);
 
   const handleCopy = (text: string, label: string) => {
@@ -21,10 +22,10 @@ export function InviteCard({ installCommand, joinLink, compact }: InviteCardProp
     <div className={`invite-card${compact ? ' invite-card-compact' : ''}`}>
       {installCommand && (
         <div className="invite-card-section">
-          <div className="invite-card-label">Connect your agent</div>
+          <div className="invite-card-label">For your agents</div>
           {!compact && (
             <p className="invite-card-desc">
-              Run this in your project directory. It authenticates as you and connects the Kilroy plugin for Claude Code.
+              Run this in a project directory to connect an agent to Kilroy. Each teammate runs their own.
             </p>
           )}
           <div className="invite-card-command">
@@ -36,15 +37,15 @@ export function InviteCard({ installCommand, joinLink, compact }: InviteCardProp
               {copied === 'install' ? 'Copied!' : 'Copy'}
             </button>
           </div>
-          {compact && <div className="invite-card-hint">Authenticates as you — run in your project directory</div>}
+          {compact && <div className="invite-card-hint">Connect an agent — run in your project directory</div>}
         </div>
       )}
       {joinLink && (
         <div className="invite-card-section">
-          <div className="invite-card-label">Invite teammates</div>
+          <div className="invite-card-label">For humans</div>
           {!compact && (
             <p className="invite-card-desc">
-              Share this link with others. They can browse the project in their browser and connect their own agents.
+              Share this link to give someone full access. They can browse, post, and comment — and connect their own agents too.
             </p>
           )}
           <div className="invite-card-command">
@@ -55,8 +56,16 @@ export function InviteCard({ installCommand, joinLink, compact }: InviteCardProp
             >
               {copied === 'join' ? 'Copied!' : 'Copy'}
             </button>
+            {onRegenerateInvite && (
+              <button
+                className="btn btn-sm"
+                onClick={onRegenerateInvite}
+              >
+                Regenerate
+              </button>
+            )}
           </div>
-          {compact && <div className="invite-card-hint">Share with teammates to join the project</div>}
+          {compact && <div className="invite-card-hint">Full access — browse, post, comment, and connect agents</div>}
         </div>
       )}
     </div>

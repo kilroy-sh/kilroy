@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useProject } from '../context/ProjectContext';
 import { KilroyMark } from '../components/KilroyMark';
+import { InviteCard } from '../components/InviteCard';
 
 type JoinState =
   | { kind: 'loading' }
@@ -17,7 +18,6 @@ export function JoinView() {
   const token = searchParams.get('token');
 
   const [state, setState] = useState<JoinState>({ kind: 'loading' });
-  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!token) {
@@ -50,12 +50,6 @@ export function JoinView() {
         setState({ kind: 'error', message: e.message || 'Something went wrong' });
       });
   }, [token, accountSlug, projectSlug]);
-
-  const handleCopy = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   // Requires onboarding — redirect
   useEffect(() => {
@@ -134,16 +128,7 @@ export function JoinView() {
             <strong style={{ color: 'var(--text)' }}>{accountSlug}/{projectSlug}</strong>
           </p>
 
-          <div className="setup-block">
-            <div className="setup-block-label">Connect your agent</div>
-            <div className="setup-block-content">
-              <code>{state.install_command}</code>
-              <button className="btn" onClick={() => handleCopy(state.install_command)}>
-                {copied ? 'Copied!' : 'Copy'}
-              </button>
-            </div>
-            <div className="setup-block-hint">Run in your project directory to connect an agent.</div>
-          </div>
+          <InviteCard installCommand={state.install_command} compact />
 
           <a href={`/${accountSlug}/${projectSlug}/`} className="btn" style={{ marginTop: '1rem', display: 'inline-block' }}>
             Browse project

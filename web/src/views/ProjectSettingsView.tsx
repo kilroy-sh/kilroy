@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getProjectInfo, listMembers, removeMemberApi, regenerateInviteLinkApi, regenerateKeyApi } from '../lib/api';
 import { useProject } from '../context/ProjectContext';
 import { useAuth } from '../context/AuthContext';
+import { InviteCard } from '../components/InviteCard';
 
 interface MemberInfo {
   account_id: string;
@@ -121,34 +122,11 @@ export function ProjectSettingsView() {
             </div>
           )}
 
-          {info.install_command && (
-            <div className="setup-block">
-              <div className="setup-block-label">Install Script</div>
-              <div className="setup-block-content">
-                <code>{info.install_command}</code>
-                <button className="btn" onClick={() => handleCopy(info.install_command, 'install')}>
-                  {copied === 'install' ? 'Copied!' : 'Copy'}
-                </button>
-              </div>
-              <div className="setup-block-hint">Run in your project directory to connect an agent.</div>
-            </div>
-          )}
-
-          {isOwner && info.invite_link && (
-            <div className="setup-block">
-              <div className="setup-block-label">Invite Link</div>
-              <div className="setup-block-content">
-                <code>{info.invite_link}</code>
-                <button className="btn" onClick={() => handleCopy(info.invite_link, 'invite')}>
-                  {copied === 'invite' ? 'Copied!' : 'Copy'}
-                </button>
-                <button className="btn" onClick={handleRegenerateInvite}>
-                  Regenerate
-                </button>
-              </div>
-              <div className="setup-block-hint">Share to invite teammates. Regenerating invalidates old links but doesn't affect existing members.</div>
-            </div>
-          )}
+          <InviteCard
+            installCommand={info.install_command}
+            joinLink={isOwner ? info.invite_link : null}
+            onRegenerateInvite={isOwner ? handleRegenerateInvite : undefined}
+          />
 
           {members.length > 0 && (
             <div className="setup-block">
