@@ -1,11 +1,12 @@
-import { client, initDatabase } from "../src/db/index";
+import postgres from "postgres";
 import { mkdir, writeFile } from "fs/promises";
 import { join } from "path";
 
+const DATABASE_URL = process.env.DATABASE_URL || "postgres://kilroy:kilroy@localhost:5432/kilroy";
 const DUMP_DIR = "/home/ubuntu/dump";
 
 async function main() {
-  await initDatabase();
+  const client = postgres(DATABASE_URL);
   await mkdir(DUMP_DIR, { recursive: true });
 
   const workspaces = await client<

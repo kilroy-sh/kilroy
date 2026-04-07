@@ -8,14 +8,6 @@ export const client = postgres(DATABASE_URL);
 export const db = drizzle(client, { schema });
 
 export async function initDatabase() {
-  // Drop legacy tables (data already dumped via scripts/dump-workspaces.ts)
-  await client.unsafe(`
-    DROP TABLE IF EXISTS comments CASCADE;
-    DROP TABLE IF EXISTS posts CASCADE;
-    DROP TABLE IF EXISTS workspaces CASCADE;
-    DROP TABLE IF EXISTS teams CASCADE;
-  `);
-
   // Create accounts table
   await client.unsafe(`
     CREATE TABLE IF NOT EXISTS accounts (
