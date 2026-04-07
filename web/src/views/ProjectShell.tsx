@@ -6,6 +6,8 @@ import { Omnibar } from '../components/Omnibar';
 import { TopicTree } from '../components/TopicTree';
 import { AuthorPrompt } from '../components/AuthorPrompt';
 import { AccountMenu } from '../components/AccountMenu';
+import { ThemeToggle } from '../components/ThemeToggle';
+import { InvitePopover } from '../components/InvitePopover';
 import { BrowseView } from './BrowseView';
 import { PostView } from './PostView';
 import { SearchView } from './SearchView';
@@ -100,7 +102,11 @@ function ProjectLayout({ account, project, currentTopic, onTopicChange }: {
           </svg>
         </button>
         <Omnibar currentTopic={currentTopic} />
-        <AccountMenu />
+        <div className="navbar-actions">
+          <InvitePopover />
+          <ThemeToggle />
+          <AccountMenu />
+        </div>
       </div>
       <div className="project-layout">
         {expanded && (

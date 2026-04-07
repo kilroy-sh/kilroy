@@ -98,11 +98,19 @@ a:hover { color: var(--accent-hover); }
   color: var(--text);
 }
 
+.navbar-actions {
+  position: absolute;
+  right: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .omnibar {
   pointer-events: all;
   position: relative;
   width: 100%;
-  max-width: 640px;
+  max-width: var(--content-width);
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -1153,7 +1161,6 @@ a:hover { color: var(--accent-hover); }
 /* Invite button */
 .invite-wrapper {
   position: relative;
-  margin-left: 0.25rem;
 }
 
 .invite-btn {
@@ -1249,7 +1256,6 @@ a:hover { color: var(--accent-hover); }
   border: none;
   cursor: pointer;
   padding: 0.25rem;
-  margin-left: 0.5rem;
   color: var(--text-dim);
   font-size: 1rem;
   line-height: 1;
@@ -1264,8 +1270,7 @@ a:hover { color: var(--accent-hover); }
 
 /* Account menu */
 .account-menu-wrapper {
-  position: absolute;
-  right: 1.5rem;
+  position: relative;
 }
 
 .account-menu-btn {
