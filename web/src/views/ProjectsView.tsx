@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { KilroyMark } from '../components/KilroyMark';
+import { InviteCard } from '../components/InviteCard';
 
 interface Project {
   id: string;
@@ -11,6 +12,7 @@ interface Project {
 
 interface NewProject extends Project {
   project_key: string;
+  project_url: string;
   install_url: string;
   account_slug: string;
 }
@@ -24,7 +26,6 @@ export function ProjectsView() {
   const [error, setError] = useState('');
   const [creating, setCreating] = useState(false);
   const [created, setCreated] = useState<NewProject | null>(null);
-  const [copied, setCopied] = useState<string | null>(null);
 
   useEffect(() => {
     if (loading) return;
@@ -76,12 +77,6 @@ export function ProjectsView() {
     }
   };
 
-  const handleCopy = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(label);
-    setTimeout(() => setCopied(null), 2000);
-  };
-
   if (loading || !account) return null;
 
   return (
@@ -97,21 +92,10 @@ export function ProjectsView() {
         {created && (
           <div className="join-section">
             <div className="join-section-label">Project created: {created.slug}</div>
-            <p className="join-section-desc">
-              Set up your agent by running this in your project directory:
-            </p>
-            <div className="join-command">
-              <code>curl -sL "{created.install_url}" | sh</code>
-              <button className="btn" onClick={() => handleCopy(`curl -sL "${created.install_url}" | sh`, 'install')}>
-                {copied === 'install' ? 'Copied!' : 'Copy'}
-              </button>
-            </div>
-            <div className="join-command" style={{ marginTop: '0.5rem' }}>
-              <code>{created.project_key}</code>
-              <button className="btn" onClick={() => handleCopy(created.project_key, 'key')}>
-                {copied === 'key' ? 'Copied!' : 'Copy Key'}
-              </button>
-            </div>
+            <InviteCard
+              installCommand={`curl -sL "${created.install_url}" | sh`}
+              joinLink={`${created.project_url}/join?token=${created.project_key}`}
+            />
           </div>
         )}
 
