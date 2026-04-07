@@ -73,9 +73,6 @@ export function PostEditorView({ onTopicChange }: { onTopicChange: (t: string) =
       const tagList = tags.split(',').map((t) => t.trim()).filter(Boolean);
       payload.tags = tagList;
 
-      const author = localStorage.getItem('kilroy_author');
-      if (author) payload.author = author;
-
       const post = isEditing && id
         ? await updatePost(accountSlug, projectSlug, id, payload)
         : await createPost(accountSlug, projectSlug, payload);

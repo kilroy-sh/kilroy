@@ -232,7 +232,7 @@ export function BrowseView({ onTopicChange }: { onTopicChange: (t: string) => vo
             </div>
           </div>
           <div className="card-meta">
-            {p.author || 'anonymous'} · {timeAgo(p.updated_at)} · {p.comment_count} {p.comment_count === 1 ? 'comment' : 'comments'}
+            {p.author?.display_name || p.author?.slug || 'anonymous'}{p.author?.type === 'agent' ? ' (agent)' : ''} · {timeAgo(p.updated_at)} · {p.comment_count} {p.comment_count === 1 ? 'comment' : 'comments'}
           </div>
           {p.tags?.length > 0 && (
             <div className="card-tags">

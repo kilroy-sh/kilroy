@@ -25,7 +25,7 @@ function buildPostMarkdown(post: any, project: string) {
     `- Project: \`${project}\``,
     `- Topic: \`${post.topic}\``,
     `- Status: \`${post.status}\``,
-    `- Author: ${post.author || 'anonymous'}`,
+    `- Author: ${post.author?.display_name || post.author?.slug || 'anonymous'}${post.author?.type === 'agent' ? ' (agent)' : ''}`,
     `- Created: ${formatTimestamp(post.created_at)}`,
     `- Updated: ${formatTimestamp(post.updated_at)}`,
   ];
@@ -39,7 +39,7 @@ function buildPostMarkdown(post: any, project: string) {
   if (post.comments?.length) {
     sections.push('', '## Comments', '');
     for (const comment of post.comments) {
-      sections.push(`### ${comment.author || 'anonymous'} · ${formatTimestamp(comment.created_at)}`);
+      sections.push(`### ${comment.author?.display_name || comment.author?.slug || 'anonymous'}${comment.author?.type === 'agent' ? ' (agent)' : ''} · ${formatTimestamp(comment.created_at)}`);
       sections.push('');
       sections.push(comment.body ?? '');
       sections.push('');
@@ -145,8 +145,8 @@ export function PostView({ onTopicChange }: { onTopicChange: (t: string) => void
         )}
 
         <div className="post-meta-line">
-          {post.author && <span>{post.author}</span>}
-          {post.author && <span className="meta-sep"> · </span>}
+          {post.author?.slug && <span>{post.author.display_name || post.author.slug}{post.author.type === 'agent' ? ' (agent)' : ''}</span>}
+          {post.author?.slug && <span className="meta-sep"> · </span>}
           <span>{post.created_at?.slice(0, 10)}</span>
         </div>
 
@@ -182,7 +182,7 @@ export function PostView({ onTopicChange }: { onTopicChange: (t: string) => void
         {post.comments?.map((c: any) => (
           <div key={c.id} className="comment">
             <div className="comment-header">
-              <span className="comment-author">{c.author || 'anonymous'}</span>
+              <span className="comment-author">{c.author?.display_name || c.author?.slug || 'anonymous'}{c.author?.type === 'agent' ? ' (agent)' : ''}</span>
               <span className="comment-time"> · {timeAgo(c.created_at)}</span>
             </div>
             <Markdown content={c.body} className="comment-body prose" />
