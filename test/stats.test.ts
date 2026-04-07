@@ -5,7 +5,7 @@ import { statsRouter } from "../src/routes/stats";
 async function resetAndSeed() {
   const { initDatabase, client } = await import("../src/db");
   await initDatabase();
-  await client.unsafe("TRUNCATE comments, posts, projects, accounts CASCADE");
+  await client.unsafe("TRUNCATE comments, posts, project_members, projects, accounts CASCADE");
 }
 
 async function seedData() {
@@ -47,7 +47,7 @@ describe("GET /_/api/stats", () => {
   beforeEach(async () => {
     await resetAndSeed();
     app = new Hono();
-    app.route("/_/api", statsRouter);
+    app.route("/_/api/stats", statsRouter);
   });
 
   it("returns zeros when empty", async () => {

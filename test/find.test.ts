@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { Hono } from "hono";
 
-import { resetDb, createTestApp } from "./helpers";
+import { resetDb, createTestApp, testAccountId } from "./helpers";
 import { client } from "../src/db";
 import type { Env } from "../src/types";
 
@@ -43,15 +43,16 @@ describe("GET /api/find", () => {
     expect(data.code).toBe("INVALID_INPUT");
   });
 
-  it("filters by author", async () => {
-    await createPost({ author: "alice", title: "Alice post" });
-    await createPost({ author: "bob", title: "Bob post" });
+  it("filters by author (account_id)", async () => {
+    await createPost({ title: "My post" });
 
-    const res = await request("/find?author=alice");
+    // Import testAccountId after resetDb populates it
+    const { testAccountId: accountId } = await import("./helpers");
+    const res = await request(`/find?author=${accountId}`);
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.results.length).toBe(1);
-    expect(data.results[0].title).toBe("Alice post");
+    expect(data.results[0].title).toBe("My post");
   });
 
   it("filters by tag", async () => {
@@ -135,11 +136,11 @@ describe("GET /api/find", () => {
   });
 
   it("combines filters (AND)", async () => {
-    await createPost({ author: "alice", tags: ["gotcha"], title: "Match" });
-    await createPost({ author: "alice", tags: ["other"], title: "Wrong tag" });
-    await createPost({ author: "bob", tags: ["gotcha"], title: "Wrong author" });
+    await createPost({ topic: "auth", tags: ["gotcha"], title: "Match" });
+    await createPost({ topic: "auth", tags: ["other"], title: "Wrong tag" });
+    await createPost({ topic: "deploy", tags: ["gotcha"], title: "Wrong topic" });
 
-    const res = await request("/find?author=alice&tag=gotcha");
+    const res = await request("/find?topic=auth&tag=gotcha");
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.results.length).toBe(1);
@@ -147,26 +148,28 @@ describe("GET /api/find", () => {
   });
 
   it("supports pagination", async () => {
+    const { testAccountId: accountId } = await import("./helpers");
     for (let i = 0; i < 5; i++) {
-      await createPost({ author: "alice", title: `Post ${i}` });
+      await createPost({ title: `Post ${i}` });
     }
 
-    const res = await request("/find?author=alice&limit=2");
+    const res = await request(`/find?author=${accountId}&limit=2`);
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.results.length).toBe(2);
     expect(data.has_more).toBe(true);
     expect(data.next_cursor).toBeDefined();
 
-    const res2 = await request(`/find?author=alice&limit=2&cursor=${data.next_cursor}`);
+    const res2 = await request(`/find?author=${accountId}&limit=2&cursor=${data.next_cursor}`);
     const data2 = await res2.json();
     expect(data2.results.length).toBe(2);
   });
 
   it("returns post metadata in results", async () => {
-    await createPost({ author: "alice", tags: ["gotcha"], title: "Full result", topic: "auth" });
+    const { testAccountId: accountId } = await import("./helpers");
+    await createPost({ tags: ["gotcha"], title: "Full result", topic: "auth" });
 
-    const res = await request("/find?author=alice");
+    const res = await request(`/find?author=${accountId}`);
     const data = await res.json();
     const r = data.results[0];
     expect(r.id).toBeDefined();
@@ -174,7 +177,7 @@ describe("GET /api/find", () => {
     expect(r.topic).toBe("auth");
     expect(r.status).toBe("active");
     expect(r.tags).toEqual(["gotcha"]);
-    expect(r.author).toBe("alice");
+    expect(r.author.account_id).toBe(accountId);
     expect(r.updated_at).toBeDefined();
     expect(r.created_at).toBeDefined();
   });

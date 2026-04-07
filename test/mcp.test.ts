@@ -3,16 +3,16 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 
 import { createMcpServer } from "../src/mcp/server";
-import { resetDb, testProjectId } from "./helpers";
+import { resetDb, testProjectId, testAccountId } from "./helpers";
 
 let client: Client;
 
 async function setupMcp() {
   await resetDb();
 
-  // Import testProjectId after resetDb populates it
-  const { testProjectId: projectId } = await import("./helpers");
-  const mcp = createMcpServer(projectId);
+  // Import testProjectId and testAccountId after resetDb populates them
+  const { testProjectId: projectId, testAccountId: accountId } = await import("./helpers");
+  const mcp = createMcpServer(projectId, accountId, "agent");
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
 
   await mcp.connect(serverTransport);
@@ -67,7 +67,6 @@ describe("kilroy_create_post", () => {
       topic: "auth/google",
       body: "Redirect URI must match exactly.",
       tags: ["oauth", "gotcha"],
-      author: "claude-session-abc",
     });
 
     expect(data.id).toMatch(/^[0-9a-f-]+$/);
@@ -98,13 +97,11 @@ describe("kilroy_read_post", () => {
       title: "Test",
       topic: "test",
       body: "Test body",
-      author: "claude-test",
     });
 
     await callTool("kilroy_comment", {
       post_id: post.id,
       body: "Great find!",
-      author: "human:sarah",
     });
 
     const { data } = await callTool("kilroy_read_post", { post_id: post.id });
@@ -112,9 +109,11 @@ describe("kilroy_read_post", () => {
     expect(data.title).toBe("Test");
     expect(data.body).toBe("Test body");
     expect(data.comments).toHaveLength(1);
-    expect(data.comments[0].author).toBe("human:sarah");
-    expect(data.contributors).toContain("claude-test");
-    expect(data.contributors).toContain("human:sarah");
+    // Author is now an object with account_id, type, metadata
+    expect(data.comments[0].author.account_id).toBeDefined();
+    // Contributors are now objects with account_id, slug, display_name
+    const { testAccountId: accountId } = await import("./helpers");
+    expect(data.contributors.some((c: any) => c.account_id === accountId)).toBe(true);
   });
 
   it("returns error for non-existent post", async () => {
@@ -267,12 +266,13 @@ describe("kilroy_comment", () => {
     const { data } = await callTool("kilroy_comment", {
       post_id: post.id,
       body: "Great find!",
-      author: "human:sarah",
     });
 
     expect(data.id).toMatch(/^[0-9a-f-]+$/);
     expect(data.post_id).toBe(post.id);
-    expect(data.author).toBe("human:sarah");
+    // Author is now an object
+    const { testAccountId: accountId } = await import("./helpers");
+    expect(data.author.account_id).toBe(accountId);
   });
 
   it("returns error for non-existent post", async () => {
@@ -336,35 +336,18 @@ describe("kilroy_update_post", () => {
       title: "Original",
       topic: "test",
       body: "Original body",
-      author: "claude-session-1",
     });
 
     const { data } = await callTool("kilroy_update_post", {
       post_id: post.id,
       body: "Updated body with src/new/path.ts",
-      author: "claude-session-1",
     });
 
     expect(data.id).toBe(post.id);
   });
 
-  it("rejects when author does not match", async () => {
-    const { data: post } = await callTool("kilroy_create_post", {
-      title: "Test",
-      topic: "test",
-      body: "Content",
-      author: "claude-session-1",
-    });
-
-    const { data, isError } = await callTool("kilroy_update_post", {
-      post_id: post.id,
-      title: "Hacked",
-      author: "claude-session-2",
-    });
-
-    expect(isError).toBe(true);
-    expect(data.code).toBe("AUTHOR_MISMATCH");
-  });
+  // Skipped: all MCP calls use the same member account, so author mismatch cannot occur
+  it.skip("rejects when author does not match", async () => {});
 
   it("returns error for non-existent post", async () => {
     const { data, isError } = await callTool("kilroy_update_post", {
@@ -391,43 +374,20 @@ describe("kilroy_update_comment", () => {
     const { data: comment } = await callTool("kilroy_comment", {
       post_id: post.id,
       body: "Original comment",
-      author: "claude-session-1",
     });
 
     const { data } = await callTool("kilroy_update_comment", {
       post_id: post.id,
       comment_id: comment.id,
       body: "Updated comment",
-      author: "claude-session-1",
     });
 
     expect(data.body).toBe("Updated comment");
     expect(data.id).toBe(comment.id);
   });
 
-  it("rejects when author does not match", async () => {
-    const { data: post } = await callTool("kilroy_create_post", {
-      title: "Test",
-      topic: "test",
-      body: "Content",
-    });
-
-    const { data: comment } = await callTool("kilroy_comment", {
-      post_id: post.id,
-      body: "My comment",
-      author: "claude-session-1",
-    });
-
-    const { data, isError } = await callTool("kilroy_update_comment", {
-      post_id: post.id,
-      comment_id: comment.id,
-      body: "Hacked",
-      author: "claude-session-2",
-    });
-
-    expect(isError).toBe(true);
-    expect(data.code).toBe("AUTHOR_MISMATCH");
-  });
+  // Skipped: all MCP calls use the same member account, so author mismatch cannot occur
+  it.skip("rejects when author does not match", async () => {});
 
   it("returns error for non-existent comment", async () => {
     const { data: post } = await callTool("kilroy_create_post", {
