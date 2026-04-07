@@ -226,4 +226,8 @@ export async function initDatabase() {
       BEFORE INSERT OR UPDATE OF body ON comments
       FOR EACH ROW EXECUTE FUNCTION comments_search_vector_update();
   `);
+
+  // Run sharing model migration (idempotent)
+  const { migrateSharingModel } = await import("./migrate-sharing");
+  await migrateSharingModel();
 }
