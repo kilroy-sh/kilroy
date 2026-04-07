@@ -91,6 +91,35 @@ export async function initDatabase() {
     ALTER TABLE projects ADD COLUMN IF NOT EXISTS invite_token TEXT UNIQUE;
   `);
 
+  // Migration: rename workspace_id -> project_id in posts and comments
+  const [postsHasWorkspaceId] = await client.unsafe(`
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'posts' AND column_name = 'workspace_id'
+  `);
+  if (postsHasWorkspaceId) {
+    await client.unsafe(`ALTER TABLE posts RENAME COLUMN workspace_id TO project_id`);
+  }
+  const [commentsHasWorkspaceId] = await client.unsafe(`
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'comments' AND column_name = 'workspace_id'
+  `);
+  if (commentsHasWorkspaceId) {
+    await client.unsafe(`ALTER TABLE comments RENAME COLUMN workspace_id TO project_id`);
+  }
+
+  // Migration: fix FK constraints that still reference old workspaces table
+  const fksToFix = await client.unsafe(`
+    SELECT conname, conrelid::regclass::text AS tbl
+    FROM pg_constraint
+    WHERE conrelid::regclass::text IN ('posts', 'comments')
+    AND contype = 'f'
+    AND pg_get_constraintdef(oid) LIKE '%REFERENCES workspaces%'
+  `);
+  for (const fk of fksToFix) {
+    await client.unsafe(`ALTER TABLE ${fk.tbl} DROP CONSTRAINT ${fk.conname}`);
+    await client.unsafe(`ALTER TABLE ${fk.tbl} ADD CONSTRAINT ${fk.tbl}_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id)`);
+  }
+
   // Create project_members table
   await client.unsafe(`
     CREATE TABLE IF NOT EXISTS project_members (
