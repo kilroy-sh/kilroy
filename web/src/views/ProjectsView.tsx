@@ -116,19 +116,19 @@ export function ProjectsView() {
         )}
 
         {projects.length > 0 && (
-          <div className="landing-workspaces">
-            <div className="landing-workspaces-label">Your projects</div>
-            <div className="landing-workspaces-list">
+          <div className="landing-projects">
+            <div className="landing-projects-label">Your projects</div>
+            <div className="landing-projects-list">
               {projects.map((p) => (
                 <a
                   key={p.id}
                   href={`/${account.slug}/${p.slug}/`}
-                  className="landing-workspace-card"
+                  className="landing-project-card"
                   onClick={(e) => { e.preventDefault(); navigate(`/${account.slug}/${p.slug}/`); }}
                 >
                   <KilroyMark size={18} />
-                  <span className="landing-workspace-slug">{p.slug}</span>
-                  <span className="landing-workspace-arrow">&rarr;</span>
+                  <span className="landing-project-slug">{p.slug}</span>
+                  <span className="landing-project-arrow">&rarr;</span>
                 </a>
               ))}
             </div>
@@ -137,7 +137,7 @@ export function ProjectsView() {
 
         {!loadingProjects && (
           <>
-            <div className="landing-workspaces-label">
+            <div className="landing-projects-label">
               {projects.length > 0 ? 'Create a new project' : 'Create your first project'}
             </div>
             <form className="landing-bar" onSubmit={handleCreate}>

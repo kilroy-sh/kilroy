@@ -1471,12 +1471,12 @@ a:hover { color: var(--accent-hover); }
   margin-bottom: 2rem;
 }
 
-.landing-workspaces {
+.landing-projects {
   max-width: 480px;
   margin-bottom: 2rem;
 }
 
-.landing-workspaces-label {
+.landing-projects-label {
   font-family: var(--font-sans);
   font-size: 0.75rem;
   font-weight: 600;
@@ -1486,13 +1486,13 @@ a:hover { color: var(--accent-hover); }
   margin-bottom: 0.5rem;
 }
 
-.landing-workspaces-list {
+.landing-projects-list {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-.landing-workspace-card {
+.landing-project-card {
   display: flex;
   align-items: center;
   gap: 0.6rem;
@@ -1505,26 +1505,26 @@ a:hover { color: var(--accent-hover); }
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.landing-workspace-card:hover {
+.landing-project-card:hover {
   border-color: var(--accent);
   box-shadow: 0 2px 12px var(--accent-glow);
   color: var(--text);
 }
 
-.landing-workspace-slug {
+.landing-project-slug {
   font-family: var(--font-display);
   font-size: 0.95rem;
   font-weight: 700;
   letter-spacing: -0.01em;
 }
 
-.landing-workspace-arrow {
+.landing-project-arrow {
   margin-left: auto;
   color: var(--text-dim);
   transition: color 0.15s;
 }
 
-.landing-workspace-card:hover .landing-workspace-arrow {
+.landing-project-card:hover .landing-project-arrow {
   color: var(--accent);
 }
 
@@ -1881,8 +1881,8 @@ a:hover { color: var(--accent-hover); }
   margin-top: 0.25rem;
 }
 
-/* Workspace input (shared between landing and join) */
-.workspace-input {
+/* Project input (shared between landing and join) */
+.project-input {
   background: var(--bg-inset);
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -1894,8 +1894,8 @@ a:hover { color: var(--accent-hover); }
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.workspace-input::placeholder { color: var(--text-dim); }
-.workspace-input:focus {
+.project-input::placeholder { color: var(--text-dim); }
+.project-input:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-glow);
 }
@@ -1907,7 +1907,7 @@ a:hover { color: var(--accent-hover); }
 }
 
 /* Sidebar layout */
-.workspace-layout {
+.project-layout {
   display: flex;
   width: 100%;
   flex: 1;
@@ -2021,7 +2021,7 @@ a:hover { color: var(--accent-hover); }
   background: var(--bg-hover);
 }
 
-.workspace-content {
+.project-content {
   flex: 1;
   min-width: 0;
 }

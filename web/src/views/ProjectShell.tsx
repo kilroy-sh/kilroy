@@ -160,7 +160,7 @@ function ProjectLayout({ account, project, currentTopic, onTopicChange }: {
         <Omnibar currentTopic={currentTopic} />
         <AccountMenu account={account} project={project} />
       </div>
-      <div className="workspace-layout">
+      <div className="project-layout">
         {expanded && (
           <div className="sidebar-region">
             <div className="sidebar-backdrop" onClick={toggle} />
@@ -175,7 +175,7 @@ function ProjectLayout({ account, project, currentTopic, onTopicChange }: {
             </aside>
           </div>
         )}
-        <div className="workspace-content">
+        <div className="project-content">
           <Routes>
             <Route path="post/:id/edit" element={<PostEditorView onTopicChange={onTopicChange} />} />
             <Route path="post/:id" element={<PostView onTopicChange={onTopicChange} />} />
