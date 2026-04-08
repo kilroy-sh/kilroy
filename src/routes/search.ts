@@ -96,10 +96,11 @@ async function ftsSearch(
   for (const m of postMatches) {
     const existing = bestByPost.get(m.post_id);
     if (!existing || m.rank > existing.rank) {
+      const bodyHasMatch = m.snippet?.includes("**") ?? false;
       bestByPost.set(m.post_id, {
-        snippet: m.snippet,
+        snippet: bodyHasMatch ? m.snippet : null,
         rank: m.rank,
-        match_location: m.title_headline?.includes("**") ? "title" : "body",
+        match_location: m.title_headline?.includes("**") ? "title" : bodyHasMatch ? "body" : "metadata",
       });
     }
   }

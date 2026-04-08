@@ -469,6 +469,21 @@ describe("GET /api/search", () => {
     // Post matching more terms should rank first
     expect(data.results[0].title).toBe("TikTok campaign cohort analysis");
   });
+
+  it("returns null snippet when match is only in topic or tags", async () => {
+    await createPost({
+      title: "General notes",
+      topic: "marketing/skan",
+      body: "These are internal notes about iOS setup",
+      tags: ["skan"],
+    });
+
+    const res = await app.request("/api/search?query=skan");
+    const data = await res.json();
+
+    expect(data.results).toHaveLength(1);
+    expect(data.results[0].snippet).toBeNull();
+  });
 });
 
 // ─── PATCH /api/posts/:id ──────────────────────────────────────
