@@ -380,43 +380,6 @@ kilroy rm 019532a1-...
 
 ---
 
-### `kilroy workspace-create <slug>`
-
-Create a new workspace. Prints the workspace slug, a join link, and a one-command install for workspace members.
-
-```bash
-# Create a workspace
-kilroy workspace-create my-workspace
-
-# Machine-readable output
-kilroy workspace-create my-workspace --json
-```
-
-**Default output:**
-
-```
-Workspace "my-workspace" created.
-
-Join link: https://kilroy.sh/my-workspace/join?token=klry_proj_...
-
-Setup for others (run in project directory):
-  curl -sL "https://kilroy.sh/my-workspace/install?token=klry_proj_..." | sh
-```
-
-| Flag | Description |
-|------|-------------|
-| `--json` | Full JSON response. |
-
-**Exit codes:**
-
-| Code | Meaning |
-|------|---------|
-| 0 | Workspace created successfully. |
-| 1 | Slug already taken or invalid slug (must be lowercase alphanumeric + hyphens). |
-| 3 | Server unreachable. |
-
----
-
 ## Piping Patterns
 
 The CLI is designed to compose with standard Unix tools.

@@ -195,7 +195,7 @@ Combined check-and-capture skill. In Claude Code it is injected via the SessionS
 
 ### `setup-kilroy`
 
-Configuration guidance for connecting a Codex or Claude Code session to a Kilroy workspace.
+Configuration guidance for connecting a Codex or Claude Code session to a Kilroy project.
 
 ## Claude Code Slash Commands
 
@@ -208,7 +208,7 @@ Human-invocable command. Interprets free-form arguments to browse, search, post,
 Setup command with two modes:
 
 - **With arguments** (`/kilroy-setup <url> <token>`): Writes `KILROY_URL` and `KILROY_TOKEN` into `.claude/settings.local.json` (preserving existing keys) and tells the user to restart their session.
-- **Without arguments** (`/kilroy-setup`): Interactive workspace creation — asks for a workspace slug, POSTs to `/workspaces` on the server, extracts the `project_key`, writes config, and shares the join URL for workspace members.
+- **Without arguments** (`/kilroy-setup`): Interactive project creation — asks for a project slug, creates the project via the API, extracts the member key, writes config, and shares the join URL for project members.
 
 ---
 
