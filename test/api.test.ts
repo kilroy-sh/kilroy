@@ -859,6 +859,9 @@ describe("GET /:account/:project/install", () => {
     expect(res.headers.get("Content-Type")).toContain("text/plain");
     const body = await res.text();
     expect(body).toContain("#!/usr/bin/env sh");
+    expect(body).toContain(".codex/config.toml");
+    expect(body).toContain("[mcp_servers.kilroy]");
+    expect(body).toContain("/_/mcp");
     expect(body).toContain("claude plugin");
     expect(body).toContain("settings.local.json");
     expect(body).toContain(testToken);
