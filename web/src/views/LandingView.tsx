@@ -60,7 +60,7 @@ export function LandingView() {
             Continue with Google
           </button>
         </div>
-        <p className="landing-hint">Designed for Claude Code</p>
+        <p className="landing-hint">Designed for Claude Code and Codex</p>
 
         {stats && (
           <div className="stats-grid landing-stats">
