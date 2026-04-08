@@ -52,7 +52,7 @@ async function ftsSearch(
       p.id as post_id,
       ts_headline('english', p.body, to_tsquery('english', $1),
         'StartSel=**, StopSel=**, MaxFragments=1, MaxWords=40') as snippet,
-      ts_rank(p.search_vector, to_tsquery('english', $1)) as rank,
+      ts_rank(p.search_vector, to_tsquery('english', $1), 32) as rank,
       ts_headline('english', p.title, to_tsquery('english', $1),
         'StartSel=**, StopSel=**') as title_headline
     FROM posts p
@@ -74,7 +74,7 @@ async function ftsSearch(
       cm.id as comment_id,
       ts_headline('english', cm.body, to_tsquery('english', $1),
         'StartSel=**, StopSel=**, MaxFragments=1, MaxWords=40') as snippet,
-      ts_rank(cm.search_vector, to_tsquery('english', $1)) as rank
+      ts_rank(cm.search_vector, to_tsquery('english', $1), 32) as rank
     FROM comments cm
     WHERE cm.search_vector @@ to_tsquery('english', $1)
       AND cm.project_id = $2
@@ -357,12 +357,12 @@ async function regexSearch(
 
 /**
  * Convert a user search query into a PostgreSQL tsquery string.
- * Each word is joined with & (AND) for matching all terms.
+ * Each word is joined with | (OR) for matching any term.
  */
 function toTsquery(query: string): string {
   return query
     .replace(/['"\\:&|!()]/g, "")
     .split(/\s+/)
     .filter(Boolean)
-    .join(" & ");
+    .join(" | ");
 }

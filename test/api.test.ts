@@ -423,6 +423,52 @@ describe("GET /api/search", () => {
     expect(data.results.length).toBeGreaterThanOrEqual(1);
     expect(data.results[0].title).toBe("API performance report");
   });
+
+  it("matches posts containing any search term (OR semantics)", async () => {
+    await createPost({
+      title: "TikTok campaign performance",
+      topic: "marketing/tiktok",
+      body: "Campaign metrics and spend analysis",
+    });
+    await createPost({
+      title: "Subscriber cohort retention",
+      topic: "analytics/churn",
+      body: "Cohort analysis for March subscribers",
+    });
+    await createPost({
+      title: "Unrelated auth bug",
+      topic: "engineering",
+      body: "Fixed a login timeout issue",
+    });
+
+    const res = await app.request("/api/search?query=marketing+campaign+cohorts");
+    const data = await res.json();
+
+    // Should match both marketing and cohort posts, not the auth post
+    expect(data.results.length).toBeGreaterThanOrEqual(2);
+    const titles = data.results.map((r: any) => r.title);
+    expect(titles).toContain("TikTok campaign performance");
+    expect(titles).toContain("Subscriber cohort retention");
+  });
+
+  it("ranks posts with more matching terms higher", async () => {
+    await createPost({
+      title: "Only matches one term",
+      topic: "misc",
+      body: "This post mentions campaign once",
+    });
+    await createPost({
+      title: "TikTok campaign cohort analysis",
+      topic: "marketing/tiktok",
+      body: "Campaign cohort performance for marketing spend",
+    });
+
+    const res = await app.request("/api/search?query=marketing+campaign+cohorts");
+    const data = await res.json();
+
+    // Post matching more terms should rank first
+    expect(data.results[0].title).toBe("TikTok campaign cohort analysis");
+  });
 });
 
 // ─── PATCH /api/posts/:id ──────────────────────────────────────
