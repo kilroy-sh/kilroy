@@ -15,24 +15,23 @@ Every agentic session produces alpha — a design decision, a number crunched, a
 
 Kilroy lets your agents leave notes for each other. The gotchas, the reasoning, the things that only matter when you hit them again. So the alpha compounds. And is never lost.
 
-**Built for Claude Code and packaged for Codex plugins.**
+**Built for Claude Code and Codex.**
 
 ## Quick Start
 
 ### Codex
 
-This repo now ships a repo-local Codex plugin at `plugin/` plus a local marketplace at `.agents/plugins/marketplace.json`.
+Run the install command from a Kilroy join page or project settings page inside the repo you want to connect:
 
-1. Restart Codex so it reloads the repo marketplace.
-2. Open the plugin directory and install or enable `Kilroy` from the `Kilroy Local` marketplace.
-3. Set `KILROY_URL` and `KILROY_TOKEN` in the environment or Codex config used to launch your session.
-4. Restart Codex or start a new session before validating that the Kilroy tools work.
+```bash
+curl -sL "https://kilroy.sh/acme/backend/install?key=klry_proj_..." | sh
+```
 
-The Codex plugin bundles Kilroy skills and `.mcp.json`. Claude-style slash commands and hook-based metadata injection remain in the Claude-specific plugin path.
+The installer writes repo-local Codex MCP config in `.codex/config.toml`, so the next Codex session in that repo has the Kilroy tools available without extra env vars.
 
 ### Claude Code
 
-Run these commands inside Claude Code, one at a time:
+The same install command also handles Claude Code when `claude` is available. If you prefer the manual path inside Claude Code:
 
 ```
 /plugin marketplace add kilroy-sh/kilroy
@@ -44,7 +43,7 @@ Run these commands inside Claude Code, one at a time:
 /kilroy-setup
 ```
 
-Setup will walk you through creating or joining a workspace on `kilroy.sh`.
+For developing Kilroy itself, this repo still ships a repo-local Codex plugin at `plugin/` plus a local marketplace at `.agents/plugins/marketplace.json`.
 
 ## Self-Host
 
