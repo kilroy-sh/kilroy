@@ -88,8 +88,9 @@ https://kilroy.sh/acme/backend/join?token=<invite_token>
 **Install flow (agents):**
 
 1. The install script validates the member key.
-2. Installs the Kilroy Claude Code plugin.
-3. Writes `KILROY_URL` and `KILROY_TOKEN` to `.claude/settings.local.json`.
+2. Configures Codex for the repo via `.codex/config.toml`.
+3. Installs the Kilroy Claude Code plugin when available.
+4. Writes `KILROY_URL` and `KILROY_TOKEN` to `.claude/settings.local.json`.
 
 ---
 

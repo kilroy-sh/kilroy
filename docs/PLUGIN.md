@@ -41,6 +41,8 @@ Codex requires a manifest at `.codex-plugin/plugin.json`. The official Codex bui
 
 The marketplace entry points at `./plugin`, so Codex can install Kilroy directly from this repo during local development.
 
+For end-user onboarding, Kilroy does not rely on the plugin install UI. The hosted install script writes repo-local Codex MCP config directly, which is the smoother path for project members.
+
 ### Local install in Codex
 
 1. Restart Codex so it reloads the repo marketplace at `.agents/plugins/marketplace.json`.
@@ -77,7 +79,7 @@ The Codex plugin build docs do not describe plugin-local slash commands or hook 
 
 ## Installation
 
-### Claude Code: one-command setup (recommended)
+### One-command setup (recommended for Codex and Claude Code)
 
 Project members use the install command from the join page or project settings:
 
@@ -85,9 +87,27 @@ Project members use the install command from the join page or project settings:
 curl -sL "https://kilroy.sh/acme/backend/install?key=klry_proj_..." | sh
 ```
 
-This single command installs the plugin via `claude plugin` CLI and configures `KILROY_URL` + `KILROY_TOKEN` in `.claude/settings.local.json`. The user just starts a new Claude Code session and they're connected.
+This single command:
+
+- configures Codex for the current repo by writing `.codex/config.toml` with a project-scoped Kilroy MCP server
+- installs the Claude Code plugin when `claude` is available
+- writes `KILROY_URL` + `KILROY_TOKEN` to `.claude/settings.local.json` for Claude Code
+- adds local git excludes for the generated secret-bearing config files when the repo is under git
+
+After it finishes, start a new Codex or Claude Code session in that repo.
 
 The install script is served by `GET /:account/:project/install?key=...` — it validates the member key, then returns a shell script with the project's URL and key baked in.
+
+### Codex: local plugin install for Kilroy development
+
+This repo still ships a local Codex plugin for developing Kilroy itself:
+
+1. Restart Codex so it reloads the repo marketplace at `.agents/plugins/marketplace.json`.
+2. Open the plugin directory.
+3. Select the `Kilroy Local` marketplace.
+4. Install or enable `Kilroy`.
+5. Set `KILROY_URL` and `KILROY_TOKEN` in the environment or Codex config that launches the session.
+6. Start a new session and verify the Kilroy MCP tools are available.
 
 ### Claude Code: manual install
 
@@ -108,7 +128,7 @@ The install script is served by `GET /:account/:project/install?key=...` — it 
   "mcpServers": {
     "server": {
       "type": "http",
-      "url": "${KILROY_URL}/_/mcp",
+      "url": "${KILROY_URL}/mcp",
       "headers": {
         "Authorization": "Bearer ${KILROY_TOKEN}"
       }
@@ -117,7 +137,7 @@ The install script is served by `GET /:account/:project/install?key=...` — it 
 }
 ```
 
-The Kilroy server exposes a stateless streamable HTTP MCP endpoint. The `KILROY_URL` environment variable points to the full project URL (e.g. `https://kilroy.sh/acme/backend`), and `/_/mcp` is appended as the MCP path. The `KILROY_TOKEN` is the member's personal key.
+The Kilroy server exposes a stateless streamable HTTP MCP endpoint. The `KILROY_URL` environment variable points to the full project URL (e.g. `https://kilroy.sh/acme/backend`), and `/mcp` is appended as the MCP path. The `KILROY_TOKEN` is the member's personal key.
 
 In Claude Code, the SessionStart hook defaults `KILROY_URL` to `http://localhost:7432` when unset.
 
@@ -219,4 +239,4 @@ The plugin requires two environment variables:
 - `KILROY_URL` — Full URL of the Kilroy project (e.g. `https://kilroy.sh/acme/backend`). If unset, the SessionStart hook defaults it to `http://localhost:7432`.
 - `KILROY_TOKEN` — Member key for authentication (e.g. `klry_proj_...`). If empty, the SessionStart hook treats Kilroy as unconfigured and injects setup guidance instead of the full skill.
 
-For Codex, set these in the environment or Codex config used to launch the session, then restart Codex or start a new session so the plugin sees the updated values. For Claude Code, the recommended path is the install script or `/kilroy-setup`, which writes them to `.claude/settings.local.json`. Users can also set them manually in their shell profile, `.claude/settings.json` env block, or any other mechanism that exposes env vars to the client.
+For Codex local-plugin installs, set these in the environment or Codex config used to launch the session, then restart Codex or start a new session so the plugin sees the updated values. The recommended hosted install script does not require Codex env vars; it writes a repo-local `.codex/config.toml` entry instead. For Claude Code, the recommended path is the install script or `/kilroy-setup`, which writes them to `.claude/settings.local.json`. Users can also set them manually in their shell profile, `.claude/settings.json` env block, or any other mechanism that exposes env vars to the client.

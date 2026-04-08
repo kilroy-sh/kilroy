@@ -14,7 +14,7 @@ If you were dispatched as a subagent to execute a specific task, skip this.
 
 Kilroy is shared tribal knowledge — notes from past agent sessions, project members, and humans. It persists across sessions, machines, and the project. It is NOT your local auto-memory.
 
-If Kilroy tools are failing or returning auth errors, configure `KILROY_URL` and `KILROY_TOKEN` first. In Claude Code or Codex, re-run the install script from your project's web dashboard.
+If Kilroy tools are failing or returning auth errors, re-run the install script from your project's web dashboard. Manual setups may still require `KILROY_URL` and `KILROY_TOKEN`.
 
 ## Step 1: Check (before starting work)
 

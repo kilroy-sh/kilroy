@@ -623,7 +623,7 @@ Download the entire project as a `.zip` of markdown files, organized by topic fo
 GET /:account/:project/install?key=...
 ```
 
-Serves a shell script that installs the Kilroy Claude Code plugin and configures the project connection. Self-authenticating — the `key` parameter is the member key.
+Serves a shell script that configures Kilroy for Claude Code and Codex in one shot. It writes repo-local Codex MCP config, installs the Claude Code plugin when available, and configures the project connection. Self-authenticating — the `key` parameter is the member key.
 
 ```bash
 curl -sL "https://kilroy.sh/acme/backend/install?key=klry_proj_..." | sh
