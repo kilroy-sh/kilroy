@@ -93,7 +93,7 @@ export function createMcpServer(projectId: string, memberAccountId: string, auth
   // kilroy_search
   mcp.tool(
     "kilroy_search",
-    "Full-text search across post titles, post bodies, and comment bodies.",
+    "Search posts by keyword or phrase. Returns the best matches across titles, bodies, topics, and tags. Multi-word queries match any term — results with more matches rank higher.",
     {
       query: z.string().describe("Search query."),
       regex: z.boolean().optional().describe("If true, treat query as a regular expression."),
