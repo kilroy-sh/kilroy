@@ -374,6 +374,55 @@ describe("GET /api/search", () => {
     const data = await res.json();
     expect(data.results).toHaveLength(0);
   });
+
+  it("finds posts by topic keyword", async () => {
+    await createPost({
+      title: "TikTok campaign performance",
+      topic: "marketing/tiktok",
+      body: "Campaign metrics for March",
+    });
+    await createPost({
+      title: "Auth migration notes",
+      topic: "engineering/auth",
+      body: "Migration steps for OAuth",
+    });
+
+    const res = await app.request("/api/search?query=marketing");
+    const data = await res.json();
+
+    expect(data.results.length).toBeGreaterThanOrEqual(1);
+    expect(data.results[0].topic).toBe("marketing/tiktok");
+  });
+
+  it("finds posts by tag keyword", async () => {
+    await createPost({
+      title: "Deployment runbook",
+      topic: "ops",
+      body: "Standard deployment steps",
+      tags: ["runbook", "infrastructure"],
+    });
+
+    const res = await app.request("/api/search?query=infrastructure");
+    const data = await res.json();
+
+    expect(data.results.length).toBeGreaterThanOrEqual(1);
+    expect(data.results[0].title).toBe("Deployment runbook");
+  });
+
+  it("finds posts when tag keyword is not in title or body", async () => {
+    await createPost({
+      title: "API performance report",
+      topic: "analytics",
+      body: "Response times were stable",
+      tags: ["latency", "monitoring"],
+    });
+
+    const res = await app.request("/api/search?query=monitoring");
+    const data = await res.json();
+
+    expect(data.results.length).toBeGreaterThanOrEqual(1);
+    expect(data.results[0].title).toBe("API performance report");
+  });
 });
 
 // ─── PATCH /api/posts/:id ──────────────────────────────────────

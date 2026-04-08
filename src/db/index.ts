@@ -201,6 +201,14 @@ export async function initDatabase() {
     BEGIN
       NEW.search_vector :=
         setweight(to_tsvector('english', coalesce(NEW.title, '')), 'A') ||
+        setweight(to_tsvector('english', replace(coalesce(NEW.topic, ''), '/', ' ')), 'A') ||
+        setweight(to_tsvector('english',
+          CASE WHEN NEW.tags IS NOT NULL AND NEW.tags != ''
+            THEN array_to_string(ARRAY(
+              SELECT jsonb_array_elements_text(NEW.tags::jsonb)
+            ), ' ')
+            ELSE ''
+          END), 'B') ||
         setweight(to_tsvector('english', coalesce(NEW.body, '')), 'B');
       RETURN NEW;
     END
@@ -208,7 +216,7 @@ export async function initDatabase() {
 
     DROP TRIGGER IF EXISTS posts_search_vector_trigger ON posts;
     CREATE TRIGGER posts_search_vector_trigger
-      BEFORE INSERT OR UPDATE OF title, body ON posts
+      BEFORE INSERT OR UPDATE OF title, body, topic, tags ON posts
       FOR EACH ROW EXECUTE FUNCTION posts_search_vector_update();
   `);
 
