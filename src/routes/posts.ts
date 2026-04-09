@@ -66,9 +66,16 @@ postsRouter.get("/:id", async (c) => {
 postsRouter.post("/", async (c) => {
   const body = await c.req.json();
 
-  if (!body.title || !body.topic || !body.body) {
+  if (!body.title || !body.body) {
     return c.json(
-      { error: "Missing required fields: title, topic, body", code: "INVALID_INPUT" },
+      { error: "Missing required fields: title, body", code: "INVALID_INPUT" },
+      400
+    );
+  }
+
+  if (!body.tags || !Array.isArray(body.tags) || body.tags.length === 0) {
+    return c.json(
+      { error: "At least one tag is required", code: "INVALID_INPUT" },
       400
     );
   }
@@ -83,7 +90,6 @@ postsRouter.post("/", async (c) => {
     id,
     projectId,
     title: body.title,
-    topic: body.topic,
     status: "active" as const,
     tags: body.tags ? JSON.stringify(body.tags) : null,
     body: body.body,
@@ -216,19 +222,19 @@ postsRouter.patch("/:id", async (c) => {
   const postId = c.req.param("id");
   const body = await c.req.json();
 
-  const hasContent = body.title !== undefined || body.topic !== undefined ||
+  const hasContent = body.title !== undefined ||
     body.body !== undefined || body.tags !== undefined;
   const hasStatus = body.status !== undefined;
 
   if (!hasContent && !hasStatus) {
     return c.json(
-      { error: "At least one field required: title, topic, body, tags, or status", code: "INVALID_INPUT" },
+      { error: "At least one field required: title, body, tags, or status", code: "INVALID_INPUT" },
       400
     );
   }
 
   // Validate non-empty strings for text fields
-  for (const field of ["title", "topic", "body"] as const) {
+  for (const field of ["title", "body"] as const) {
     if (body[field] !== undefined && (typeof body[field] !== "string" || body[field].length === 0)) {
       return c.json(
         { error: `Field '${field}' must be a non-empty string`, code: "INVALID_INPUT" },
@@ -283,7 +289,6 @@ postsRouter.patch("/:id", async (c) => {
   const updates: Record<string, any> = { updatedAt: now };
 
   if (body.title !== undefined) updates.title = body.title;
-  if (body.topic !== undefined) updates.topic = body.topic;
   if (body.body !== undefined) updates.body = body.body;
   if (body.tags !== undefined) updates.tags = body.tags.length > 0 ? JSON.stringify(body.tags) : null;
   if (hasStatus) updates.status = body.status;
