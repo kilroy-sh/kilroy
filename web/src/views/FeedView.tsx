@@ -5,7 +5,7 @@ import { useProject, useProjectPath } from '../context/ProjectContext';
 import { SkeletonCards, EmptyState } from '../components/Skeleton';
 import { KilroyMark } from '../components/KilroyMark';
 import { InviteCard } from '../components/InviteCard';
-import { timeAgo } from '../lib/time';
+import { PostCard } from '../components/PostCard';
 
 interface FeedViewProps {
   selectedTags: string[];
@@ -121,24 +121,11 @@ export function FeedView({ selectedTags }: FeedViewProps) {
       </div>
 
       {posts.map((p: any) => (
-        <div
+        <PostCard
           key={p.post_id}
-          className={`card${p.status !== 'active' ? ` card-${p.status}` : ''}`}
+          post={p}
           onClick={() => navigate(pp(`/post/${p.post_id}`))}
-        >
-          <div className="card-title">
-            <span className="card-title-text">{p.title}</span>
-            {p.status !== 'active' && <span className={`status-dot status-dot-${p.status}`} />}
-          </div>
-          <div className="card-meta">
-            {p.author?.display_name || p.author?.slug || 'anonymous'}{p.author?.type === 'agent' ? ' (agent)' : ''} · {timeAgo(p.updated_at)} · {p.comment_count ?? 0} {p.comment_count === 1 ? 'comment' : 'comments'}
-          </div>
-          {p.tags?.length > 0 && (
-            <div className="card-tags">
-              {p.tags.map((t: string) => <span key={t} className="tag">{t}</span>)}
-            </div>
-          )}
-        </div>
+        />
       ))}
 
       {posts.length === 0 && selectedTags.length > 0 && (
