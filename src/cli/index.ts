@@ -4,7 +4,6 @@ import { resolveConfig, CliConfig } from "./config";
 import { KilroyClient } from "./client";
 import {
   output,
-  formatBrowse,
   formatPost,
   formatSearch,
   formatFind,
@@ -50,33 +49,6 @@ program
     }
   });
 
-// ─── ls ──────────────────────────────────────────────────────────
-
-program
-  .command("ls [topic]")
-  .description("Browse a topic")
-  .option("-r, --recursive", "List all posts recursively", false)
-  .option("-s, --status <status>", "Filter: active, archived, obsolete, all", "active")
-  .option("--sort <field>", "Sort: updated_at, created_at, title", "updated_at")
-  .option("--order <dir>", "Sort direction: asc, desc", "desc")
-  .option("-n, --limit <n>", "Max results (1-100)", "50")
-  .option("--cursor <cursor>", "Pagination cursor")
-  .option("-q, --quiet", "Post IDs only", false)
-  .option("--json", "Output raw JSON", false)
-  .action(async (topic: string | undefined, opts) => {
-    const params: Record<string, string> = {};
-    if (topic) params.topic = topic;
-    if (opts.recursive) params.recursive = "true";
-    if (opts.status !== "active") params.status = opts.status;
-    if (opts.sort !== "updated_at") params.order_by = opts.sort;
-    if (opts.order !== "desc") params.order = opts.order;
-    if (opts.limit !== "50") params.limit = opts.limit;
-    if (opts.cursor) params.cursor = opts.cursor;
-
-    const data = await client().browse(params);
-    output(data, { json: opts.json, quiet: opts.quiet, formatter: formatBrowse });
-  });
-
 // ─── read ─────────────────────────────────────────────────────────
 
 program
@@ -88,29 +60,48 @@ program
     output(data, { json: opts.json, formatter: formatPost });
   });
 
+// ─── tags ────────────────────────────────────────────────────────
+
+program
+  .command("tags [filter_tags...]")
+  .description("List tags with post counts. Pass tags to drill down into co-occurring tags.")
+  .option("-s, --status <status>", "Filter: active, archived, obsolete, all", "active")
+  .option("--json", "Output raw JSON", false)
+  .action(async (filterTags: string[], opts) => {
+    const params: Record<string, string> = {};
+    if (filterTags.length) params.tags = filterTags.join(",");
+    if (opts.status !== "active") params.status = opts.status;
+    const data = await client().tags(params);
+    if (opts.json) {
+      console.log(JSON.stringify(data, null, 2));
+    } else {
+      for (const t of data.tags) {
+        console.log(`  ${t.tag} (${t.count})`);
+      }
+    }
+  });
+
 // ─── grep ────────────────────────────────────────────────────────
 
 program
-  .command("grep <query> [topic]")
+  .command("grep <query>")
   .description("Full-text search")
   .option("-E, --regex", "Treat query as regex", false)
-  .option("-t, --topic <topic>", "Restrict to topic prefix")
+  .option("--tag <tag>", "Filter by tag (repeatable)", collect, [])
   .option("--sort <field>", "Sort: relevance, updated_at, created_at", "relevance")
   .option("--order <dir>", "Sort direction: asc, desc", "desc")
   .option("-n, --limit <n>", "Max results (1-100)", "20")
   .option("--cursor <cursor>", "Pagination cursor")
   .option("-q, --quiet", "Post IDs only", false)
   .option("--json", "Output raw JSON", false)
-  .action(async (query: string, topicArg: string | undefined, opts) => {
+  .action(async (query: string, opts) => {
     const params: Record<string, string> = { query };
-    const topic = opts.topic || topicArg;
-    if (topic) params.topic = topic;
     if (opts.regex) params.regex = "true";
+    if (opts.tag.length) params.tags = opts.tag.join(",");
     if (opts.sort !== "relevance") params.order_by = opts.sort;
     if (opts.order !== "desc") params.order = opts.order;
     if (opts.limit !== "20") params.limit = opts.limit;
     if (opts.cursor) params.cursor = opts.cursor;
-
     const data = await client().search(params);
     output(data, { json: opts.json, quiet: opts.quiet, formatter: formatSearch });
   });
@@ -118,34 +109,31 @@ program
 // ─── post ────────────────────────────────────────────────────────
 
 program
-  .command("post <topic>")
+  .command("post")
   .description("Create a new post")
   .requiredOption("--title <title>", "Post title")
   .option("-b, --body <body>", "Post body")
-  .option("--tag <tag>", "Tag (repeatable)", collect, [])
+  .requiredOption("--tag <tag>", "Tag (repeatable, at least one required)", collect, [])
   .option("--author <author>", "Override author")
   .option("--json", "Output raw JSON", false)
-  .action(async (topic: string, opts) => {
+  .action(async (opts) => {
     let body = opts.body;
-
-    // Read from stdin if no --body and stdin is not a TTY
     if (!body && !process.stdin.isTTY) {
       body = await readStdin();
     }
-
     if (!body) {
       console.error("Error: No body provided. Use --body or pipe stdin.");
       process.exit(1);
     }
-
+    if (!opts.tag.length) {
+      console.error("Error: At least one --tag is required.");
+      process.exit(1);
+    }
     const config = getConfig();
-    const tags = opts.tag.length ? [...opts.tag] : [];
+    const tags = [...opts.tag];
     if (config.sessionTag) tags.push(config.sessionTag);
-
-    const payload: Record<string, any> = { title: opts.title, topic, body };
-    if (tags.length) payload.tags = tags;
+    const payload: Record<string, any> = { title: opts.title, body, tags };
     payload.author = opts.author || config.author;
-
     const data = await client().createPost(payload);
     output(data, { json: opts.json, formatter: formatCreated });
   });
@@ -220,7 +208,7 @@ program
 // ─── find ───────────────────────────────────────────────────────
 
 program
-  .command("find [topic]")
+  .command("find")
   .description("Search posts by metadata")
   .option("-a, --author <author>", "Filter by author")
   .option("--tag <tag>", "Filter by tag (repeatable)", collect, [])
@@ -233,9 +221,8 @@ program
   .option("--cursor <cursor>", "Pagination cursor")
   .option("-q, --quiet", "Post IDs only", false)
   .option("--json", "Full JSON response", false)
-  .action(async (topicArg: string | undefined, opts) => {
+  .action(async (opts) => {
     const hasFilter = !!(
-      topicArg ||
       opts.author ||
       opts.tag.length ||
       opts.since ||
@@ -243,13 +230,11 @@ program
     );
 
     if (!hasFilter) {
-      console.error("Error: At least one filter required (--author, --tag, --since, --before, or topic).");
+      console.error("Error: At least one filter required (--author, --tag, --since, --before).");
       process.exit(1);
     }
 
     const params: Record<string, string | string[]> = {};
-    const topic = topicArg;
-    if (topic) params.topic = topic;
     if (opts.author) params.author = opts.author;
     if (opts.tag.length) params.tag = opts.tag;
     if (opts.since) params.since = opts.since;
@@ -272,7 +257,6 @@ program
   .option("--title <title>", "New title (posts only)")
   .option("-b, --body <body>", "New body")
   .option("--tag <tag>", "Replace tags (repeatable, posts only)", collect, [])
-  .option("--topic <topic>", "Move to new topic (posts only)")
   .option("--author <author>", "Override author (must match original)")
   .option("--json", "Full JSON response", false)
   .action(async (postId: string, commentId: string | undefined, opts) => {
@@ -305,11 +289,10 @@ program
       if (opts.title) payload.title = opts.title;
       if (body) payload.body = body;
       if (opts.tag.length) payload.tags = opts.tag;
-      if (opts.topic) payload.topic = opts.topic;
       if (author) payload.author = author;
 
       if (Object.keys(payload).length === 0 || (Object.keys(payload).length === 1 && payload.author)) {
-        console.error("Error: At least one field required: --title, --body, --tag, --topic.");
+        console.error("Error: At least one field required: --title, --body, --tag.");
         process.exit(1);
       }
 

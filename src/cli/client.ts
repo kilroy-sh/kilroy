@@ -19,8 +19,8 @@ export class KilroyClient {
     });
   }
 
-  async browse(params: Record<string, string>): Promise<any> {
-    return this.get("api/browse", params);
+  async tags(params: Record<string, string>): Promise<any> {
+    return this.get("api/tags", params);
   }
 
   async readPost(id: string): Promise<any> {
