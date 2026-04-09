@@ -132,52 +132,12 @@ describe("CLI integration tests", () => {
     } catch {}
   });
 
-  describe("kilroy ls", () => {
-    it("lists empty root", async () => {
-      const { stdout, code } = await cli("ls", "--json");
-      expect(code).toBe(0);
-      const data = JSON.parse(stdout);
-      expect(data.path).toBe("");
-    });
-
-    it("lists posts after creation", async () => {
-      const post = await apiPost("/posts", {
-        title: "CLI test ls",
-        topic: "cli-test",
-        body: "test body",
-      });
-
-      const { stdout, code } = await cli("ls", "cli-test", "--json");
-      expect(code).toBe(0);
-      const data = JSON.parse(stdout);
-      expect(data.posts.length).toBeGreaterThanOrEqual(1);
-      expect(data.posts.some((p: any) => p.id === post.id)).toBe(true);
-
-      await apiDelete(`/posts/${post.id}`);
-    });
-
-    it("supports --recursive flag", async () => {
-      const post = await apiPost("/posts", {
-        title: "Deep post",
-        topic: "cli-test/deep/nested",
-        body: "nested body",
-      });
-
-      const { stdout, code } = await cli("ls", "-r", "cli-test", "--json");
-      expect(code).toBe(0);
-      const data = JSON.parse(stdout);
-      expect(data.posts.some((p: any) => p.id === post.id)).toBe(true);
-
-      await apiDelete(`/posts/${post.id}`);
-    });
-  });
-
   describe("kilroy read", () => {
     it("reads a post with --json", async () => {
       const post = await apiPost("/posts", {
         title: "CLI test read",
-        topic: "cli-test",
         body: "read me",
+        tags: ["cli-test"],
       });
 
       const { stdout, code } = await cli("read", post.id, "--json");
@@ -192,8 +152,8 @@ describe("CLI integration tests", () => {
     it("shows formatted output on TTY-like invocation", async () => {
       const post = await apiPost("/posts", {
         title: "Formatted post",
-        topic: "cli-test",
         body: "formatted body",
+        tags: ["cli-test"],
       });
 
       const { stdout, code } = await cli("read", post.id);
@@ -214,8 +174,8 @@ describe("CLI integration tests", () => {
     it("searches posts", async () => {
       const post = await apiPost("/posts", {
         title: "Searchable post",
-        topic: "cli-test",
         body: "unique_searchterm_xyz for testing",
+        tags: ["cli-test"],
       });
 
       const { stdout, code } = await cli("grep", "unique_searchterm_xyz", "--json");
@@ -226,42 +186,27 @@ describe("CLI integration tests", () => {
 
       await apiDelete(`/posts/${post.id}`);
     });
-
-    it("filters by topic", async () => {
-      const post = await apiPost("/posts", {
-        title: "Topic filtered",
-        topic: "grep-topic-test",
-        body: "filterable_xyz content",
-      });
-
-      const { stdout, code } = await cli("grep", "filterable_xyz", "grep-topic-test", "--json");
-      expect(code).toBe(0);
-      const data = JSON.parse(stdout);
-      expect(data.results.length).toBeGreaterThanOrEqual(1);
-
-      await apiDelete(`/posts/${post.id}`);
-    });
   });
 
   describe("kilroy post", () => {
     it("creates a post with --body", async () => {
       const { stdout, code } = await cli(
-        "post", "cli-test",
+        "post",
         "--title", "Created via CLI",
         "--body", "CLI body content",
+        "--tag", "cli-test",
         "--json"
       );
       expect(code).toBe(0);
       const data = JSON.parse(stdout);
       expect(data.title).toBe("Created via CLI");
-      expect(data.topic).toBe("cli-test");
 
       await apiDelete(`/posts/${data.id}`);
     });
 
     it("creates a post with tags", async () => {
       const { stdout, code } = await cli(
-        "post", "cli-test",
+        "post",
         "--title", "Tagged post",
         "--body", "Has tags",
         "--tag", "alpha",
@@ -280,8 +225,8 @@ describe("CLI integration tests", () => {
     it("adds a comment with --body", async () => {
       const post = await apiPost("/posts", {
         title: "Comment target",
-        topic: "cli-test",
         body: "target",
+        tags: ["cli-test"],
       });
 
       const { stdout, code } = await cli(
@@ -301,8 +246,8 @@ describe("CLI integration tests", () => {
     it("archives a post", async () => {
       const post = await apiPost("/posts", {
         title: "Status test",
-        topic: "cli-test",
         body: "body",
+        tags: ["cli-test"],
       });
 
       const { stdout, code } = await cli("archive", post.id, "--json");
@@ -316,8 +261,8 @@ describe("CLI integration tests", () => {
     it("restores an archived post", async () => {
       const post = await apiPost("/posts", {
         title: "Restore test",
-        topic: "cli-test",
         body: "body",
+        tags: ["cli-test"],
       });
 
       await cli("archive", post.id);
@@ -332,8 +277,8 @@ describe("CLI integration tests", () => {
     it("changes status with status command", async () => {
       const post = await apiPost("/posts", {
         title: "Explicit status",
-        topic: "cli-test",
         body: "body",
+        tags: ["cli-test"],
       });
 
       const { stdout, code } = await cli("status", post.id, "obsolete", "--json");
@@ -349,8 +294,8 @@ describe("CLI integration tests", () => {
     it("deletes a post", async () => {
       const post = await apiPost("/posts", {
         title: "Delete me",
-        topic: "cli-test",
         body: "body",
+        tags: ["cli-test"],
       });
 
       const { stdout, code } = await cli("rm", post.id, "--json");
@@ -367,7 +312,6 @@ describe("CLI integration tests", () => {
     it("finds posts by tag", async () => {
       const post = await apiPost("/posts", {
         title: "Find by tag",
-        topic: "cli-test",
         body: "tagged",
         tags: ["findme"],
       });
@@ -390,8 +334,8 @@ describe("CLI integration tests", () => {
     it("edits a post title", async () => {
       const post = await apiPost("/posts", {
         title: "Original title",
-        topic: "cli-test",
         body: "body",
+        tags: ["cli-test"],
       });
 
       const { stdout, code } = await cli(
@@ -409,8 +353,8 @@ describe("CLI integration tests", () => {
     it("edits a comment", async () => {
       const post = await apiPost("/posts", {
         title: "Comment edit target",
-        topic: "cli-test",
         body: "body",
+        tags: ["cli-test"],
       });
 
       const comment = await (await fetch(`${PROJECT_API}/api/posts/${post.id}/comments`, {
@@ -435,29 +379,12 @@ describe("CLI integration tests", () => {
     });
   });
 
-  describe("kilroy ls --quiet", () => {
-    it("outputs only post IDs", async () => {
-      const post = await apiPost("/posts", {
-        title: "Quiet test",
-        topic: "cli-test",
-        body: "body",
-      });
-
-      const { stdout, code } = await cli("ls", "-q", "cli-test");
-      expect(code).toBe(0);
-      expect(stdout).toContain(post.id);
-      expect(stdout).not.toContain("Quiet test");
-
-      await apiDelete(`/posts/${post.id}`);
-    });
-  });
-
   describe("kilroy grep --quiet", () => {
     it("outputs only post IDs", async () => {
       const post = await apiPost("/posts", {
         title: "Grep quiet test",
-        topic: "cli-test",
         body: "unique_quiet_grep_term",
+        tags: ["cli-test"],
       });
 
       const { stdout, code } = await cli("grep", "-q", "unique_quiet_grep_term");
@@ -473,8 +400,8 @@ describe("CLI integration tests", () => {
     it("errors when no fields provided", async () => {
       const post = await apiPost("/posts", {
         title: "Edit error test",
-        topic: "cli-test",
         body: "body",
+        tags: ["cli-test"],
       });
 
       const { code, stderr } = await cli("edit", post.id);

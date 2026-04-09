@@ -36,12 +36,12 @@ describe("MCP tool registration", () => {
     const result = await client.listTools();
     const names = result.tools.map((t) => t.name).sort();
     expect(names).toEqual([
-      "kilroy_browse",
       "kilroy_comment",
       "kilroy_create_post",
       "kilroy_delete_post",
       "kilroy_read_post",
       "kilroy_search",
+      "kilroy_tags",
       "kilroy_update_comment",
       "kilroy_update_post",
       "kilroy_update_post_status",
@@ -64,14 +64,12 @@ describe("kilroy_create_post", () => {
   it("creates a post and returns it", async () => {
     const { data } = await callTool("kilroy_create_post", {
       title: "OAuth gotcha",
-      topic: "auth/google",
       body: "Redirect URI must match exactly.",
       tags: ["oauth", "gotcha"],
     });
 
     expect(data.id).toMatch(/^[0-9a-f-]+$/);
     expect(data.title).toBe("OAuth gotcha");
-    expect(data.topic).toBe("auth/google");
     expect(data.status).toBe("active");
     expect(data.tags).toEqual(["oauth", "gotcha"]);
   });
@@ -79,8 +77,8 @@ describe("kilroy_create_post", () => {
   it("returns error for missing fields", async () => {
     const { data, isError } = await callTool("kilroy_create_post", {
       title: "missing body",
-      topic: "test",
       body: "",
+      tags: ["test"],
     });
     expect(isError).toBe(true);
     expect(data.code).toBe("INVALID_INPUT");
@@ -95,8 +93,8 @@ describe("kilroy_read_post", () => {
   it("reads a post with comments", async () => {
     const { data: post } = await callTool("kilroy_create_post", {
       title: "Test",
-      topic: "test",
       body: "Test body",
+      tags: ["test"],
     });
 
     await callTool("kilroy_comment", {
@@ -125,93 +123,6 @@ describe("kilroy_read_post", () => {
   });
 });
 
-// ─── kilroy_browse ──────────────────────────────────────────────
-
-describe("kilroy_browse", () => {
-  beforeEach(setupMcp);
-
-  it("browses root with subtopics", async () => {
-    await callTool("kilroy_create_post", {
-      title: "Auth post",
-      topic: "auth",
-      body: "Auth content",
-    });
-    await callTool("kilroy_create_post", {
-      title: "Google auth post",
-      topic: "auth/google",
-      body: "Google auth content",
-    });
-    await callTool("kilroy_create_post", {
-      title: "Deploy post",
-      topic: "deployments/staging",
-      body: "Deploy content",
-    });
-
-    const { data } = await callTool("kilroy_browse", {});
-
-    expect(data.path).toBe("");
-    expect(data.subtopics.map((s: any) => s.name).sort()).toEqual([
-      "auth",
-      "deployments",
-    ]);
-  });
-
-  it("browses a specific topic", async () => {
-    await callTool("kilroy_create_post", {
-      title: "Post A",
-      topic: "auth/google",
-      body: "Content A",
-    });
-
-    const { data } = await callTool("kilroy_browse", { topic: "auth/google" });
-    expect(data.path).toBe("auth/google");
-    expect(data.posts).toHaveLength(1);
-    expect(data.posts[0].title).toBe("Post A");
-  });
-
-  it("supports recursive mode", async () => {
-    await callTool("kilroy_create_post", { title: "A", topic: "auth", body: "a" });
-    await callTool("kilroy_create_post", { title: "B", topic: "auth/google", body: "b" });
-
-    const { data } = await callTool("kilroy_browse", {
-      topic: "auth",
-      recursive: true,
-    });
-
-    expect(data.posts).toHaveLength(2);
-    expect(data.subtopics).toBeUndefined();
-  });
-
-  it("supports pagination", async () => {
-    for (let i = 0; i < 5; i++) {
-      await callTool("kilroy_create_post", {
-        title: `Post ${i}`,
-        topic: "paginate",
-        body: `Body ${i}`,
-      });
-    }
-
-    const { data: page1 } = await callTool("kilroy_browse", {
-      topic: "paginate",
-      limit: 2,
-    });
-    expect(page1.posts).toHaveLength(2);
-    expect(page1.has_more).toBe(true);
-
-    const { data: page2 } = await callTool("kilroy_browse", {
-      topic: "paginate",
-      limit: 2,
-      cursor: page1.next_cursor,
-    });
-    expect(page2.posts).toHaveLength(2);
-
-    // No overlap
-    const ids1 = page1.posts.map((p: any) => p.id);
-    const ids2 = page2.posts.map((p: any) => p.id);
-    expect(ids1.filter((id: string) => ids2.includes(id))).toHaveLength(0);
-  });
-});
-
 // ─── kilroy_search ──────────────────────────────────────────────
 
 describe("kilroy_search", () => {
@@ -220,34 +131,14 @@ describe("kilroy_search", () => {
   it("finds posts by content", async () => {
     await callTool("kilroy_create_post", {
       title: "Race condition in auth",
-      topic: "auth",
       body: "Found a race condition in token refresh",
+      tags: ["auth"],
     });
 
     const { data } = await callTool("kilroy_search", { query: "race condition" });
 
     expect(data.results).toHaveLength(1);
     expect(data.results[0].title).toBe("Race condition in auth");
-  });
-
-  it("filters by topic", async () => {
-    await callTool("kilroy_create_post", {
-      title: "Auth race",
-      topic: "auth",
-      body: "race condition",
-    });
-    await callTool("kilroy_create_post", {
-      title: "Deploy race",
-      topic: "deploy",
-      body: "race condition",
-    });
-
-    const { data } = await callTool("kilroy_search", {
-      query: "race",
-      topic: "auth",
-    });
-    expect(data.results).toHaveLength(1);
-    expect(data.results[0].topic).toBe("auth");
   });
 });
 
@@ -259,8 +150,8 @@ describe("kilroy_comment", () => {
   it("adds a comment to a post", async () => {
     const { data: post } = await callTool("kilroy_create_post", {
       title: "Test",
-      topic: "test",
       body: "Content",
+      tags: ["test"],
     });
 
     const { data } = await callTool("kilroy_comment", {
@@ -293,8 +184,8 @@ describe("kilroy_update_post_status", () => {
   it("archives an active post", async () => {
     const { data: post } = await callTool("kilroy_create_post", {
       title: "Test",
-      topic: "test",
       body: "Content",
+      tags: ["test"],
     });
 
     const { data } = await callTool("kilroy_update_post_status", {
@@ -308,8 +199,8 @@ describe("kilroy_update_post_status", () => {
   it("rejects invalid transition", async () => {
     const { data: post } = await callTool("kilroy_create_post", {
       title: "Test",
-      topic: "test",
       body: "Content",
+      tags: ["test"],
     });
 
     await callTool("kilroy_update_post_status", {
@@ -334,8 +225,8 @@ describe("kilroy_update_post", () => {
   it("updates a post's body", async () => {
     const { data: post } = await callTool("kilroy_create_post", {
       title: "Original",
-      topic: "test",
       body: "Original body",
+      tags: ["test"],
     });
 
     const { data } = await callTool("kilroy_update_post", {
@@ -367,8 +258,8 @@ describe("kilroy_update_comment", () => {
   it("updates a comment's body", async () => {
     const { data: post } = await callTool("kilroy_create_post", {
       title: "Test",
-      topic: "test",
       body: "Content",
+      tags: ["test"],
     });
 
     const { data: comment } = await callTool("kilroy_comment", {
@@ -392,8 +283,8 @@ describe("kilroy_update_comment", () => {
   it("returns error for non-existent comment", async () => {
     const { data: post } = await callTool("kilroy_create_post", {
       title: "Test",
-      topic: "test",
       body: "Content",
+      tags: ["test"],
     });
 
     const { data, isError } = await callTool("kilroy_update_comment", {
@@ -415,8 +306,8 @@ describe("kilroy_delete_post", () => {
   it("deletes a post", async () => {
     const { data: post } = await callTool("kilroy_create_post", {
       title: "Test",
-      topic: "test",
       body: "Content",
+      tags: ["test"],
     });
 
     const { data } = await callTool("kilroy_delete_post", { post_id: post.id });

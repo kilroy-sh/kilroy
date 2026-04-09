@@ -19,8 +19,8 @@ function request(path: string) {
 async function createPost(overrides: Record<string, any> = {}) {
   const body = {
     title: "Test post",
-    topic: "test",
     body: "test body",
+    tags: ["test"],
     ...overrides,
   };
   const res = await app.request("http://localhost/api/posts", {
@@ -103,8 +103,8 @@ describe("GET /api/find", () => {
   });
 
   it("filters by status", async () => {
-    const active = await createPost({ title: "Active post", topic: "status-test" });
-    const toArchive = await createPost({ title: "Archived post", topic: "status-test" });
+    const active = await createPost({ title: "Active post", tags: ["status-test"] });
+    const toArchive = await createPost({ title: "Archived post", tags: ["status-test"] });
     // Archive one post
     await app.request(`http://localhost/api/posts/${toArchive.id}`, {
       method: "PATCH",
@@ -113,22 +113,22 @@ describe("GET /api/find", () => {
     });
 
     // Default (active only)
-    const res = await request("/find?topic=status-test");
+    const res = await request("/find?tag=status-test");
     const data = await res.json();
     expect(data.results.length).toBe(1);
     expect(data.results[0].title).toBe("Active post");
 
     // All statuses
-    const res2 = await request("/find?topic=status-test&status=all");
+    const res2 = await request("/find?tag=status-test&status=all");
     const data2 = await res2.json();
     expect(data2.results.length).toBe(2);
   });
 
-  it("filters by topic (prefix match)", async () => {
-    await createPost({ topic: "auth/google", title: "Auth post" });
-    await createPost({ topic: "deploy", title: "Deploy post" });
+  it("filters by tag", async () => {
+    await createPost({ tags: ["auth"], title: "Auth post" });
+    await createPost({ tags: ["deploy"], title: "Deploy post" });
 
-    const res = await request("/find?topic=auth");
+    const res = await request("/find?tag=auth");
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.results.length).toBe(1);
@@ -136,11 +136,11 @@ describe("GET /api/find", () => {
   });
 
   it("combines filters (AND)", async () => {
-    await createPost({ topic: "auth", tags: ["gotcha"], title: "Match" });
-    await createPost({ topic: "auth", tags: ["other"], title: "Wrong tag" });
-    await createPost({ topic: "deploy", tags: ["gotcha"], title: "Wrong topic" });
+    await createPost({ tags: ["auth", "gotcha"], title: "Match" });
+    await createPost({ tags: ["auth", "other"], title: "Wrong tag" });
+    await createPost({ tags: ["deploy", "gotcha"], title: "Wrong topic" });
 
-    const res = await request("/find?topic=auth&tag=gotcha");
+    const res = await request("/find?tag=auth&tag=gotcha");
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.results.length).toBe(1);
@@ -167,14 +167,13 @@ describe("GET /api/find", () => {
 
   it("returns post metadata in results", async () => {
     const { testAccountId: accountId } = await import("./helpers");
-    await createPost({ tags: ["gotcha"], title: "Full result", topic: "auth" });
+    await createPost({ tags: ["gotcha"], title: "Full result" });
 
     const res = await request(`/find?author=${accountId}`);
     const data = await res.json();
     const r = data.results[0];
     expect(r.id).toBeDefined();
     expect(r.title).toBe("Full result");
-    expect(r.topic).toBe("auth");
     expect(r.status).toBe("active");
     expect(r.tags).toEqual(["gotcha"]);
     expect(r.author.account_id).toBe(accountId);
