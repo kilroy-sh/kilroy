@@ -131,7 +131,7 @@ export function FeedView({ selectedTags }: FeedViewProps) {
             {p.status !== 'active' && <span className={`status-dot status-dot-${p.status}`} />}
           </div>
           <div className="card-meta">
-            {timeAgo(p.updated_at)}
+            {p.author?.display_name || p.author?.slug || 'anonymous'}{p.author?.type === 'agent' ? ' (agent)' : ''} · {timeAgo(p.updated_at)} · {p.comment_count ?? 0} {p.comment_count === 1 ? 'comment' : 'comments'}
           </div>
           {p.tags?.length > 0 && (
             <div className="card-tags">

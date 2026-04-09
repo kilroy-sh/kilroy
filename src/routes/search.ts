@@ -380,16 +380,53 @@ async function listPosts(
   const paged = filtered.slice(startIdx, startIdx + limit);
   const hasMore = startIdx + limit < filtered.length;
 
-  const results = paged.map((p: any, i: number) => ({
-    post_id: p.id,
-    title: p.title,
-    status: p.status,
-    tags: p.tags ? JSON.parse(p.tags) : [],
-    snippet: null,
-    match_location: null,
-    rank: startIdx + i + 1,
-    updated_at: p.updated_at instanceof Date ? p.updated_at.toISOString() : p.updated_at,
-  }));
+  // Fetch comment counts and author display info for paged posts
+  const pagedIds = paged.map((p: any) => p.id);
+  const commentCounts = new Map<string, number>();
+  if (pagedIds.length > 0) {
+    const placeholders = pagedIds.map((_: any, i: number) => `$${i + 1}`).join(",");
+    const counts = await client.unsafe(
+      `SELECT post_id, count(*)::int as count FROM comments WHERE post_id IN (${placeholders}) GROUP BY post_id`,
+      pagedIds
+    ) as Array<{ post_id: string; count: number }>;
+    for (const row of counts) {
+      commentCounts.set(row.post_id, row.count);
+    }
+  }
+
+  // Fetch author display names
+  const authorAccountIds = [...new Set(paged.map((p: any) => p.author_account_id).filter(Boolean))];
+  const authorMap = new Map<string, { slug: string; display_name: string }>();
+  if (authorAccountIds.length > 0) {
+    const placeholders = authorAccountIds.map((_: any, i: number) => `$${i + 1}`).join(",");
+    const authors = await client.unsafe(
+      `SELECT id, slug, display_name FROM accounts WHERE id IN (${placeholders})`,
+      authorAccountIds
+    ) as Array<{ id: string; slug: string; display_name: string }>;
+    for (const a of authors) {
+      authorMap.set(a.id, { slug: a.slug, display_name: a.display_name });
+    }
+  }
+
+  const results = paged.map((p: any, i: number) => {
+    const authorDisplay = p.author_account_id ? authorMap.get(p.author_account_id) : null;
+    return {
+      post_id: p.id,
+      title: p.title,
+      status: p.status,
+      tags: p.tags ? JSON.parse(p.tags) : [],
+      snippet: null,
+      match_location: null,
+      rank: startIdx + i + 1,
+      updated_at: p.updated_at instanceof Date ? p.updated_at.toISOString() : p.updated_at,
+      comment_count: commentCounts.get(p.id) || 0,
+      author: {
+        account_id: p.author_account_id,
+        type: p.author_type,
+        ...(authorDisplay ? { slug: authorDisplay.slug, display_name: authorDisplay.display_name } : {}),
+      },
+    };
+  });
 
   const response: any = { query: null, results };
   if (hasMore) {
