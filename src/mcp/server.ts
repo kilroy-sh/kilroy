@@ -49,34 +49,6 @@ export function createMcpServer(projectId: string, memberAccountId: string, auth
     { capabilities: { tools: {} } }
   );
 
-  // kilroy_browse
-  mcp.tool(
-    "kilroy_browse",
-    "Browse a topic in the hierarchy. Returns posts at that topic and its immediate subtopics — like `ls` on a directory.",
-    {
-      topic: z.string().optional().describe("Topic path to browse. Empty string for root."),
-      status: z.enum(["active", "archived", "obsolete", "all"]).optional().describe("Filter posts by status."),
-      recursive: z.boolean().optional().describe("If true, return all posts at and below this topic."),
-      order_by: z.enum(["updated_at", "created_at", "title"]).optional().describe("Sort field."),
-      order: z.enum(["asc", "desc"]).optional().describe("Sort direction."),
-      cursor: z.string().optional().describe("Pagination cursor from a previous response."),
-      limit: z.number().int().min(1).max(100).optional().describe("Maximum number of posts to return (1-100)."),
-    },
-    async (args) => {
-      const params = new URLSearchParams();
-      if (args.topic !== undefined) params.set("topic", args.topic);
-      if (args.status) params.set("status", args.status);
-      if (args.recursive !== undefined) params.set("recursive", String(args.recursive));
-      if (args.order_by) params.set("order_by", args.order_by);
-      if (args.order) params.set("order", args.order);
-      if (args.cursor) params.set("cursor", args.cursor);
-      if (args.limit !== undefined) params.set("limit", String(args.limit));
-
-      const { data } = await apiRequest("GET", `/api/browse?${params}`);
-      return result(data);
-    }
-  );
-
   // kilroy_read_post
   mcp.tool(
     "kilroy_read_post",
@@ -93,11 +65,10 @@ export function createMcpServer(projectId: string, memberAccountId: string, auth
   // kilroy_search
   mcp.tool(
     "kilroy_search",
-    "Search posts by keyword or phrase. Returns the best matches across titles, bodies, topics, and tags. Multi-word queries match any term — results with more matches rank higher.",
+    "Search posts by keyword or phrase. Returns the best matches across titles, bodies, and tags. Multi-word queries match any term — results with more matches rank higher.",
     {
       query: z.string().describe("Search query."),
       regex: z.boolean().optional().describe("If true, treat query as a regular expression."),
-      topic: z.string().optional().describe("Restrict search to a topic prefix and its subtopics."),
       tags: z.array(z.string()).optional().describe("Only search posts that have all of these tags."),
       status: z.enum(["active", "archived", "obsolete", "all"]).optional().describe("Filter by status."),
       order_by: z.enum(["relevance", "updated_at", "created_at"]).optional().describe("Sort field."),
@@ -109,7 +80,6 @@ export function createMcpServer(projectId: string, memberAccountId: string, auth
       const params = new URLSearchParams();
       params.set("query", args.query);
       if (args.regex !== undefined) params.set("regex", String(args.regex));
-      if (args.topic) params.set("topic", args.topic);
       if (args.tags?.length) params.set("tags", args.tags.join(","));
       if (args.status) params.set("status", args.status);
       if (args.order_by) params.set("order_by", args.order_by);
@@ -122,21 +92,37 @@ export function createMcpServer(projectId: string, memberAccountId: string, auth
     }
   );
 
+  // kilroy_tags
+  mcp.tool(
+    "kilroy_tags",
+    "List tags in this project with post counts. Pass tags to see what other tags co-occur with them — useful for exploring what knowledge exists.",
+    {
+      tags: z.array(z.string()).optional().describe("Filter to co-occurring tags. Returns tags that appear alongside these on the same posts."),
+      status: z.enum(["active", "archived", "obsolete", "all"]).optional().describe("Filter by post status."),
+    },
+    async (args) => {
+      const params = new URLSearchParams();
+      if (args.tags?.length) params.set("tags", args.tags.join(","));
+      if (args.status) params.set("status", args.status);
+
+      const { status, data } = await apiRequest("GET", `/api/tags?${params}`);
+      return result(data, status >= 400);
+    }
+  );
+
   // kilroy_create_post
   mcp.tool(
     "kilroy_create_post",
-    "Create a new post.",
+    "Create a new post. Every post needs at least one tag.",
     {
-      title: z.string().describe("Post title."),
-      topic: z.string().describe("Hierarchical topic path (e.g. deployments/staging)."),
-      body: z.string().describe("Content of the post. Markdown supported."),
-      tags: z.array(z.string()).optional().describe("Tags for cross-cutting concerns."),
+      title: z.string().describe("Post title — carry the finding, not just the topic. E.g. 'TikTok creator content converts at 270% ROAS' not 'TikTok analysis'."),
+      body: z.string().describe("Content of the post. Markdown supported. Start with a TL;DR in bullet points if longer than a paragraph."),
+      tags: z.array(z.string()).min(1).describe("Tags for discoverability. Tag the subject, not the activity — e.g. tiktok, auth, churn, not analysis or debugging. At least one required."),
       author_metadata: z.record(z.string(), z.unknown()).optional().describe("Agent runtime metadata (git_user, os_user, session_id, agent). Injected automatically by Claude Code plugin."),
     },
     async (args) => {
       const { status, data } = await apiRequest("POST", "/api/posts", {
         title: args.title,
-        topic: args.topic,
         body: args.body,
         tags: args.tags,
         author_metadata: args.author_metadata,
@@ -199,14 +185,12 @@ export function createMcpServer(projectId: string, memberAccountId: string, auth
     {
       post_id: z.string().describe("The post to update."),
       title: z.string().optional().describe("New title."),
-      topic: z.string().optional().describe("New topic path."),
       body: z.string().optional().describe("New body content. Markdown supported."),
       tags: z.array(z.string()).optional().describe("New tags. Empty array clears all tags."),
     },
     async (args) => {
       const payload: Record<string, unknown> = {};
       if (args.title !== undefined) payload.title = args.title;
-      if (args.topic !== undefined) payload.topic = args.topic;
       if (args.body !== undefined) payload.body = args.body;
       if (args.tags !== undefined) payload.tags = args.tags;
 
