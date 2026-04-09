@@ -17,7 +17,6 @@ async function createPost(
 ): Promise<any> {
   const defaults = {
     title: "Test post",
-    topic: "test",
     body: "Test body content",
     tags: ["test"],
   };
@@ -73,7 +72,6 @@ describe("POST /api/posts", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title: "OAuth gotcha",
-        topic: "auth/google",
         body: "Redirect URI must match exactly.",
         tags: ["oauth", "gotcha"],
       }),
@@ -83,7 +81,6 @@ describe("POST /api/posts", () => {
     const post = await res.json();
     expect(post.id).toMatch(/^[0-9a-f-]+$/);
     expect(post.title).toBe("OAuth gotcha");
-    expect(post.topic).toBe("auth/google");
     expect(post.status).toBe("active");
     expect(post.tags).toEqual(["oauth", "gotcha"]);
     expect(post.author.account_id).toBe(testAccountId);
@@ -96,7 +93,7 @@ describe("POST /api/posts", () => {
     const res = await app.request("/api/posts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: "no body or topic" }),
+      body: JSON.stringify({ title: "no body" }),
     });
 
     expect(res.status).toBe(400);
@@ -104,21 +101,15 @@ describe("POST /api/posts", () => {
     expect(err.code).toBe("INVALID_INPUT");
   });
 
-  it("handles posts with no optional fields", async () => {
+  it("returns 400 when tags are missing", async () => {
     const res = await app.request("/api/posts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: "Minimal post",
-        topic: "misc",
-        body: "Just some text with no file paths",
-      }),
+      body: JSON.stringify({ title: "No tags", body: "Some body" }),
     });
-
-    expect(res.status).toBe(201);
-    const post = await res.json();
-    expect(post.tags).toEqual([]);
-    expect(post.author.account_id).toBe(testAccountId);
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.error).toContain("tag");
   });
 });
 
@@ -205,102 +196,6 @@ describe("GET /api/posts/:id", () => {
   });
 });
 
-// ─── GET /api/browse ───────────────────────────────────────────
-
-describe("GET /api/browse", () => {
-  beforeEach(setup);
-
-  it("lists subtopics and posts at root", async () => {
-    await createPost({ topic: "auth", title: "Auth post" });
-    await createPost({ topic: "auth/google", title: "Google post" });
-    await createPost({ topic: "deployments/staging", title: "Deploy post" });
-
-    const res = await app.request("/api/browse");
-    const data = await res.json();
-
-    expect(data.path).toBe("");
-    expect(data.posts).toHaveLength(0); // no posts at root
-    expect(data.subtopics.map((s: any) => s.name).sort()).toEqual(["auth", "deployments"]);
-  });
-
-  it("lists posts at a specific topic", async () => {
-    await createPost({ topic: "auth/google", title: "Post A" });
-    await createPost({ topic: "auth/google", title: "Post B" });
-    await createPost({ topic: "auth/google/creds", title: "Nested" });
-
-    const res = await app.request("/api/browse?topic=auth/google");
-    const data = await res.json();
-
-    expect(data.path).toBe("auth/google");
-    expect(data.posts).toHaveLength(2);
-    expect(data.subtopics).toHaveLength(1);
-    expect(data.subtopics[0].name).toBe("creds");
-  });
-
-  it("supports recursive mode", async () => {
-    await createPost({ topic: "auth", title: "A" });
-    await createPost({ topic: "auth/google", title: "B" });
-    await createPost({ topic: "auth/google/creds", title: "C" });
-
-    const res = await app.request("/api/browse?topic=auth&recursive=true");
-    const data = await res.json();
-
-    expect(data.posts).toHaveLength(3);
-    expect(data.subtopics).toBeUndefined();
-  });
-
-  it("filters by status", async () => {
-    const post = await createPost({ topic: "test", title: "Active" });
-    await createPost({ topic: "test", title: "Other" });
-
-    // Archive one
-    await app.request(`/api/posts/${post.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "archived" }),
-    });
-
-    const activeRes = await app.request("/api/browse?topic=test&status=active");
-    expect((await activeRes.json()).posts).toHaveLength(1);
-
-    const allRes = await app.request("/api/browse?topic=test&status=all");
-    expect((await allRes.json()).posts).toHaveLength(2);
-  });
-
-  it("paginates results", async () => {
-    for (let i = 0; i < 5; i++) {
-      await createPost({ topic: "paginate", title: `Post ${i}` });
-    }
-
-    const res1 = await app.request("/api/browse?topic=paginate&limit=2");
-    const data1 = await res1.json();
-    expect(data1.posts).toHaveLength(2);
-    expect(data1.has_more).toBe(true);
-    expect(data1.next_cursor).toBeTruthy();
-
-    const res2 = await app.request(
-      `/api/browse?topic=paginate&limit=2&cursor=${data1.next_cursor}`
-    );
-    const data2 = await res2.json();
-    expect(data2.posts).toHaveLength(2);
-
-    // Ensure no overlap
-    const ids1 = data1.posts.map((p: any) => p.id);
-    const ids2 = data2.posts.map((p: any) => p.id);
-    expect(ids1.filter((id: string) => ids2.includes(id))).toHaveLength(0);
-  });
-
-  it("includes comment counts", async () => {
-    const post = await createPost({ topic: "counts" });
-    await createComment(post.id);
-    await createComment(post.id);
-
-    const res = await app.request("/api/browse?topic=counts");
-    const data = await res.json();
-    expect(data.posts[0].comment_count).toBe(2);
-  });
-});
-
 // ─── GET /api/search ───────────────────────────────────────────
 
 describe("GET /api/search", () => {
@@ -309,13 +204,13 @@ describe("GET /api/search", () => {
   it("finds posts by content", async () => {
     await createPost({
       title: "Race condition in auth",
-      topic: "auth",
       body: "Found a race condition in token refresh",
+      tags: ["auth"],
     });
     await createPost({
       title: "Deploy notes",
-      topic: "deploy",
       body: "Standard deployment procedure",
+      tags: ["deploy"],
     });
 
     const res = await app.request("/api/search?query=race+condition");
@@ -342,17 +237,6 @@ describe("GET /api/search", () => {
     expect(data.results[0].match_location).toBe("comment");
   });
 
-  it("filters by topic", async () => {
-    await createPost({ topic: "auth", body: "race condition here" });
-    await createPost({ topic: "deploy", body: "race condition there" });
-
-    const res = await app.request("/api/search?query=race&topic=auth");
-    const data = await res.json();
-
-    expect(data.results).toHaveLength(1);
-    expect(data.results[0].topic).toBe("auth");
-  });
-
   it("filters by tags", async () => {
     await createPost({ body: "race condition", tags: ["gotcha"] });
     await createPost({ body: "race condition", tags: ["docs"] });
@@ -375,29 +259,9 @@ describe("GET /api/search", () => {
     expect(data.results).toHaveLength(0);
   });
 
-  it("finds posts by topic keyword", async () => {
-    await createPost({
-      title: "TikTok campaign performance",
-      topic: "marketing/tiktok",
-      body: "Campaign metrics for March",
-    });
-    await createPost({
-      title: "Auth migration notes",
-      topic: "engineering/auth",
-      body: "Migration steps for OAuth",
-    });
-
-    const res = await app.request("/api/search?query=marketing");
-    const data = await res.json();
-
-    expect(data.results.length).toBeGreaterThanOrEqual(1);
-    expect(data.results[0].topic).toBe("marketing/tiktok");
-  });
-
   it("finds posts by tag keyword", async () => {
     await createPost({
       title: "Deployment runbook",
-      topic: "ops",
       body: "Standard deployment steps",
       tags: ["runbook", "infrastructure"],
     });
@@ -412,7 +276,6 @@ describe("GET /api/search", () => {
   it("finds posts when tag keyword is not in title or body", async () => {
     await createPost({
       title: "API performance report",
-      topic: "analytics",
       body: "Response times were stable",
       tags: ["latency", "monitoring"],
     });
@@ -427,18 +290,18 @@ describe("GET /api/search", () => {
   it("matches posts containing any search term (OR semantics)", async () => {
     await createPost({
       title: "TikTok campaign performance",
-      topic: "marketing/tiktok",
       body: "Campaign metrics and spend analysis",
+      tags: ["marketing", "tiktok"],
     });
     await createPost({
       title: "Subscriber cohort retention",
-      topic: "analytics/churn",
       body: "Cohort analysis for March subscribers",
+      tags: ["analytics", "churn"],
     });
     await createPost({
       title: "Unrelated auth bug",
-      topic: "engineering",
       body: "Fixed a login timeout issue",
+      tags: ["engineering"],
     });
 
     const res = await app.request("/api/search?query=marketing+campaign+cohorts");
@@ -454,13 +317,13 @@ describe("GET /api/search", () => {
   it("ranks posts with more matching terms higher", async () => {
     await createPost({
       title: "Only matches one term",
-      topic: "misc",
       body: "This post mentions campaign once",
+      tags: ["misc"],
     });
     await createPost({
       title: "TikTok campaign cohort analysis",
-      topic: "marketing/tiktok",
       body: "Campaign cohort performance for marketing spend",
+      tags: ["marketing", "tiktok"],
     });
 
     const res = await app.request("/api/search?query=marketing+campaign+cohorts");
@@ -468,21 +331,6 @@ describe("GET /api/search", () => {
 
     // Post matching more terms should rank first
     expect(data.results[0].title).toBe("TikTok campaign cohort analysis");
-  });
-
-  it("returns null snippet when match is only in topic or tags", async () => {
-    await createPost({
-      title: "General notes",
-      topic: "marketing/skan",
-      body: "These are internal notes about iOS setup",
-      tags: ["skan"],
-    });
-
-    const res = await app.request("/api/search?query=skan");
-    const data = await res.json();
-
-    expect(data.results).toHaveLength(1);
-    expect(data.results[0].snippet).toBeNull();
   });
 });
 
@@ -581,18 +429,6 @@ describe("PATCH /api/posts/:id (content editing)", () => {
 
     expect(res.status).toBe(200);
     expect((await res.json()).title).toBe("Updated title");
-  });
-
-  it("updates post topic", async () => {
-    const post = await createPost();
-    const res = await app.request(`/api/posts/${post.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ topic: "new/topic" }),
-    });
-
-    expect(res.status).toBe(200);
-    expect((await res.json()).topic).toBe("new/topic");
   });
 
   it("updates tags only", async () => {
@@ -717,7 +553,6 @@ describe("PATCH /api/posts/:id (content editing)", () => {
     const updated = await res.json();
     expect(updated.id).toBeTruthy();
     expect(updated.title).toBeTruthy();
-    expect(updated.topic).toBeTruthy();
     expect(updated.status).toBeTruthy();
     expect(updated.tags).toBeDefined();
     expect(updated.author).toBeDefined();
@@ -951,6 +786,42 @@ describe("DELETE /api/posts/:id", () => {
   });
 });
 
+// ─── GET /api/tags ────────────────────────────────────────────
+
+describe("GET /api/tags", () => {
+  beforeEach(setup);
+
+  it("returns tags with post counts", async () => {
+    await createPost({ tags: ["tiktok", "campaigns"] });
+    await createPost({ tags: ["tiktok", "roas"] });
+    await createPost({ tags: ["churn"] });
+
+    const res = await app.request("/api/tags");
+    const data = await res.json();
+
+    expect(data.tags).toBeDefined();
+    const tiktok = data.tags.find((t: any) => t.tag === "tiktok");
+    expect(tiktok.count).toBe(2);
+    const churn = data.tags.find((t: any) => t.tag === "churn");
+    expect(churn.count).toBe(1);
+  });
+
+  it("returns co-occurring tags when filtered", async () => {
+    await createPost({ tags: ["tiktok", "campaigns"] });
+    await createPost({ tags: ["tiktok", "roas"] });
+    await createPost({ tags: ["churn"] });
+
+    const res = await app.request("/api/tags?tags=tiktok");
+    const data = await res.json();
+
+    const tagNames = data.tags.map((t: any) => t.tag);
+    expect(tagNames).toContain("campaigns");
+    expect(tagNames).toContain("roas");
+    expect(tagNames).not.toContain("tiktok");
+    expect(tagNames).not.toContain("churn");
+  });
+});
+
 // ─── GET /:account/:project/install ────────────────────────────────
 
 describe("GET /:account/:project/install", () => {
@@ -971,7 +842,7 @@ describe("GET /:account/:project/install", () => {
     expect(body).toContain("#!/usr/bin/env sh");
     expect(body).toContain(".codex/config.toml");
     expect(body).toContain("[mcp_servers.kilroy]");
-    expect(body).toContain("/_/mcp");
+    expect(body).toContain("/mcp");
     expect(body).toContain("claude plugin");
     expect(body).toContain("settings.local.json");
     expect(body).toContain(testToken);
