@@ -10,14 +10,13 @@ findRouter.get("/", async (c) => {
   const since = c.req.query("since");
   const before = c.req.query("before");
   const status = c.req.query("status") || "active";
-  const topic = c.req.query("topic");
   const orderBy = c.req.query("order_by") || "updated_at";
   const order = c.req.query("order") || "desc";
   const limit = Math.min(Math.max(parseInt(c.req.query("limit") || "20"), 1), 100);
   const cursor = c.req.query("cursor");
 
-  // Require at least one filter (topic counts as a filter)
-  const hasFilter = author || tags.length > 0 || since || before || topic;
+  // Require at least one filter
+  const hasFilter = author || tags.length > 0 || since || before;
   if (!hasFilter) {
     return c.json(
       { error: "At least one filter is required. Use kilroy ls for unfiltered listing.", code: "INVALID_INPUT" },
@@ -52,12 +51,6 @@ findRouter.get("/", async (c) => {
     params.push(status);
   }
 
-  if (topic) {
-    conditions.push(`(topic = $${paramIdx} OR topic LIKE $${paramIdx + 1})`);
-    params.push(topic, `${topic}/%`);
-    paramIdx += 2;
-  }
-
   const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
   // Sort
@@ -87,7 +80,6 @@ findRouter.get("/", async (c) => {
   const results = paged.map((row: any) => ({
     id: row.id,
     title: row.title,
-    topic: row.topic,
     status: row.status,
     tags: row.tags ? JSON.parse(row.tags) : [],
     author: {
