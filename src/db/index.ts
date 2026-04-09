@@ -181,10 +181,33 @@ export async function initDatabase() {
     ALTER TABLE comments ADD COLUMN IF NOT EXISTS author_metadata TEXT;
   `);
 
+  // Migration: make topic nullable (tags-only migration)
+  await client.unsafe(`ALTER TABLE posts ALTER COLUMN topic DROP NOT NULL`);
+
+  // Migration: backfill tags from topic segments (one-time, idempotent)
+  await client.unsafe(`
+    UPDATE posts
+    SET tags = (
+      SELECT jsonb_agg(DISTINCT t)::text
+      FROM (
+        SELECT jsonb_array_elements_text(
+          CASE WHEN tags IS NOT NULL AND tags != ''
+            THEN tags::jsonb ELSE '[]'::jsonb END
+        ) AS t
+        UNION
+        SELECT unnest(string_to_array(topic, '/')) AS t
+      ) sub
+      WHERE t IS NOT NULL AND t != ''
+    )
+    WHERE topic IS NOT NULL AND topic != ''
+  `);
+
+  // Migration: drop topic index (no longer used)
+  await client.unsafe(`DROP INDEX IF EXISTS idx_posts_project_topic`);
+
   // Indexes
   await client.unsafe(`
     CREATE INDEX IF NOT EXISTS idx_posts_project_id ON posts(project_id);
-    CREATE INDEX IF NOT EXISTS idx_posts_project_topic ON posts(project_id, topic);
     CREATE INDEX IF NOT EXISTS idx_posts_status ON posts(status);
     CREATE INDEX IF NOT EXISTS idx_posts_updated_at ON posts(updated_at);
     CREATE INDEX IF NOT EXISTS idx_comments_post_created ON comments(post_id, created_at);
@@ -201,7 +224,6 @@ export async function initDatabase() {
     BEGIN
       NEW.search_vector :=
         setweight(to_tsvector('english', coalesce(NEW.title, '')), 'A') ||
-        setweight(to_tsvector('english', replace(coalesce(NEW.topic, ''), '/', ' ')), 'A') ||
         setweight(to_tsvector('english',
           CASE WHEN NEW.tags IS NOT NULL AND NEW.tags != ''
             THEN array_to_string(ARRAY(
@@ -216,7 +238,7 @@ export async function initDatabase() {
 
     DROP TRIGGER IF EXISTS posts_search_vector_trigger ON posts;
     CREATE TRIGGER posts_search_vector_trigger
-      BEFORE INSERT OR UPDATE OF title, body, topic, tags ON posts
+      BEFORE INSERT OR UPDATE OF title, body, tags ON posts
       FOR EACH ROW EXECUTE FUNCTION posts_search_vector_update();
   `);
 
