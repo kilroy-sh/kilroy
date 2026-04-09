@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Routes, Route, useParams, useLocation, Navigate } from 'react-router-dom';
+import { Routes, Route, useParams, Navigate } from 'react-router-dom';
 import { ProjectProvider } from '../context/ProjectContext';
 import { trackProject } from '../lib/projects';
 import { Omnibar } from '../components/Omnibar';
-import { TopicTree } from '../components/TopicTree';
+import { TagSidebar } from '../components/TagSidebar';
 import { AuthorPrompt } from '../components/AuthorPrompt';
 import { InvitePopover } from '../components/InvitePopover';
 import { Navbar } from '../components/Navbar';
-import { BrowseView } from './BrowseView';
+import { FeedView } from './FeedView';
 import { PostView } from './PostView';
 import { SearchView } from './SearchView';
 import { PostEditorView } from './NewPostView';
@@ -33,7 +33,6 @@ function useSidebarState(key: string) {
 
 export function ProjectShell() {
   const { account, project } = useParams();
-  const [currentTopic, setCurrentTopic] = useState('');
 
   useEffect(() => {
     if (account && project) trackProject(account, project);
@@ -50,8 +49,6 @@ export function ProjectShell() {
             key={`${account}/${project}`}
             account={account}
             project={project}
-            currentTopic={currentTopic}
-            onTopicChange={setCurrentTopic}
           />
         } />
       </Routes>
@@ -59,14 +56,12 @@ export function ProjectShell() {
   );
 }
 
-function ProjectLayout({ account, project, currentTopic, onTopicChange }: {
+function ProjectLayout({ account, project }: {
   account: string;
   project: string;
-  currentTopic: string;
-  onTopicChange: (t: string) => void;
 }) {
   const { expanded, toggle } = useSidebarState(`${account}/${project}`);
-  const location = useLocation();
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   // Keyboard shortcut: Cmd+\ or Ctrl+\ to toggle sidebar
   useEffect(() => {
@@ -80,8 +75,13 @@ function ProjectLayout({ account, project, currentTopic, onTopicChange }: {
     return () => window.removeEventListener('keydown', handler);
   }, [toggle]);
 
-  const postMatch = location.pathname.match(/\/post\/([^/]+)/);
-  const activePostId = postMatch ? postMatch[1] : null;
+  const addTag = useCallback((tag: string) => {
+    setSelectedTags(prev => prev.includes(tag) ? prev : [...prev, tag]);
+  }, []);
+
+  const removeTag = useCallback((tag: string) => {
+    setSelectedTags(prev => prev.filter(t => t !== tag));
+  }, []);
 
   return (
     <div className="app">
@@ -100,7 +100,7 @@ function ProjectLayout({ account, project, currentTopic, onTopicChange }: {
             <line x1="3" y1="10" x2="5" y2="10" />
           </svg>
         </button>
-        <Omnibar currentTopic={currentTopic} />
+        <Omnibar selectedTags={selectedTags} onTagSelect={addTag} onTagRemove={removeTag} />
       </Navbar>
       <div className="project-layout">
         {expanded && (
@@ -112,21 +112,21 @@ function ProjectLayout({ account, project, currentTopic, onTopicChange }: {
                 <button className="sidebar-toggle" onClick={toggle} title="Collapse sidebar (⌘\)">«</button>
               </div>
               <div className="sidebar-tree">
-                <TopicTree activePostId={activePostId} />
+                <TagSidebar selectedTags={selectedTags} onTagsChange={setSelectedTags} />
               </div>
             </aside>
           </div>
         )}
         <div className="project-content">
           <Routes>
-            <Route path="post/:id/edit" element={<PostEditorView onTopicChange={onTopicChange} />} />
-            <Route path="post/:id" element={<PostView onTopicChange={onTopicChange} />} />
-            <Route path="post/new" element={<PostEditorView onTopicChange={onTopicChange} />} />
+            <Route path="post/:id/edit" element={<PostEditorView />} />
+            <Route path="post/:id" element={<PostView />} />
+            <Route path="post/new" element={<PostEditorView />} />
             <Route path="search" element={<SearchView />} />
-            <Route path="browse/*" element={<BrowseView onTopicChange={onTopicChange} />} />
             <Route path="settings" element={<ProjectSettingsView />} />
-            <Route path="" element={<Navigate to="browse/" replace />} />
-            <Route path="*" element={<Navigate to="browse/" replace />} />
+            <Route path="browse/*" element={<Navigate to=".." replace />} />
+            <Route path="" element={<FeedView selectedTags={selectedTags} />} />
+            <Route path="*" element={<Navigate to="" replace />} />
           </Routes>
         </div>
       </div>

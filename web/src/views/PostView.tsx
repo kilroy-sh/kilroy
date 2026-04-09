@@ -23,7 +23,6 @@ function buildPostMarkdown(post: any, project: string) {
     `# ${post.title}`,
     '',
     `- Project: \`${project}\``,
-    `- Topic: \`${post.topic}\``,
     `- Status: \`${post.status}\``,
     `- Author: ${post.author?.display_name || post.author?.slug || 'anonymous'}${post.author?.type === 'agent' ? ' (agent)' : ''}`,
     `- Created: ${formatTimestamp(post.created_at)}`,
@@ -49,7 +48,7 @@ function buildPostMarkdown(post: any, project: string) {
   return sections.join('\n');
 }
 
-export function PostView({ onTopicChange }: { onTopicChange: (t: string) => void }) {
+export function PostView() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { accountSlug, projectSlug } = useProject();
@@ -66,7 +65,6 @@ export function PostView({ onTopicChange }: { onTopicChange: (t: string) => void
     setError('');
     readPost(accountSlug, projectSlug, id).then((data) => {
       setPost(data);
-      onTopicChange(data.topic);
     }).catch((e) => setError(e.message));
   };
 
@@ -108,7 +106,7 @@ export function PostView({ onTopicChange }: { onTopicChange: (t: string) => void
     if (!id || !confirm('Permanently delete this post?')) return;
     try {
       await deletePost(accountSlug, projectSlug, id);
-      navigate(post?.topic ? pp(`/browse/${post.topic}/`) : pp('/browse/'));
+      navigate(pp('/'));
     } catch (e: any) {
       setError(e.message);
     }

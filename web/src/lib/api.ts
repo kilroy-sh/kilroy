@@ -40,6 +40,11 @@ export function browse(accountSlug: string, projectSlug: string, params: Record<
   return request(accountSlug, projectSlug, `/browse${qs ? `?${qs}` : ''}`, init);
 }
 
+export function tags(accountSlug: string, projectSlug: string, params: Record<string, string> = {}, init?: RequestInit) {
+  const qs = new URLSearchParams(params).toString();
+  return request(accountSlug, projectSlug, `/tags${qs ? `?${qs}` : ''}`, init);
+}
+
 export function readPost(accountSlug: string, projectSlug: string, id: string) {
   return request(accountSlug, projectSlug, `/posts/${encodeURIComponent(id)}`);
 }

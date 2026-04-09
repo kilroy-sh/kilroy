@@ -1,18 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { createPost, readPost, updatePost } from '../lib/api';
 import { useProject, useProjectPath } from '../context/ProjectContext';
 import { SkeletonCards } from '../components/Skeleton';
 
-export function PostEditorView({ onTopicChange }: { onTopicChange: (t: string) => void }) {
+export function PostEditorView() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { accountSlug, projectSlug } = useProject();
   const pp = useProjectPath();
   const isEditing = Boolean(id);
 
-  const [topic, setTopic] = useState(searchParams.get('topic') || '');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [tags, setTags] = useState('');
@@ -25,9 +23,6 @@ export function PostEditorView({ onTopicChange }: { onTopicChange: (t: string) =
     if (isEditing && !id) return;
 
     if (!isEditing) {
-      const initialTopic = searchParams.get('topic') || '';
-      setTopic(initialTopic);
-      onTopicChange(initialTopic);
       setLoading(false);
       return;
     }
@@ -37,15 +32,13 @@ export function PostEditorView({ onTopicChange }: { onTopicChange: (t: string) =
 
     readPost(accountSlug, projectSlug, id!)
       .then((post) => {
-        setTopic(post.topic || '');
         setTitle(post.title || '');
         setBody(post.body || '');
         setTags((post.tags || []).join(', '));
-        onTopicChange(post.topic || '');
       })
       .catch((e: any) => setError(e.message))
       .finally(() => setLoading(false));
-  }, [id, isEditing, onTopicChange, searchParams, accountSlug, projectSlug]);
+  }, [id, isEditing, accountSlug, projectSlug]);
 
   useEffect(() => {
     if (!bodyRef.current) return;
@@ -55,8 +48,8 @@ export function PostEditorView({ onTopicChange }: { onTopicChange: (t: string) =
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!topic.trim() || !title.trim() || !body.trim()) {
-      setError('Topic, title, and body are required.');
+    if (!title.trim() || !body.trim()) {
+      setError('Title and body are required.');
       return;
     }
 
@@ -65,7 +58,6 @@ export function PostEditorView({ onTopicChange }: { onTopicChange: (t: string) =
 
     try {
       const payload: Record<string, any> = {
-        topic: topic.trim(),
         title: title.trim(),
         body: body.trim(),
       };
@@ -102,16 +94,6 @@ export function PostEditorView({ onTopicChange }: { onTopicChange: (t: string) =
         <div className="form-heading">
           <div className="form-kicker">{isEditing ? 'Edit Post' : 'New Post'}</div>
           <h1 className="form-title">{isEditing ? 'Update post' : 'Write something worth keeping'}</h1>
-        </div>
-
-        <div className="form-group">
-          <label>Topic</label>
-          <input
-            placeholder="e.g. auth/google"
-            value={topic}
-            onChange={(e) => setTopic(e.target.value)}
-            style={{ fontFamily: 'var(--font-mono)' }}
-          />
         </div>
 
         <input

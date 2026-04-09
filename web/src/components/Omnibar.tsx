@@ -1,68 +1,61 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { browse, search } from '../lib/api';
+import { search, tags as fetchTags } from '../lib/api';
 import { useProject, useProjectPath } from '../context/ProjectContext';
 import { KilroyMark } from './KilroyMark';
+
 interface OmnibarProps {
-  currentTopic: string;
+  selectedTags: string[];
+  onTagSelect: (tag: string) => void;
+  onTagRemove: (tag: string) => void;
 }
 
-export function Omnibar({ currentTopic }: OmnibarProps) {
+export function Omnibar({ selectedTags, onTagSelect, onTagRemove }: OmnibarProps) {
   const navigate = useNavigate();
   const { accountSlug, projectSlug } = useProject();
   const pp = useProjectPath();
   const [active, setActive] = useState(false);
   const [query, setQuery] = useState('');
-  const [topics, setTopics] = useState<any[]>([]);
-  const [posts, setPosts] = useState<any[]>([]);
+  const [tagResults, setTagResults] = useState<Array<{tag: string; count: number}>>([]);
+  const [postResults, setPostResults] = useState<any[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  const [allTopics, setAllTopics] = useState<string[]>([]);
-
-  useEffect(() => {
-    browse(accountSlug, projectSlug, { recursive: 'true', status: 'all', limit: '200' })
-      .then((data) => {
-        const paths = new Set<string>();
-        for (const p of data.posts || []) {
-          const parts = p.topic.split('/');
-          for (let i = 1; i <= parts.length; i++) {
-            paths.add(parts.slice(0, i).join('/'));
-          }
-        }
-        setAllTopics(Array.from(paths).sort());
-      })
-      .catch(() => {});
-  }, []);
-
   useEffect(() => {
     if (!query.trim()) {
-      setTopics([]);
-      setPosts([]);
+      setTagResults([]);
+      setPostResults([]);
       return;
     }
 
     const q = query.toLowerCase();
-    const matchedTopics = allTopics
-      .filter((t) => t.toLowerCase().includes(q))
-      .slice(0, 5);
-    setTopics(matchedTopics);
 
+    // Fetch matching tags
+    fetchTags(accountSlug, projectSlug)
+      .then((data) => {
+        const matched = (data.tags || [])
+          .filter((t: any) => t.tag.toLowerCase().includes(q))
+          .slice(0, 5);
+        setTagResults(matched);
+      })
+      .catch(() => setTagResults([]));
+
+    // Debounced search for posts
     const timer = setTimeout(() => {
       search(accountSlug, projectSlug, { query: query.trim(), status: 'all', limit: '5' })
-        .then((data) => setPosts(data.results || []))
-        .catch(() => setPosts([]));
+        .then((data) => setPostResults(data.results || []))
+        .catch(() => setPostResults([]));
     }, 200);
 
     return () => clearTimeout(timer);
-  }, [query, allTopics]);
+  }, [query]);
 
   useEffect(() => {
     setSelectedIndex(-1);
-  }, [topics, posts]);
+  }, [tagResults, postResults]);
 
-  const totalResults = topics.length + posts.length;
+  const totalResults = tagResults.length + postResults.length;
 
   const activate = useCallback(() => {
     setActive(true);
@@ -73,8 +66,8 @@ export function Omnibar({ currentTopic }: OmnibarProps) {
   const deactivate = useCallback(() => {
     setActive(false);
     setQuery('');
-    setTopics([]);
-    setPosts([]);
+    setTagResults([]);
+    setPostResults([]);
   }, []);
 
   useEffect(() => {
@@ -105,10 +98,11 @@ export function Omnibar({ currentTopic }: OmnibarProps) {
   }, [active, deactivate]);
 
   const handleSelect = (index: number) => {
-    if (index < topics.length) {
-      navigate(pp(`/browse/${topics[index]}/`));
+    if (index < tagResults.length) {
+      onTagSelect(tagResults[index].tag);
+      navigate(pp('/'));
     } else {
-      const post = posts[index - topics.length];
+      const post = postResults[index - tagResults.length];
       if (post) navigate(pp(`/post/${post.post_id}`));
     }
     deactivate();
@@ -132,89 +126,91 @@ export function Omnibar({ currentTopic }: OmnibarProps) {
     }
   };
 
-  const segments = currentTopic ? currentTopic.split('/') : [];
-
   return (
     <div className={`omnibar ${active ? 'active' : ''}`} ref={wrapperRef}>
-        {active ? (
-          <>
+      {active ? (
+        <>
+          <div className="omnibar-input-row">
+            {selectedTags.map(tag => (
+              <span key={tag} className="omnibar-chip" onClick={() => { onTagRemove(tag); }}>
+                {tag} <span className="omnibar-chip-remove">✕</span>
+              </span>
+            ))}
             <input
               ref={inputRef}
               className="omnibar-input"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Search posts or navigate to a topic..."
+              placeholder="Search posts or filter by tag..."
             />
-            {query.trim() && (topics.length > 0 || posts.length > 0) && (
-              <div className="omnibar-dropdown">
-                {topics.length > 0 && (
-                  <div className="omnibar-results-group">
-                    <div className="omnibar-group-label">Topics</div>
-                    {topics.map((t, i) => (
-                      <div
-                        key={t}
-                        className={`omnibar-result-item ${selectedIndex === i ? 'selected' : ''}`}
-                        onClick={() => handleSelect(i)}
-                        onMouseEnter={() => setSelectedIndex(i)}
-                      >
-                        <span className="omnibar-result-icon">&#x2192;</span>
-                        <span className="omnibar-result-path">{t}/</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {posts.length > 0 && (
-                  <div className="omnibar-results-group">
-                    <div className="omnibar-group-label">Posts</div>
-                    {posts.map((p, i) => (
-                      <div
-                        key={p.post_id}
-                        className={`omnibar-result-item ${selectedIndex === topics.length + i ? 'selected' : ''}`}
-                        onClick={() => handleSelect(topics.length + i)}
-                        onMouseEnter={() => setSelectedIndex(topics.length + i)}
-                      >
-                        <span className="omnibar-result-title">{p.title}</span>
-                        <span className="omnibar-result-topic">{p.topic}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="omnibar-resting" onClick={activate}>
-            <Link to="/" className="omnibar-home" onClick={(e) => e.stopPropagation()} title="Kilroy — switch projects">
-              <KilroyMark size={22} />
-            </Link>
-            <Link to={pp('/browse/')} className="omnibar-wordmark" onClick={(e) => e.stopPropagation()}>
-              {accountSlug}<span className="omnibar-sep">/</span>{projectSlug}<span className="omnibar-sep">/</span>
-            </Link>
-            {segments.length > 0 && (
-              <span className="omnibar-path">
-                {segments.map((seg, i) => {
-                  const path = segments.slice(0, i + 1).join('/');
-                  return (
-                    <span key={path}>
-                      {i > 0 && <span className="omnibar-sep">/</span>}
-                      <Link
-                        to={pp(`/browse/${path}/`)}
-                        className="omnibar-segment"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {seg}
-                      </Link>
-                    </span>
-                  );
-                })}
-              </span>
-            )}
-            <span className="omnibar-hint">
-              <kbd>⌘K</kbd>
-            </span>
           </div>
-        )}
+          {query.trim() && (tagResults.length > 0 || postResults.length > 0) && (
+            <div className="omnibar-dropdown">
+              {tagResults.length > 0 && (
+                <div className="omnibar-results-group">
+                  <div className="omnibar-group-label">Tags</div>
+                  {tagResults.map((t, i) => (
+                    <div
+                      key={t.tag}
+                      className={`omnibar-result-item ${selectedIndex === i ? 'selected' : ''}`}
+                      onClick={() => handleSelect(i)}
+                      onMouseEnter={() => setSelectedIndex(i)}
+                    >
+                      <span className="omnibar-result-icon">#</span>
+                      <span className="omnibar-result-tag">{t.tag}</span>
+                      <span className="omnibar-result-count">{t.count}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {postResults.length > 0 && (
+                <div className="omnibar-results-group">
+                  <div className="omnibar-group-label">Posts</div>
+                  {postResults.map((p, i) => (
+                    <div
+                      key={p.post_id}
+                      className={`omnibar-result-item ${selectedIndex === tagResults.length + i ? 'selected' : ''}`}
+                      onClick={() => handleSelect(tagResults.length + i)}
+                      onMouseEnter={() => setSelectedIndex(tagResults.length + i)}
+                    >
+                      <span className="omnibar-result-title">{p.title}</span>
+                      {p.tags && p.tags.length > 0 && (
+                        <span className="omnibar-result-tags">
+                          {p.tags.slice(0, 3).map((t: string) => (
+                            <span key={t} className="omnibar-result-tag-chip">{t}</span>
+                          ))}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="omnibar-resting" onClick={activate}>
+          <Link to="/" className="omnibar-home" onClick={(e) => e.stopPropagation()} title="Kilroy — switch projects">
+            <KilroyMark size={22} />
+          </Link>
+          <Link to={pp('/')} className="omnibar-wordmark" onClick={(e) => e.stopPropagation()}>
+            {accountSlug}<span className="omnibar-sep">/</span>{projectSlug}
+          </Link>
+          {selectedTags.length > 0 && (
+            <span className="omnibar-active-tags">
+              {selectedTags.map(tag => (
+                <span key={tag} className="omnibar-chip" onClick={(e) => { e.stopPropagation(); onTagRemove(tag); }}>
+                  {tag} <span className="omnibar-chip-remove">✕</span>
+                </span>
+              ))}
+            </span>
+          )}
+          <span className="omnibar-hint">
+            <kbd>⌘K</kbd>
+          </span>
+        </div>
+      )}
     </div>
   );
 }

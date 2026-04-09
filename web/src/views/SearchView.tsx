@@ -77,7 +77,7 @@ export function SearchView() {
             <span className={`status-dot status-dot-${r.status}`} />
           </div>
           <div className="card-meta">
-            {r.topic}
+            {r.tags?.length > 0 && r.tags.join(', ')}
             {r.match_location && <> · <span className="match-location">{r.match_location}</span></>}
           </div>
           {r.snippet && <div className="snippet">{highlightSnippet(r.snippet, query)}</div>}
