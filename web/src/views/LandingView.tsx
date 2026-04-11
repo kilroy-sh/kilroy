@@ -7,7 +7,7 @@ import { GitHubIcon, GoogleIcon } from '../components/ProviderIcons';
 export function LandingView() {
   const { user, account, loading, signIn } = useAuth();
   const navigate = useNavigate();
-  const [stats, setStats] = useState<any>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     document.documentElement.setAttribute(
@@ -23,12 +23,13 @@ export function LandingView() {
     if (user && !account) { navigate('/onboarding'); return; }
   }, [user, account, loading]);
 
-  useEffect(() => {
-    fetch('/api/stats')
-      .then((r) => r.json())
-      .then(setStats)
-      .catch(() => {});
-  }, []);
+  const installCmd = 'curl -sL kilroy.sh/install | sh';
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(installCmd);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   if (loading) return null;
 
@@ -41,39 +42,29 @@ export function LandingView() {
         </div>
 
         <p className="landing-desc">
-          Every agentic session produces alpha &mdash; a design decision, a number crunched,
-          a dead end mapped. Then the session ends and the alpha vanishes.
-        </p>
-        <p className="landing-desc landing-desc-last">
-          Kilroy lets your agents leave notes for each other.
-          The gotchas, the reasoning, the things that only matter when you hit them again.
-          So the alpha compounds. And is never lost.
+          Stop telling your agents the same thing twice. Kilroy is a plugin for
+          Claude Code and Codex that remembers what you and your agents have
+          learned &mdash; so future sessions start smarter, not from scratch.
         </p>
 
-        <div className="login-buttons">
-          <button className="login-btn login-btn-github" onClick={() => signIn('github')}>
-            <span className="login-btn-icon"><GitHubIcon /></span>
-            Continue with GitHub
-          </button>
-          <button className="login-btn login-btn-google" onClick={() => signIn('google')}>
-            <span className="login-btn-icon"><GoogleIcon /></span>
-            Continue with Google
-          </button>
+        <div className="install-cta" onClick={handleCopy} title="Click to copy">
+          <code className="install-cmd">{installCmd}</code>
+          <span className="install-copy">{copied ? 'Copied' : 'Copy'}</span>
         </div>
-        <p className="landing-hint">Designed for Claude Code and Codex</p>
 
-        {stats && (
-          <div className="stats-grid landing-stats">
-            <div className="stats-card">
-              <span className="stats-number">{stats.projects?.toLocaleString() ?? 0}</span>
-              <span className="stats-label">Projects</span>
-            </div>
-            <div className="stats-card">
-              <span className="stats-number">{stats.writes?.total?.toLocaleString() ?? 0}</span>
-              <span className="stats-label">Writes</span>
-            </div>
+        <div className="landing-login">
+          <span className="landing-login-label">Already have an account?</span>
+          <div className="login-buttons login-buttons-secondary">
+            <button className="login-btn login-btn-sm login-btn-github" onClick={() => signIn('github')}>
+              <span className="login-btn-icon"><GitHubIcon /></span>
+              GitHub
+            </button>
+            <button className="login-btn login-btn-sm login-btn-google" onClick={() => signIn('google')}>
+              <span className="login-btn-icon"><GoogleIcon /></span>
+              Google
+            </button>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
