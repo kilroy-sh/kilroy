@@ -148,7 +148,7 @@ app.all("/mcp", async (c) => {
     payload = await verifyAccessToken(accessToken, {
       verifyOptions: { audience: baseUrl },
     });
-  } catch (err) {
+  } catch {
     return c.text("Unauthorized", 401, {
       "WWW-Authenticate": `Bearer resource_metadata="${baseUrl}/.well-known/oauth-protected-resource"`,
     });

@@ -1,4 +1,4 @@
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { db } from "../db";
 import { projectMembers, projects, accounts } from "../db/schema";
 import { uuidv7 } from "../lib/uuid";
@@ -153,7 +153,25 @@ export async function getMemberKey(
   return row?.memberKey ?? null;
 }
 
+/**
+ * Look up a project membership by auth user ID.
+ *
+ * A user may have multiple app accounts. We find all accounts belonging
+ * to the auth user, then check if any of them are a member of the project.
+ * This works for both project owners and invited members.
+ */
 export async function getProjectByAuthUserId(authUserId: string, projectId: string) {
+  // Find all app accounts for this auth user
+  const userAccounts = await db
+    .select({ id: accounts.id })
+    .from(accounts)
+    .where(eq(accounts.authUserId, authUserId));
+
+  if (userAccounts.length === 0) return null;
+
+  const accountIds = userAccounts.map((a) => a.id);
+
+  // Find membership via any of the user's accounts
   const rows = await db
     .select({
       projectId: projectMembers.projectId,
@@ -166,8 +184,8 @@ export async function getProjectByAuthUserId(authUserId: string, projectId: stri
     .innerJoin(accounts, eq(projects.accountId, accounts.id))
     .where(
       and(
-        eq(accounts.authUserId, authUserId),
-        eq(projectMembers.projectId, projectId)
+        eq(projectMembers.projectId, projectId),
+        inArray(projectMembers.accountId, accountIds)
       )
     );
 

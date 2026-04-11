@@ -84,6 +84,10 @@ export async function mintProjectJwt(
 
   const baseUrl = authContext.baseURL;
 
+  // signJWT expects a full endpoint context, but we only need the auth context
+  // for key resolution. This cast targets better-auth@1.6.x / @better-auth/oauth-provider@1.6.x.
+  // If the signJWT signature changes, the /mcp endpoint's verifyAccessToken will
+  // reject these tokens — caught immediately on first MCP tool call.
   const token = await signJWT(
     { context: authContext } as any,
     {

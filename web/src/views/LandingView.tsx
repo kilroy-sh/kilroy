@@ -103,7 +103,7 @@ export function LandingView() {
         </div>
 
         <div className="install-label stagger-5">Run in your project directory</div>
-        <div className="install-cta stagger-5">
+        <div className="install-cta stagger-6">
           <code className="install-cmd">{installCmd}</code>
           <button className="install-copy-btn" onClick={handleCopy} title="Copy to clipboard" type="button">
             <Icon icon={copied ? 'solar:check-circle-linear' : 'solar:copy-linear'} width={18} />
