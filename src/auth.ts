@@ -1,4 +1,6 @@
 import { betterAuth } from "better-auth";
+import { jwt } from "better-auth/plugins";
+import { oauthProvider } from "@better-auth/oauth-provider";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "./db";
 import * as authSchema from "./db/auth-schema";
@@ -23,4 +25,12 @@ export const auth = betterAuth({
     },
   },
   baseURL: process.env.BETTER_AUTH_URL,
+  plugins: [
+    jwt(),
+    oauthProvider({
+      loginPage: "/login",
+      consentPage: "/consent",
+      allowDynamicClientRegistration: true,
+    }),
+  ],
 });

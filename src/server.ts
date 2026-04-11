@@ -9,6 +9,7 @@ import { projectAuth } from "./middleware/project";
 import { resolveSession } from "./middleware/auth";
 import { statsRouter } from "./routes/stats";
 import { auth } from "./auth";
+import { oauthProviderAuthServerMetadata } from "@better-auth/oauth-provider";
 import { createMcpServer } from "./mcp/server";
 import { getBaseUrl } from "./lib/url";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
@@ -74,6 +75,11 @@ if (!viteDevUrl && indexHtml) {
   // Landing page — SPA shell at root
   app.get("/", (c) => c.html(indexHtml));
 }
+
+// OAuth 2.1 metadata (must be at root per RFC 8414)
+const oauthMetadata = oauthProviderAuthServerMetadata(auth);
+app.get("/.well-known/oauth-authorization-server", (c) => oauthMetadata(c.req.raw));
+app.get("/.well-known/oauth-authorization-server/*", (c) => oauthMetadata(c.req.raw));
 
 // Better Auth handles all auth routes
 app.all("/api/auth/*", (c) => auth.handler(c.req.raw));

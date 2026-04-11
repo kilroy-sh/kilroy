@@ -257,6 +257,87 @@ export async function initDatabase() {
       FOR EACH ROW EXECUTE FUNCTION comments_search_vector_update();
   `);
 
+  // OAuth Provider Plugin tables (JWT + OAuth 2.1)
+  await client.unsafe(`
+    CREATE TABLE IF NOT EXISTS ba_jwks (
+      id TEXT PRIMARY KEY,
+      public_key TEXT NOT NULL,
+      private_key TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      expires_at TIMESTAMPTZ
+    );
+
+    CREATE TABLE IF NOT EXISTS ba_oauth_client (
+      id TEXT PRIMARY KEY,
+      client_id TEXT NOT NULL UNIQUE,
+      client_secret TEXT,
+      disabled BOOLEAN DEFAULT false,
+      skip_consent BOOLEAN,
+      enable_end_session BOOLEAN,
+      subject_type TEXT,
+      scopes TEXT[],
+      user_id TEXT REFERENCES ba_user(id) ON DELETE CASCADE,
+      created_at TIMESTAMPTZ DEFAULT now(),
+      updated_at TIMESTAMPTZ DEFAULT now(),
+      name TEXT,
+      uri TEXT,
+      icon TEXT,
+      contacts TEXT[],
+      tos TEXT,
+      policy TEXT,
+      software_id TEXT,
+      software_version TEXT,
+      software_statement TEXT,
+      redirect_uris TEXT[] NOT NULL,
+      post_logout_redirect_uris TEXT[],
+      token_endpoint_auth_method TEXT,
+      grant_types TEXT[],
+      response_types TEXT[],
+      public BOOLEAN,
+      type TEXT,
+      require_pkce BOOLEAN,
+      reference_id TEXT,
+      metadata JSONB
+    );
+
+    CREATE TABLE IF NOT EXISTS ba_oauth_refresh_token (
+      id TEXT PRIMARY KEY,
+      token TEXT NOT NULL,
+      client_id TEXT NOT NULL REFERENCES ba_oauth_client(client_id) ON DELETE CASCADE,
+      session_id TEXT REFERENCES ba_session(id) ON DELETE SET NULL,
+      user_id TEXT NOT NULL REFERENCES ba_user(id) ON DELETE CASCADE,
+      reference_id TEXT,
+      expires_at TIMESTAMPTZ NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      revoked TIMESTAMPTZ,
+      auth_time TIMESTAMPTZ,
+      scopes TEXT[] NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS ba_oauth_access_token (
+      id TEXT PRIMARY KEY,
+      token TEXT NOT NULL UNIQUE,
+      client_id TEXT NOT NULL REFERENCES ba_oauth_client(client_id) ON DELETE CASCADE,
+      session_id TEXT REFERENCES ba_session(id) ON DELETE SET NULL,
+      user_id TEXT REFERENCES ba_user(id) ON DELETE CASCADE,
+      reference_id TEXT,
+      refresh_id TEXT REFERENCES ba_oauth_refresh_token(id) ON DELETE CASCADE,
+      expires_at TIMESTAMPTZ NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      scopes TEXT[] NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS ba_oauth_consent (
+      id TEXT PRIMARY KEY,
+      client_id TEXT NOT NULL REFERENCES ba_oauth_client(client_id) ON DELETE CASCADE,
+      user_id TEXT REFERENCES ba_user(id) ON DELETE CASCADE,
+      reference_id TEXT,
+      scopes TEXT[] NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
+
   // Run sharing model migration (idempotent)
   const { migrateSharingModel } = await import("./migrate-sharing");
   await migrateSharingModel();
