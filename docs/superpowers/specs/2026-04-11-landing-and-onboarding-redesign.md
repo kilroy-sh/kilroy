@@ -93,40 +93,47 @@ The OAuth access token is a JWT with custom claims (`projectId`, `accountSlug`, 
 - Plugin auto-serves: authorization server metadata, dynamic client registration, authorization endpoint, token endpoint
 - Custom JWT claims encode the selected project into the access token
 
+#### Unified auth model: JWTs everywhere
+- One token format for all MCP auth: JWTs issued by Better Auth OAuth Provider Plugin
+- `.mcp.json` uses `Authorization: Bearer ${KILROY_TOKEN}` for both install paths
+- **Universal install:** `KILROY_TOKEN` is not set → 401 → CC triggers OAuth → gets JWT
+- **Project install:** install script exchanges member key for JWT, embeds it as `KILROY_TOKEN` → CC starts with valid token, no OAuth needed
+- When a project-install JWT expires, CC gets 401, triggers OAuth, refreshes seamlessly
+- Member keys become install-only credentials, not ongoing MCP auth tokens
+
 #### New: Universal install endpoint
-- `GET /install` — returns a shell script that installs the plugin without auth
-- Distinct from `GET /:account/:project/install?key=...` which installs with auth
+- `GET /install` — installs plugin without auth, sets `KILROY_URL` only
+
+#### Modified: Project install endpoint
+- `GET /:account/:project/install?key=...` — now exchanges the member key for a JWT server-side and embeds the JWT (not the member key) as `KILROY_TOKEN`
+
+#### New: Token exchange endpoint
+- `POST /:account/:project/api/token` — exchanges a member key for a JWT
 
 #### New: Root-level MCP endpoint
-- `POST /mcp` — validates JWT Bearer token, reads project claims, delegates to MCP server
-- Returns 401 with `WWW-Authenticate` header when no valid token → triggers MCP OAuth
-- `.well-known/oauth-protected-resource` metadata endpoint at MCP server URL
+- `POST /mcp` — validates JWT, reads project claims, delegates to MCP server
+- Returns 401 with OAuth metadata when no valid token
+- `.well-known/oauth-protected-resource` metadata at MCP server URL
 
 #### New: Consent page
-- Web view at `/consent` — shows user's projects, lets them select one or create a new one
-- For new users who just completed onboarding, their newly created project is pre-selected
-- Calls `authClient.oauth2.consent({ accept: true, scope })` with project scope
-- Replaces the current generic onboarding "ready" step for MCP-triggered flows
+- Web view at `/consent` — project selection + optional project creation
+- Encodes selected project into the OAuth scope → JWT custom claims
 
 #### Modified: Onboarding page
-- Works the same for new users (account slug + project slug creation)
-- After onboarding, redirects to consent page (not to projects dashboard) when in OAuth flow
+- Redirects to consent page (not projects dashboard) when in OAuth flow
 
 #### Modified: Landing page
-- Rewrite `LandingView.tsx` with new copy and layout
-- Install command as primary CTA
-- OAuth buttons as secondary "Already have an account?" option
+- Rewrite with new copy, install CTA, secondary login buttons
 
 #### Modified: Plugin session-start hook
-- Graceful handling when no `KILROY_TOKEN` is set (universal install)
-- Guides user that MCP auth will handle connection automatically
+- Graceful no-token handling for universal install
 
 #### Unchanged
-- Project-level install endpoint (`/:account/:project/install?key=...`)
-- Projects dashboard and project creation for existing users (browser-first flow)
+- Projects dashboard and project creation (browser-first flow)
 - All MCP tools and their behavior
 - Post/comment data model
 - Plugin commands, skills
+- Project-scoped MCP endpoint (`/:account/:project/mcp`) still accepts member keys during transition
 
 ## Non-Goals
 
@@ -134,3 +141,4 @@ The OAuth access token is a JWT with custom claims (`projectId`, `accountSlug`, 
 - Anonymous/no-auth project mode — considered but deferred
 - Video demos, animated graphics, or rich marketing content on landing page
 - Per-session project selection MCP tools (project is baked into the token)
+- Removing member keys entirely (they stay as install credentials)

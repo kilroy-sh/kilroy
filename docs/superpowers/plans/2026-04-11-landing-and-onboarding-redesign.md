@@ -4,7 +4,13 @@
 
 **Goal:** Rewrite the landing page for clarity, add a universal install command, and implement MCP OAuth (via Better Auth OAuth Provider Plugin) so users can install the plugin first and authenticate later when the agent needs it.
 
-**Architecture:** The landing page becomes a single-fold page with plain language copy and a `curl` install command as the primary CTA. A new universal install endpoint (`GET /install`) installs the plugin without auth. When an agent first tries to use a Kilroy MCP tool, the root `/mcp` endpoint returns 401 with OAuth metadata. Claude Code/Codex handle the OAuth flow natively via Better Auth's OAuth Provider Plugin — which handles metadata, client registration, authorization codes, PKCE, and token issuance. The user authenticates via GitHub/Google (existing Better Auth social login), completes onboarding if new, selects a project on the consent page, and gets redirected back. The JWT access token carries custom claims (`projectId`, `accountSlug`, `projectSlug`) so the MCP endpoint knows which project to scope to.
+**Architecture:** One auth mechanism, one token format. All MCP auth uses JWTs issued by Better Auth's OAuth Provider Plugin. The JWT carries custom claims (`projectId`, `accountSlug`, `projectSlug`) so the MCP endpoint knows which project to scope to.
+
+Two install paths exist but share the same auth model:
+- **Universal install** (`curl -sL kilroy.sh/install | sh`): no token. When the agent first uses a Kilroy tool, the `/mcp` endpoint returns 401, CC triggers OAuth natively (login → onboarding → consent/project selection → JWT issued → redirect back).
+- **Project install** (`curl -sL kilroy.sh/acme/proj/install?key=... | sh`): the server already knows the user + project. The install endpoint exchanges the member key for a JWT and embeds it in the script. CC starts with a valid token — no OAuth flow needed. When the JWT eventually expires, CC gets 401, triggers OAuth, and refreshes seamlessly (user already has an account by then).
+
+The `.mcp.json` is the same for both: `Authorization: Bearer ${KILROY_TOKEN}`. When `KILROY_TOKEN` is set (project install), CC uses it directly. When empty (universal install), the 401 triggers OAuth. Member keys become install-only credentials (proving you can get a JWT for a project), not ongoing MCP auth tokens.
 
 **Tech Stack:** Hono (server), React/React Router (frontend), PostgreSQL/Drizzle (data), `@better-auth/oauth-provider` + `better-auth/plugins/jwt` (OAuth 2.1), Better Auth (social login)
 
@@ -14,14 +20,13 @@
 
 ### New files
 - `web/src/views/ConsentView.tsx` — OAuth consent page: project selection + optional project creation
-- None in `src/` — the OAuth Provider Plugin handles OAuth routes internally via Better Auth
+- `src/routes/token.ts` — endpoint to exchange a member key for a JWT (used by project install script)
 
 ### Modified files
-- `src/auth.ts` — add JWT plugin + OAuth Provider Plugin to Better Auth config
-- `src/server.ts` — mount `/install`, `/mcp` (root), and `.well-known` metadata endpoints; add `/consent` SPA route
-- `src/routes/install.ts` — add `universalInstallHandler` alongside existing project install
-- `src/members/registry.ts` — add `getMemberByAuthUserId()` to resolve project from Better Auth user ID
-- `src/db/index.ts` — run Better Auth migration for OAuth Provider tables
+- `src/auth.ts` — add JWT plugin + OAuth Provider Plugin to Better Auth config with custom access token claims
+- `src/server.ts` — mount `/install`, `/mcp` (root), `.well-known` metadata endpoints, `/consent` SPA route, token exchange endpoint
+- `src/routes/install.ts` — add `universalInstallHandler`; modify project install to embed JWT instead of member key
+- `src/members/registry.ts` — add `getProjectByAuthUserId()` to resolve project from Better Auth user ID
 - `web/src/views/LandingView.tsx` — rewrite copy and layout
 - `web/src/views/OnboardingView.tsx` — redirect to consent page (not projects dashboard) when in OAuth flow
 - `web/src/App.tsx` — add `/consent` route
@@ -200,179 +205,10 @@ git commit -m "feat: rewrite landing page — clear copy, install CTA, secondary
 
 ---
 
-### Task 2: Universal Install Endpoint
-
-**Files:**
-- Modify: `src/routes/install.ts`
-- Modify: `src/server.ts`
-
-- [ ] **Step 1: Extract shared Codex marketplace helper**
-
-In `src/routes/install.ts`, the existing `generateInstallScript` function contains inline Python/JS scripts for Codex marketplace registration, plugin bundle installation, and plugin state management. Extract the marketplace registration + plugin bundle installation into a shared function `generateCodexPluginBlock()` that returns the shell script fragment. Both `generateInstallScript` (project install) and the new `generateUniversalInstallScript` will call this.
-
-The shared function should include:
-- The `install_codex_plugin_bundle()` shell function definition
-- The marketplace registration block (Python/JS merge marketplace scripts)
-- The plugin bundle installation to `~/.agents/plugins/kilroy` and cache dir
-
-The project-specific install keeps the additional blocks: Codex MCP config (`codexConfigToml`), plugin state, and project trust.
-
-- [ ] **Step 2: Add `generateUniversalInstallScript`**
-
-Add below the existing `generateInstallScript`:
-
-```typescript
-export function generateUniversalInstallScript(baseUrl: string): string {
-  const codexPluginBlock = generateCodexPluginBlock();
-  const settingsJson = JSON.stringify(
-    { env: { KILROY_URL: baseUrl } },
-    null,
-    2,
-  );
-
-  // Python and JS merge scripts for .claude/settings.local.json
-  // Same pattern as generateInstallScript but only sets KILROY_URL (no KILROY_TOKEN)
-  const mergeSettingsPy = `
-import json
-from pathlib import Path
-
-payload = json.loads('''${settingsJson}''')
-path = Path(".claude/settings.local.json")
-current = {}
-try:
-    current = json.loads(path.read_text())
-except Exception:
-    current = {}
-
-env = current.get("env")
-if not isinstance(env, dict):
-    env = {}
-env.update(payload.get("env", {}))
-current["env"] = env
-
-path.parent.mkdir(parents=True, exist_ok=True)
-path.write_text(json.dumps(current, indent=2) + "\\n")
-`.trim();
-
-  const mergeSettingsJs = `
-const fs = require('fs');
-const next = ${settingsJson};
-const path = '.claude/settings.local.json';
-let prev = {};
-try { prev = JSON.parse(fs.readFileSync(path, 'utf8')); } catch {}
-prev.env = Object.assign({}, prev.env || {}, next.env);
-fs.writeFileSync(path, JSON.stringify(prev, null, 2) + '\\n');
-`.trim();
-
-  return `#!/usr/bin/env sh
-# Kilroy universal installer
-set -eu
-
-PYTHON=""
-if command -v python3 >/dev/null 2>&1; then PYTHON=python3;
-elif command -v python >/dev/null 2>&1; then PYTHON=python; fi
-
-JS=""
-if command -v node >/dev/null 2>&1; then JS=node;
-elif command -v bun >/dev/null 2>&1; then JS=bun; fi
-
-CODEX_PLUGIN_READY=0
-CLAUDE_READY=0
-
-${codexPluginBlock}
-
-# ── Configure Claude Code ──
-if command -v claude >/dev/null 2>&1; then
-  echo "Installing Kilroy plugin for Claude Code..."
-  claude plugin marketplace add kilroy-sh/kilroy </dev/null 2>/dev/null || true
-  if claude plugin install kilroy@kilroy-marketplace --scope local </dev/null; then
-    mkdir -p .claude
-    if [ -n "$PYTHON" ]; then
-      "$PYTHON" - <<'PY'
-${mergeSettingsPy}
-PY
-      CLAUDE_READY=1
-    elif [ -n "$JS" ]; then
-      $JS -e '${esc(mergeSettingsJs)}'
-      CLAUDE_READY=1
-    elif [ ! -f ".claude/settings.local.json" ]; then
-      cat > ".claude/settings.local.json" <<'EOF_SETTINGS'
-${settingsJson}
-EOF_SETTINGS
-      CLAUDE_READY=1
-    fi
-  fi
-else
-  echo "Claude Code not found; skipping."
-fi
-
-if [ "$CODEX_PLUGIN_READY" -ne 1 ] && [ "$CLAUDE_READY" -ne 1 ]; then
-  echo "Error: could not configure Codex or Claude Code."
-  exit 1
-fi
-
-echo ""
-echo "  Done. Kilroy is installed."
-echo "  Start a new session — Kilroy will prompt you to connect when needed."
-echo ""
-`;
-}
-```
-
-- [ ] **Step 3: Add the universal install route handler**
-
-```typescript
-export const universalInstallHandler = new Hono();
-
-universalInstallHandler.get("/", (c) => {
-  const baseUrl = getBaseUrl(c.req.url);
-  const script = generateUniversalInstallScript(baseUrl);
-  return c.text(script, 200, {
-    "Content-Type": "text/plain",
-    "Cache-Control": "no-store",
-  });
-});
-```
-
-- [ ] **Step 4: Mount in server.ts**
-
-In `src/server.ts`, import and mount before the project-scoped routes:
-
-```typescript
-import { universalInstallHandler } from "./routes/install";
-
-// Universal install — no auth
-app.route("/install", universalInstallHandler);
-```
-
-- [ ] **Step 5: Test**
-
-Run: `curl -sL http://localhost:7432/install | head -5`
-
-Expected: `#!/usr/bin/env sh` + `# Kilroy universal installer`
-
-Run: `curl -sL http://localhost:7432/install | grep KILROY_TOKEN`
-
-Expected: no output (no token in universal install)
-
-Run: `curl -sL http://localhost:7432/install | grep KILROY_URL`
-
-Expected: line containing `KILROY_URL` set to the server base URL
-
-- [ ] **Step 6: Commit**
-
-```bash
-git add src/routes/install.ts src/server.ts
-git commit -m "feat: add universal install endpoint at /install (no auth required)"
-```
-
----
-
-### Task 3: Better Auth OAuth Provider Plugin Setup
+### Task 2: Better Auth OAuth Provider Plugin Setup
 
 **Files:**
 - Modify: `src/auth.ts`
-- Modify: `src/db/index.ts`
 - Modify: `package.json` (install dependency)
 
 - [ ] **Step 1: Install the OAuth Provider Plugin**
@@ -383,7 +219,7 @@ bun add @better-auth/oauth-provider
 
 - [ ] **Step 2: Configure the plugin in auth.ts**
 
-Update `src/auth.ts` to add the JWT and OAuth Provider plugins:
+Update `src/auth.ts`:
 
 ```typescript
 import { betterAuth } from "better-auth";
@@ -417,71 +253,51 @@ export const auth = betterAuth({
       loginPage: "/login",
       consentPage: "/consent",
       allowDynamicClientRegistration: true,
+      customAccessTokenClaims: async (token) => {
+        // Parse project scope: "project:{id}:{accountSlug}:{projectSlug}"
+        const scopes = (token.scopes || "").split(" ");
+        const projectScope = scopes.find((s: string) => s.startsWith("project:"));
+        if (!projectScope) return {};
+
+        const [, projectId, accountSlug, projectSlug] = projectScope.split(":");
+        return { projectId, accountSlug, projectSlug };
+      },
     }),
   ],
 });
 ```
 
-- [ ] **Step 3: Add OAuth Provider tables to the database**
+- [ ] **Step 3: Run Better Auth migration to create OAuth tables**
 
-The OAuth Provider Plugin requires tables for clients, tokens, and consent. Add to `initDatabase()` in `src/db/index.ts`:
-
-```typescript
-  // OAuth Provider tables (for MCP auth flow)
-  await client.unsafe(`
-    CREATE TABLE IF NOT EXISTS ba_oauth_client (
-      id TEXT PRIMARY KEY,
-      client_id TEXT NOT NULL UNIQUE,
-      client_secret TEXT,
-      redirect_uris TEXT NOT NULL,
-      client_name TEXT,
-      client_uri TEXT,
-      logo_uri TEXT,
-      scope TEXT,
-      grant_types TEXT,
-      response_types TEXT,
-      token_endpoint_auth_method TEXT,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-    );
-
-    CREATE TABLE IF NOT EXISTS ba_oauth_access_token (
-      id TEXT PRIMARY KEY,
-      access_token TEXT NOT NULL UNIQUE,
-      refresh_token TEXT UNIQUE,
-      access_token_expires_at TIMESTAMPTZ NOT NULL,
-      refresh_token_expires_at TIMESTAMPTZ,
-      client_id TEXT NOT NULL,
-      user_id TEXT NOT NULL REFERENCES ba_user(id) ON DELETE CASCADE,
-      session_id TEXT REFERENCES ba_session(id) ON DELETE CASCADE,
-      scopes TEXT,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-    );
-
-    CREATE TABLE IF NOT EXISTS ba_oauth_consent (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL REFERENCES ba_user(id) ON DELETE CASCADE,
-      client_id TEXT NOT NULL,
-      scopes TEXT,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-      consent_given BOOLEAN NOT NULL DEFAULT false
-    );
-  `);
+```bash
+bunx auth migrate
 ```
 
-Note: The exact schema may differ based on the plugin version. Run `bunx auth generate` to verify the expected schema, and adjust the DDL if needed.
+This creates the tables the OAuth Provider Plugin needs (oauth_client, oauth_access_token, oauth_consent, etc.) using Better Auth's own schema. Verify:
+
+```bash
+psql "$DATABASE_URL" -c "\dt ba_oauth_*"
+```
+
+Expected: tables listed for OAuth clients, tokens, and consent.
+
+If `bunx auth migrate` doesn't work with the current DDL-based setup in `initDatabase()`, generate the SQL instead and add it:
+
+```bash
+bunx auth generate
+```
+
+Then add the generated DDL to `initDatabase()` in `src/db/index.ts`.
 
 - [ ] **Step 4: Test the setup**
 
-Restart the server and check for errors:
+Restart the server:
 
 Run: `bun run src/server.ts` (briefly, then Ctrl+C)
 
 Expected: `Kilroy server running on http://localhost:7432` with no errors.
 
-Verify the OAuth metadata endpoint works:
+Verify the OAuth metadata endpoint:
 
 Run: `curl -s http://localhost:7432/api/auth/.well-known/oauth-authorization-server | jq .`
 
@@ -496,7 +312,7 @@ git commit -m "feat: add Better Auth OAuth Provider Plugin for MCP auth"
 
 ---
 
-### Task 4: Root-Level MCP Endpoint
+### Task 3: Root-Level MCP Endpoint
 
 **Files:**
 - Modify: `src/server.ts`
@@ -504,7 +320,7 @@ git commit -m "feat: add Better Auth OAuth Provider Plugin for MCP auth"
 
 - [ ] **Step 1: Add helper to resolve project from Better Auth user ID**
 
-In `src/members/registry.ts`, add a function that finds a member's project by their Better Auth user ID. This is used by the root MCP endpoint to resolve the project from the JWT claims.
+In `src/members/registry.ts`, add:
 
 ```typescript
 export async function getProjectByAuthUserId(authUserId: string, projectId: string) {
@@ -526,17 +342,17 @@ export async function getProjectByAuthUserId(authUserId: string, projectId: stri
     );
 
   if (rows.length === 0) return null;
-
   return rows[0];
 }
 ```
 
-- [ ] **Step 2: Add protected resource metadata endpoint**
+- [ ] **Step 2: Add protected resource metadata endpoints**
 
-In `src/server.ts`, add the `.well-known/oauth-protected-resource` endpoint for MCP clients to discover the authorization server:
+In `src/server.ts`, add before the project-scoped routes:
 
 ```typescript
 // Protected Resource Metadata for root MCP endpoint (RFC 9728)
+// Some MCP clients look at the server root, others at the MCP URL path
 app.get("/.well-known/oauth-protected-resource", (c) => {
   const baseUrl = getBaseUrl(c.req.url);
   return c.json({
@@ -545,11 +361,7 @@ app.get("/.well-known/oauth-protected-resource", (c) => {
     bearer_methods_supported: ["header"],
   });
 });
-```
 
-Note: some MCP clients look for this at the MCP server URL path. Add it there too:
-
-```typescript
 app.get("/mcp/.well-known/oauth-protected-resource", (c) => {
   const baseUrl = getBaseUrl(c.req.url);
   return c.json({
@@ -562,19 +374,17 @@ app.get("/mcp/.well-known/oauth-protected-resource", (c) => {
 
 - [ ] **Step 3: Add the root-level MCP endpoint**
 
-In `src/server.ts`, add the `/mcp` route after the metadata endpoints, before the project-scoped routes:
+In `src/server.ts`:
 
 ```typescript
 import { createAuthClient } from "better-auth/client";
 import { oauthProviderResourceClient } from "@better-auth/oauth-provider/resource-client";
 import { getProjectByAuthUserId } from "./members/registry";
 
-// Create a server-side auth client for token verification
 const serverAuthClient = createAuthClient({
   plugins: [oauthProviderResourceClient(auth)],
 });
 
-// Root-level MCP endpoint — verifies JWT, resolves project from claims
 app.all("/mcp", async (c) => {
   const baseUrl = getBaseUrl(c.req.url);
 
@@ -592,13 +402,11 @@ app.all("/mcp", async (c) => {
 
   const accessToken = authHeader.slice(7);
 
-  // Verify the JWT access token via Better Auth
+  // Verify the JWT via Better Auth
   let payload: any;
   try {
     payload = await serverAuthClient.verifyAccessToken(accessToken, {
-      verifyOptions: {
-        issuer: `${baseUrl}/api/auth`,
-      },
+      verifyOptions: { issuer: `${baseUrl}/api/auth` },
     });
   } catch {
     return c.json(
@@ -610,7 +418,6 @@ app.all("/mcp", async (c) => {
     );
   }
 
-  // Read project info from custom JWT claims
   const projectId = payload.projectId;
   const userId = payload.sub || payload.userId;
 
@@ -621,16 +428,13 @@ app.all("/mcp", async (c) => {
     );
   }
 
-  // Verify the user actually has access to this project
+  // Verify membership
   const membership = await getProjectByAuthUserId(userId, projectId);
   if (!membership) {
-    return c.json(
-      { error: "insufficient_scope", error_description: "No access to project" },
-      403,
-    );
+    return c.json({ error: "insufficient_scope" }, 403);
   }
 
-  // Create MCP server scoped to the resolved project
+  // Create MCP server scoped to the project
   const projectUrl = `${baseUrl}/${membership.accountSlug}/${membership.projectSlug}`;
   const mcp = createMcpServer(membership.projectId, membership.memberAccountId, "agent", projectUrl);
   const transport = new WebStandardStreamableHTTPServerTransport({
@@ -641,7 +445,7 @@ app.all("/mcp", async (c) => {
 });
 ```
 
-- [ ] **Step 4: Test the endpoint returns 401 without auth**
+- [ ] **Step 4: Test 401 without auth**
 
 Run:
 ```bash
@@ -659,15 +463,9 @@ curl -s -D - -X POST http://localhost:7432/mcp \
   -d '{"jsonrpc":"2.0","method":"initialize","params":{},"id":1}' 2>&1 | grep WWW-Authenticate
 ```
 
-Expected: `WWW-Authenticate: Bearer resource_metadata="..."` header present.
+Expected: header with `resource_metadata` URL present.
 
-- [ ] **Step 5: Test metadata endpoints**
-
-Run: `curl -s http://localhost:7432/.well-known/oauth-protected-resource | jq .`
-
-Expected: JSON with `resource`, `authorization_servers`, `bearer_methods_supported`.
-
-- [ ] **Step 6: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
 git add src/server.ts src/members/registry.ts
@@ -676,7 +474,7 @@ git commit -m "feat: root-level /mcp endpoint with JWT verification and OAuth me
 
 ---
 
-### Task 5: Consent Page (Project Selection)
+### Task 4: Consent Page (Project Selection)
 
 **Files:**
 - Create: `web/src/views/ConsentView.tsx`
@@ -684,11 +482,9 @@ git commit -m "feat: root-level /mcp endpoint with JWT verification and OAuth me
 - Modify: `web/src/context/AuthContext.tsx`
 - Modify: `src/server.ts`
 
-This is the OAuth consent page. When the OAuth Provider Plugin redirects here, the user selects which project to connect (or creates a new one). The page then calls the Better Auth consent API with the selected project scope, and the flow completes.
-
 - [ ] **Step 1: Update AuthContext to support callbackURL**
 
-In `web/src/context/AuthContext.tsx`, update the `signIn` function signature and implementation:
+In `web/src/context/AuthContext.tsx`, update the `signIn` function:
 
 ```typescript
 // Update interface
@@ -727,22 +523,18 @@ export function ConsentView() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  // OAuth params from query string (passed by Better Auth OAuth Provider)
   const params = new URLSearchParams(window.location.search);
   const clientId = params.get('client_id') || '';
   const scope = params.get('scope') || '';
 
   useEffect(() => {
     if (loading || !user || !account) return;
-    // Fetch user's projects
     fetch('/api/projects', { credentials: 'include' })
       .then(r => r.json())
       .then(data => {
         const owned = data.owned || [];
         setProjects(owned);
-        if (owned.length === 1) {
-          setSelectedProjectId(owned[0].id);
-        }
+        if (owned.length === 1) setSelectedProjectId(owned[0].id);
       })
       .catch(() => {});
   }, [user, account, loading]);
@@ -787,24 +579,18 @@ export function ConsentView() {
     setSubmitting(true);
     setError('');
     try {
-      // Find the selected project details
       const project = projects.find(p => p.id === selectedProjectId);
       if (!project) return;
 
-      // Build scope with project claims
-      // The custom scope encodes the project for the JWT custom claims
+      // Encode project info in scope — customAccessTokenClaims parses this into JWT claims
       const projectScope = `project:${project.id}:${project.account_slug}:${project.slug}`;
       const fullScope = scope ? `${scope} ${projectScope}` : projectScope;
 
-      // Call Better Auth consent API
       const res = await fetch('/api/auth/oauth2/consent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({
-          accept: true,
-          scope: fullScope,
-        }),
+        body: JSON.stringify({ accept: true, scope: fullScope }),
       });
 
       if (!res.ok) {
@@ -814,7 +600,6 @@ export function ConsentView() {
         return;
       }
 
-      // Better Auth handles the redirect back to the MCP client
       const data = await res.json();
       if (data.redirectTo) {
         window.location.href = data.redirectTo;
@@ -828,8 +613,6 @@ export function ConsentView() {
   if (loading) return null;
 
   if (!user || !account) {
-    // Not authenticated — shouldn't happen (OAuth Provider redirects to login first)
-    // but handle gracefully
     window.location.href = `/login?callbackURL=${encodeURIComponent(window.location.pathname + window.location.search)}`;
     return null;
   }
@@ -842,9 +625,7 @@ export function ConsentView() {
           <h1 className="landing-title" style={{ fontSize: '1.3rem' }}>Connect to Kilroy</h1>
         </div>
 
-        <p className="landing-desc">
-          Select a project to connect your agent to.
-        </p>
+        <p className="landing-desc">Select a project to connect your agent to.</p>
 
         {projects.length > 0 && (
           <div className="consent-projects">
@@ -912,67 +693,43 @@ import { ConsentView } from './views/ConsentView';
 
 - [ ] **Step 4: Add SPA route in server.ts**
 
-In `src/server.ts`, add alongside the other SPA routes:
+In `src/server.ts`, alongside the other SPA routes:
 
 ```typescript
 app.get("/consent", (c) => c.html(indexHtml));
 ```
 
-- [ ] **Step 5: Configure custom JWT claims for project info**
-
-In `src/auth.ts`, add `customAccessTokenClaims` to the OAuth Provider config so the JWT includes project information when a `project:*` scope is granted:
-
-```typescript
-oauthProvider({
-  loginPage: "/login",
-  consentPage: "/consent",
-  allowDynamicClientRegistration: true,
-  customAccessTokenClaims: async (token) => {
-    // Parse project scope: "project:{id}:{accountSlug}:{projectSlug}"
-    const scopes = (token.scopes || "").split(" ");
-    const projectScope = scopes.find((s: string) => s.startsWith("project:"));
-    if (!projectScope) return {};
-
-    const [, projectId, accountSlug, projectSlug] = projectScope.split(":");
-    return { projectId, accountSlug, projectSlug };
-  },
-}),
-```
-
-- [ ] **Step 6: Test the consent page in browser**
+- [ ] **Step 5: Test the consent page**
 
 Navigate to: `http://localhost:5173/consent?client_id=test&scope=openid`
 
 Verify:
-- Shows "Connect to Kilroy" with project selection
-- Lists user's existing projects (if signed in with an account)
-- Has "create new project" form
-- Connect button is disabled until a project is selected
+- Shows "Connect to Kilroy" with project list
+- Can select a project or create a new one
+- Connect button disabled until project selected
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add web/src/views/ConsentView.tsx web/src/context/AuthContext.tsx web/src/App.tsx src/server.ts src/auth.ts
+git add web/src/views/ConsentView.tsx web/src/context/AuthContext.tsx web/src/App.tsx src/server.ts
 git commit -m "feat: consent page with project selection for MCP OAuth flow"
 ```
 
 ---
 
-### Task 6: Onboarding Flow Update
+### Task 5: Onboarding Flow Update
 
 **Files:**
 - Modify: `web/src/views/OnboardingView.tsx`
 
-The existing onboarding flow (account slug + project creation) needs to redirect to the consent page instead of the projects dashboard when triggered during an OAuth flow.
+When onboarding is triggered during an OAuth flow, redirect to the consent page instead of the projects dashboard after account + project creation.
 
-- [ ] **Step 1: Detect OAuth flow in OnboardingView**
+- [ ] **Step 1: Detect OAuth flow and redirect accordingly**
 
-The OAuth flow passes through login → onboarding → consent. After the user creates their account (and optionally a project), redirect to the consent page with the original OAuth params preserved.
-
-In `web/src/views/OnboardingView.tsx`, check for OAuth params in the URL or session. If the referrer is an OAuth authorization flow, redirect to `/consent` instead of `/projects` after onboarding:
+In `web/src/views/OnboardingView.tsx`:
 
 ```typescript
-// At the top of the component, check for OAuth flow
+// At the top of the component
 const searchParams = new URLSearchParams(window.location.search);
 const isOAuthFlow = searchParams.has('client_id') || sessionStorage.getItem('oauth_flow') === 'true';
 
@@ -984,7 +741,7 @@ useEffect(() => {
   }
 }, []);
 
-// When onboarding completes (account + project created), redirect:
+// When onboarding completes:
 const handleComplete = () => {
   if (isOAuthFlow) {
     const oauthParams = sessionStorage.getItem('oauth_params') || '';
@@ -997,22 +754,198 @@ const handleComplete = () => {
 };
 ```
 
-- [ ] **Step 2: Wire up the redirect in the "ready" step**
+- [ ] **Step 2: Wire up the redirect**
 
-Replace the current navigation to `/projects` (or the project dashboard) in the final onboarding step with the `handleComplete()` function defined above.
+Replace the current navigation to `/projects` in the final onboarding step with the `handleComplete()` function.
 
 - [ ] **Step 3: Test**
 
-1. Sign in as a new user (no Kilroy account)
+1. Start an OAuth flow as a new user (no Kilroy account)
 2. Verify onboarding shows account slug + project creation
-3. After completing onboarding, verify redirect goes to `/consent` (not `/projects`) when OAuth params are present
-4. Verify normal (non-OAuth) onboarding still goes to `/projects`
+3. After completing, verify redirect to `/consent` (not `/projects`)
+4. Verify non-OAuth onboarding still goes to `/projects`
 
 - [ ] **Step 4: Commit**
 
 ```bash
 git add web/src/views/OnboardingView.tsx
 git commit -m "feat: redirect onboarding to consent page during OAuth flow"
+```
+
+---
+
+### Task 6: Unified Install Scripts (JWT for Both Paths)
+
+**Files:**
+- Modify: `src/routes/install.ts`
+- Create: `src/routes/token.ts`
+- Modify: `src/server.ts`
+
+Both install paths write JWTs as `KILROY_TOKEN`. The universal install writes no token (OAuth handles it). The project install exchanges the member key for a JWT and embeds it.
+
+- [ ] **Step 1: Create the token exchange endpoint**
+
+Create `src/routes/token.ts` — exchanges a member key for a JWT. This is called by the project install script.
+
+```typescript
+import { Hono } from "hono";
+import { validateMemberKey } from "../members/registry";
+import { auth } from "../auth";
+
+export const tokenHandler = new Hono();
+
+// POST /:account/:project/api/token — exchange member key for JWT
+tokenHandler.post("/", async (c) => {
+  const url = new URL(c.req.url);
+  const segments = url.pathname.split("/").filter(Boolean);
+  const accountSlug = segments[0];
+  const projectSlug = segments[1];
+
+  const body = await c.req.json();
+  const key = body.key;
+
+  if (!key) {
+    return c.json({ error: "missing_key" }, 400);
+  }
+
+  const result = await validateMemberKey(accountSlug, projectSlug, key);
+  if (!result.valid) {
+    return c.json({ error: "invalid_key" }, 401);
+  }
+
+  // Issue a JWT with project claims via Better Auth
+  // Use the auth API to create an access token for this member
+  const projectScope = `project:${result.projectId}:${accountSlug}:${projectSlug}`;
+
+  const tokenResult = await auth.api.createAccessToken({
+    userId: result.memberAccountId,
+    scopes: projectScope,
+  });
+
+  return c.json({
+    access_token: tokenResult.accessToken,
+    token_type: "Bearer",
+  });
+});
+```
+
+Note: The exact `auth.api.createAccessToken` call depends on what the OAuth Provider Plugin exposes. If it doesn't expose a direct token minting API, an alternative is to generate a signed JWT manually using the same signing key:
+
+```typescript
+import { sign } from "better-auth/plugins/jwt";
+
+const jwt = await sign({
+  sub: result.memberAccountId,
+  projectId: result.projectId,
+  accountSlug,
+  projectSlug,
+  iss: baseUrl + "/api/auth",
+  exp: Math.floor(Date.now() / 1000) + 3600, // 1 hour
+});
+```
+
+The implementer should check the Better Auth OAuth Provider Plugin API and use whichever approach is available.
+
+- [ ] **Step 2: Mount the token endpoint in server.ts**
+
+In `src/server.ts`, mount inside the project-scoped app (alongside the existing install endpoint, before `projectAuth`):
+
+```typescript
+import { tokenHandler } from "./routes/token";
+
+// Token exchange bypasses projectAuth — member key in body IS the auth
+projectApp.route("/api/token", tokenHandler);
+```
+
+- [ ] **Step 3: Add universal install handler**
+
+In `src/routes/install.ts`, add `generateUniversalInstallScript` and `universalInstallHandler`. The universal script:
+- Installs the Codex plugin bundle (reuse the shared helper extracted from existing code)
+- Installs the Claude Code plugin
+- Sets `KILROY_URL` in `.claude/settings.local.json` (no `KILROY_TOKEN`)
+- Final message: "Start a new session — Kilroy will prompt you to connect when needed."
+
+```typescript
+export const universalInstallHandler = new Hono();
+
+universalInstallHandler.get("/", (c) => {
+  const baseUrl = getBaseUrl(c.req.url);
+  const script = generateUniversalInstallScript(baseUrl);
+  return c.text(script, 200, {
+    "Content-Type": "text/plain",
+    "Cache-Control": "no-store",
+  });
+});
+```
+
+The `generateUniversalInstallScript` function follows the same structure as `generateInstallScript` but:
+- Only sets `KILROY_URL` (no `KILROY_TOKEN`)
+- Omits the Codex MCP server config (`codexConfigToml`) since there's no token to configure
+- Omits the Codex project trust block
+- Shared code (plugin bundle install, marketplace registration) is extracted into helpers that both functions call
+
+- [ ] **Step 4: Modify project install to embed JWT instead of member key**
+
+In the existing `installHandler.get("/")` in `src/routes/install.ts`, after validating the member key, exchange it for a JWT before generating the script:
+
+```typescript
+installHandler.get("/", async (c) => {
+  // ... existing validation code ...
+
+  const result = await validateMemberKey(accountSlug, projectSlug, key);
+  if (!result.valid) { /* ... existing error ... */ }
+
+  const baseUrl = getBaseUrl(c.req.url);
+  const projectUrl = `${baseUrl}/${accountSlug}/${projectSlug}`;
+
+  // Exchange member key for JWT
+  const jwt = await mintProjectJwt(result.projectId, result.memberAccountId, accountSlug, projectSlug, baseUrl);
+
+  // Pass JWT instead of raw member key to the script generator
+  const script = generateInstallScript(projectUrl, jwt, projectSlug);
+
+  return c.text(script, 200, {
+    "Content-Type": "text/plain",
+    "Cache-Control": "no-store",
+  });
+});
+```
+
+Extract `mintProjectJwt` as a shared function (used by both the install handler and the token exchange endpoint).
+
+- [ ] **Step 5: Mount universal install in server.ts**
+
+```typescript
+import { universalInstallHandler } from "./routes/install";
+
+// Universal install — no auth
+app.route("/install", universalInstallHandler);
+```
+
+- [ ] **Step 6: Test both install paths**
+
+Universal:
+```bash
+curl -sL http://localhost:7432/install | head -5
+```
+Expected: `#!/usr/bin/env sh`, `# Kilroy universal installer`
+
+```bash
+curl -sL http://localhost:7432/install | grep KILROY_TOKEN
+```
+Expected: no output
+
+Project:
+```bash
+curl -sL "http://localhost:7432/{account}/{project}/install?key={existing_key}" | grep KILROY_TOKEN
+```
+Expected: `KILROY_TOKEN` set to a JWT (starts with `eyJ`)
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add src/routes/install.ts src/routes/token.ts src/server.ts
+git commit -m "feat: unified JWT auth — universal install + project install both use JWTs"
 ```
 
 ---
@@ -1038,9 +971,8 @@ if [ -z "${KILROY_TOKEN:-}" ]; then
   using_kilroy="Kilroy is installed. When you use a Kilroy tool, your agent client will prompt you to sign in and connect a project. Just follow the browser prompt."
 ```
 
-- [ ] **Step 2: Test the hook**
+- [ ] **Step 2: Test**
 
-Run:
 ```bash
 unset KILROY_TOKEN
 echo '{}' | CLAUDE_ENV_FILE=/tmp/test-env bash plugin/hooks/scripts/session-start.sh
@@ -1063,19 +995,20 @@ git commit -m "feat: update session-start hook for MCP OAuth flow"
 
 With the dev server running:
 
-1. **Landing page:** Visit `http://localhost:5173` — verify new copy ("Stop telling your agents the same thing twice...") and install command
-2. **Universal install:** Run `curl -sL http://localhost:7432/install | head -5` — verify script starts with `#!/usr/bin/env sh` and `# Kilroy universal installer`
-3. **OAuth metadata:** Run `curl -s http://localhost:7432/api/auth/.well-known/oauth-authorization-server | jq .` — verify JSON with authorization/token endpoints
-4. **Protected resource metadata:** Run `curl -s http://localhost:7432/.well-known/oauth-protected-resource | jq .` — verify JSON pointing to authorization server
-5. **MCP 401:** Run `curl -s -D - -X POST http://localhost:7432/mcp -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","method":"initialize","params":{},"id":1}' 2>&1 | head -10` — verify 401 with `WWW-Authenticate` header
-6. **Consent page:** Visit `http://localhost:5173/consent?client_id=test&scope=openid` while signed in — verify project selection UI
-7. **Existing project install:** Run `curl -sL http://localhost:7432/{account}/{project}/install?key={existing_key} | head -5` — verify project-specific install script still works
+1. **Landing page:** Visit `http://localhost:5173` — verify new copy and install command
+2. **Universal install:** `curl -sL http://localhost:7432/install | head -5` — verify universal script
+3. **OAuth metadata:** `curl -s http://localhost:7432/api/auth/.well-known/oauth-authorization-server | jq .` — verify JSON
+4. **Protected resource metadata:** `curl -s http://localhost:7432/.well-known/oauth-protected-resource | jq .` — verify JSON pointing to auth server
+5. **MCP 401:** `curl -s -D - -X POST http://localhost:7432/mcp -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","method":"initialize","params":{},"id":1}' 2>&1 | head -10` — verify 401 with `WWW-Authenticate`
+6. **Consent page:** Visit `http://localhost:5173/consent?client_id=test&scope=openid` while signed in — verify project selection
+7. **Project install (JWT):** `curl -sL "http://localhost:7432/{account}/{project}/install?key={key}" | grep KILROY_TOKEN` — verify JWT (starts with `eyJ`)
+8. **Existing project-scoped MCP:** Verify `/:account/:project/mcp` still works with member keys (backwards compat during transition)
 
-- [ ] **Step 2: Fix any issues found during integration testing**
+- [ ] **Step 2: Fix any issues**
 
 ```bash
 git add -A
-git commit -m "fix: integration test fixes for MCP OAuth flow"
+git commit -m "fix: integration test fixes"
 ```
 
 ---
@@ -1083,13 +1016,13 @@ git commit -m "fix: integration test fixes for MCP OAuth flow"
 ## Ordering & Dependencies
 
 ```
-Task 1 (Landing Page) ─────────── independent
-Task 2 (Universal Install) ────── independent
-Task 7 (Plugin Hook Update) ───── independent
+Task 1 (Landing Page) ──────────── independent
+Task 7 (Plugin Hook Update) ─────── independent
 
-Task 3 (BA OAuth Plugin Setup) ── Task 4 (Root MCP Endpoint) ── Task 5 (Consent Page) ── Task 6 (Onboarding Update)
+Task 2 (BA OAuth Plugin) ── Task 3 (Root MCP) ── Task 4 (Consent Page) ── Task 5 (Onboarding Update)
+                                                                      └── Task 6 (Unified Install)
 
-Task 8 (Integration Test) ─────── depends on all above
+Task 8 (Integration Test) ────────── depends on all above
 ```
 
-Tasks 1, 2, and 7 can run in parallel. Tasks 3→4→5→6 are sequential. Task 8 is last.
+Tasks 1 and 7 can run in parallel with each other and with Task 2. Tasks 2→3→4→5 are sequential. Task 6 depends on Task 2 (needs JWT minting). Task 8 is last.
