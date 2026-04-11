@@ -845,7 +845,8 @@ describe("GET /:account/:project/install", () => {
     expect(body).toContain("/mcp");
     expect(body).toContain("claude plugin");
     expect(body).toContain("settings.local.json");
-    expect(body).toContain(testToken);
+    // Install script now embeds a JWT (not the raw member key)
+    expect(body).toContain("Bearer ");
   });
 
   it("returns 400 when key is missing", async () => {

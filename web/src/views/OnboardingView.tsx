@@ -27,6 +27,16 @@ export function OnboardingView() {
   const [accountSlug, setAccountSlug] = useState('');
   const inFlowRef = useRef(false);
 
+  const searchParams = new URLSearchParams(window.location.search);
+  const isOAuthFlow = searchParams.has('client_id') || sessionStorage.getItem('oauth_flow') === 'true';
+
+  useEffect(() => {
+    if (searchParams.has('client_id')) {
+      sessionStorage.setItem('oauth_flow', 'true');
+      sessionStorage.setItem('oauth_params', searchParams.toString());
+    }
+  }, []);
+
   useEffect(() => {
     if (loading) return;
     if (!user) { navigate('/login'); return; }
@@ -39,6 +49,19 @@ export function OnboardingView() {
         .catch(() => {});
     }
   }, [user, account, loading]);
+
+  const handleComplete = (projectPath?: string) => {
+    if (isOAuthFlow) {
+      const oauthParams = sessionStorage.getItem('oauth_params') || '';
+      sessionStorage.removeItem('oauth_flow');
+      sessionStorage.removeItem('oauth_params');
+      navigate(`/consent?${oauthParams}`);
+    } else if (projectPath) {
+      navigate(projectPath);
+    } else {
+      navigate('/projects');
+    }
+  };
 
   const slugPattern = /^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$/;
 
@@ -106,6 +129,10 @@ export function OnboardingView() {
         return;
       }
 
+      if (isOAuthFlow) {
+        handleComplete();
+        return;
+      }
       setCreated(data);
       setError('');
       setStep('ready');
@@ -182,7 +209,7 @@ export function OnboardingView() {
               </button>
               {error && <p className="landing-error">{error}</p>}
             </form>
-            <button className="landing-skip" onClick={() => navigate('/projects')}>
+            <button className="landing-skip" onClick={() => handleComplete()}>
               Skip for now
             </button>
           </>
@@ -205,7 +232,7 @@ export function OnboardingView() {
             <a
               className="btn btn-primary"
               href={`/${accountSlug}/${created.slug}/`}
-              onClick={(e) => { e.preventDefault(); navigate(`/${accountSlug}/${created.slug}/`); }}
+              onClick={(e) => { e.preventDefault(); handleComplete(`/${accountSlug}/${created.slug}/`); }}
               style={{ display: 'inline-block', marginTop: '1.5rem' }}
             >
               Go to project &rarr;
