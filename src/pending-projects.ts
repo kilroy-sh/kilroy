@@ -14,8 +14,9 @@ export function setPendingProject(sessionId: string, project: PendingProject) {
 }
 
 export function getPendingProject(sessionId: string): PendingProject | null {
-  const entry = store.get(sessionId);
-  if (!entry) return null;
+  return store.get(sessionId) ?? null;
+}
+
+export function clearPendingProject(sessionId: string) {
   store.delete(sessionId);
-  return entry;
 }
