@@ -99,6 +99,7 @@ if (!viteDevUrl && indexHtml) {
   app.get("/login", (c) => c.html(indexHtml));
   app.get("/onboarding", (c) => c.html(indexHtml));
   app.get("/projects", (c) => c.html(indexHtml));
+  app.get("/consent", (c) => c.html(indexHtml));
 }
 
 // OAuth 2.1 protected resource metadata (for root /mcp endpoint)

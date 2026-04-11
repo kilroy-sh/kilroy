@@ -7,7 +7,7 @@ interface AuthState {
   loading: boolean;
   user: User | null;
   account: Account | null;
-  signIn: (provider: 'github' | 'google') => Promise<void>;
+  signIn: (provider: 'github' | 'google', callbackURL?: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshAccount: () => Promise<void>;
 }
@@ -39,8 +39,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  const signIn = async (provider: 'github' | 'google') => {
-    await authClient.signIn.social({ provider, callbackURL: '/' });
+  const signIn = async (provider: 'github' | 'google', callbackURL?: string) => {
+    await authClient.signIn.social({ provider, callbackURL: callbackURL || '/' });
   };
   const signOut = async () => {
     await authClient.signOut();

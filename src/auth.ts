@@ -31,6 +31,13 @@ export const auth = betterAuth({
       loginPage: "/login",
       consentPage: "/consent",
       allowDynamicClientRegistration: true,
+      customAccessTokenClaims: async ({ scopes }) => {
+        const projectScope = (scopes || []).find((s: string) => s.startsWith("project:"));
+        if (!projectScope) return {};
+
+        const [, projectId, accountSlug, projectSlug] = projectScope.split(":");
+        return { projectId, accountSlug, projectSlug };
+      },
     }),
   ],
 });
