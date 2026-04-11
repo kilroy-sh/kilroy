@@ -32,6 +32,8 @@ export const auth = betterAuth({
       loginPage: "/login",
       consentPage: "/consent",
       allowDynamicClientRegistration: true,
+      allowUnauthenticatedClientRegistration: true,
+      silenceWarnings: { oauthAuthServerConfig: true },
       customAccessTokenClaims: async ({ user, scopes }) => {
         const projectScope = (scopes || []).find((s: string) => s.startsWith("project:"));
         if (!projectScope) return {};
