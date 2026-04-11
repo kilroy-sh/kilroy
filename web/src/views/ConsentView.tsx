@@ -108,8 +108,9 @@ export function ConsentView() {
       }
 
       const data = await res.json();
-      if (data.redirectTo) {
-        window.location.href = data.redirectTo;
+      const redirectUrl = data.url || data.redirectTo;
+      if (redirectUrl) {
+        window.location.href = redirectUrl;
       }
     } catch {
       setError('Network error');
