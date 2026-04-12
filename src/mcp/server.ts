@@ -3,6 +3,7 @@ import { z } from "zod";
 import { api } from "../routes/api";
 import { Hono } from "hono";
 import type { Env } from "../types";
+import { resolveProject } from "./resolve-project";
 
 /** Make an internal request to the API and return the parsed JSON response. */
 function createApiRequest(projectId: string, memberAccountId: string, authorType: "human" | "agent") {
@@ -41,11 +42,18 @@ function result(data: unknown, isError = false) {
   };
 }
 
-export function createMcpServer(projectId: string, memberAccountId: string, authorType: "human" | "agent", projectUrl?: string) {
-  const apiRequest = createApiRequest(projectId, memberAccountId, authorType);
+const projectParam = z.string().describe("Project in account/slug format (e.g. srijan/sagaland)");
 
-  /** Build the web UI URL for a post. */
-  const postUrl = (postId: string) => projectUrl ? `${projectUrl}/post/${postId}` : undefined;
+export function createMcpServer(authUserId: string, authorType: "human" | "agent", baseUrl: string) {
+  async function withProject<T>(
+    project: string,
+    fn: (apiRequest: ReturnType<typeof createApiRequest>, projectUrl: string) => Promise<T>,
+  ): Promise<T> {
+    const resolved = await resolveProject(authUserId, project);
+    const apiRequest = createApiRequest(resolved.projectId, resolved.memberAccountId, authorType);
+    const projectUrl = `${baseUrl}/${resolved.accountSlug}/${resolved.projectSlug}`;
+    return fn(apiRequest, projectUrl);
+  }
 
   const mcp = new McpServer(
     { name: "kilroy", version: "0.1.0" },
@@ -57,11 +65,18 @@ export function createMcpServer(projectId: string, memberAccountId: string, auth
     "kilroy_read_post",
     "Read a post and all its comments.",
     {
+      project: projectParam,
       post_id: z.string().describe("The post's UUID v7."),
     },
     async (args) => {
-      const { status, data } = await apiRequest("GET", `/api/posts/${args.post_id}`);
-      return result(data, status >= 400);
+      try {
+        return await withProject(args.project, async (app, projectUrl) => {
+          const { status, data } = await app("GET", `/api/posts/${args.post_id}`);
+          return result(data, status >= 400);
+        });
+      } catch (err: any) {
+        return result({ error: err.message });
+      }
     }
   );
 
@@ -70,6 +85,7 @@ export function createMcpServer(projectId: string, memberAccountId: string, auth
     "kilroy_search",
     "Search posts by keyword or phrase. Returns the best matches across titles, bodies, and tags. Multi-word queries match any term — results with more matches rank higher.",
     {
+      project: projectParam,
       query: z.string().describe("Search query."),
       regex: z.boolean().optional().describe("If true, treat query as a regular expression."),
       tags: z.array(z.string()).optional().describe("Only search posts that have all of these tags."),
@@ -80,18 +96,24 @@ export function createMcpServer(projectId: string, memberAccountId: string, auth
       limit: z.number().int().min(1).max(100).optional().describe("Maximum number of results to return (1-100)."),
     },
     async (args) => {
-      const params = new URLSearchParams();
-      params.set("query", args.query);
-      if (args.regex !== undefined) params.set("regex", String(args.regex));
-      if (args.tags?.length) params.set("tags", args.tags.join(","));
-      if (args.status) params.set("status", args.status);
-      if (args.order_by) params.set("order_by", args.order_by);
-      if (args.order) params.set("order", args.order);
-      if (args.cursor) params.set("cursor", args.cursor);
-      if (args.limit !== undefined) params.set("limit", String(args.limit));
+      try {
+        return await withProject(args.project, async (app, projectUrl) => {
+          const params = new URLSearchParams();
+          params.set("query", args.query);
+          if (args.regex !== undefined) params.set("regex", String(args.regex));
+          if (args.tags?.length) params.set("tags", args.tags.join(","));
+          if (args.status) params.set("status", args.status);
+          if (args.order_by) params.set("order_by", args.order_by);
+          if (args.order) params.set("order", args.order);
+          if (args.cursor) params.set("cursor", args.cursor);
+          if (args.limit !== undefined) params.set("limit", String(args.limit));
 
-      const { status, data } = await apiRequest("GET", `/api/search?${params}`);
-      return result(data, status >= 400);
+          const { status, data } = await app("GET", `/api/search?${params}`);
+          return result(data, status >= 400);
+        });
+      } catch (err: any) {
+        return result({ error: err.message });
+      }
     }
   );
 
@@ -100,16 +122,23 @@ export function createMcpServer(projectId: string, memberAccountId: string, auth
     "kilroy_tags",
     "List tags in this project with post counts. Pass tags to see what other tags co-occur with them — useful for exploring what knowledge exists.",
     {
+      project: projectParam,
       tags: z.array(z.string()).optional().describe("Filter to co-occurring tags. Returns tags that appear alongside these on the same posts."),
       status: z.enum(["active", "archived", "obsolete", "all"]).optional().describe("Filter by post status."),
     },
     async (args) => {
-      const params = new URLSearchParams();
-      if (args.tags?.length) params.set("tags", args.tags.join(","));
-      if (args.status) params.set("status", args.status);
+      try {
+        return await withProject(args.project, async (app, projectUrl) => {
+          const params = new URLSearchParams();
+          if (args.tags?.length) params.set("tags", args.tags.join(","));
+          if (args.status) params.set("status", args.status);
 
-      const { status, data } = await apiRequest("GET", `/api/tags?${params}`);
-      return result(data, status >= 400);
+          const { status, data } = await app("GET", `/api/tags?${params}`);
+          return result(data, status >= 400);
+        });
+      } catch (err: any) {
+        return result({ error: err.message });
+      }
     }
   );
 
@@ -118,20 +147,27 @@ export function createMcpServer(projectId: string, memberAccountId: string, auth
     "kilroy_create_post",
     "Create a new post. Every post needs at least one tag.",
     {
+      project: projectParam,
       title: z.string().describe("Post title — carry the finding, not just the topic. E.g. 'TikTok creator content converts at 270% ROAS' not 'TikTok analysis'."),
       body: z.string().describe("Content of the post. Markdown supported. Start with a TL;DR in bullet points if longer than a paragraph."),
       tags: z.array(z.string()).min(1).describe("Tags for discoverability. Tag the subject, not the activity — e.g. tiktok, auth, churn, not analysis or debugging. At least one required."),
       author_metadata: z.record(z.string(), z.unknown()).optional().describe("Agent runtime metadata (git_user, os_user, session_id, agent). Injected automatically by Claude Code plugin."),
     },
     async (args) => {
-      const { status, data } = await apiRequest("POST", "/api/posts", {
-        title: args.title,
-        body: args.body,
-        tags: args.tags,
-        author_metadata: args.author_metadata,
-      });
-      const url = (data as any)?.id ? postUrl((data as any).id) : undefined;
-      return result(url ? { ...(data as any), url } : data, status >= 400);
+      try {
+        return await withProject(args.project, async (app, projectUrl) => {
+          const { status, data } = await app("POST", "/api/posts", {
+            title: args.title,
+            body: args.body,
+            tags: args.tags,
+            author_metadata: args.author_metadata,
+          });
+          const postUrl = (data as any)?.id ? `${projectUrl}/post/${(data as any).id}` : undefined;
+          return result(postUrl ? { ...(data as any), url: postUrl } : data, status >= 400);
+        });
+      } catch (err: any) {
+        return result({ error: err.message });
+      }
     }
   );
 
@@ -140,17 +176,24 @@ export function createMcpServer(projectId: string, memberAccountId: string, auth
     "kilroy_comment",
     "Add a comment to an existing post.",
     {
+      project: projectParam,
       post_id: z.string().describe("The post to comment on."),
       body: z.string().describe("Content of the comment. Markdown supported."),
       author_metadata: z.record(z.string(), z.unknown()).optional().describe("Agent runtime metadata (git_user, os_user, session_id, agent). Injected automatically by Claude Code plugin."),
     },
     async (args) => {
-      const { status, data } = await apiRequest("POST", `/api/posts/${args.post_id}/comments`, {
-        body: args.body,
-        author_metadata: args.author_metadata,
-      });
-      const url = postUrl(args.post_id);
-      return result(url ? { ...(data as any), url } : data, status >= 400);
+      try {
+        return await withProject(args.project, async (app, projectUrl) => {
+          const { status, data } = await app("POST", `/api/posts/${args.post_id}/comments`, {
+            body: args.body,
+            author_metadata: args.author_metadata,
+          });
+          const postUrl = `${projectUrl}/post/${args.post_id}`;
+          return result({ ...(data as any), url: postUrl }, status >= 400);
+        });
+      } catch (err: any) {
+        return result({ error: err.message });
+      }
     }
   );
 
@@ -159,14 +202,21 @@ export function createMcpServer(projectId: string, memberAccountId: string, auth
     "kilroy_update_post_status",
     "Change a post's status.",
     {
+      project: projectParam,
       post_id: z.string().describe("The post to update."),
       status: z.enum(["active", "archived", "obsolete"]).describe("New status."),
     },
     async (args) => {
-      const { status, data } = await apiRequest("PATCH", `/api/posts/${args.post_id}`, {
-        status: args.status,
-      });
-      return result(data, status >= 400);
+      try {
+        return await withProject(args.project, async (app, projectUrl) => {
+          const { status, data } = await app("PATCH", `/api/posts/${args.post_id}`, {
+            status: args.status,
+          });
+          return result(data, status >= 400);
+        });
+      } catch (err: any) {
+        return result({ error: err.message });
+      }
     }
   );
 
@@ -175,11 +225,18 @@ export function createMcpServer(projectId: string, memberAccountId: string, auth
     "kilroy_delete_post",
     "Permanently delete a post and all its comments. This is irreversible.",
     {
+      project: projectParam,
       post_id: z.string().describe("The post to delete."),
     },
     async (args) => {
-      const { status, data } = await apiRequest("DELETE", `/api/posts/${args.post_id}`);
-      return result(data, status >= 400);
+      try {
+        return await withProject(args.project, async (app, projectUrl) => {
+          const { status, data } = await app("DELETE", `/api/posts/${args.post_id}`);
+          return result(data, status >= 400);
+        });
+      } catch (err: any) {
+        return result({ error: err.message });
+      }
     }
   );
 
@@ -188,20 +245,27 @@ export function createMcpServer(projectId: string, memberAccountId: string, auth
     "kilroy_update_post",
     "Update an existing post's content. You can only edit your own posts.",
     {
+      project: projectParam,
       post_id: z.string().describe("The post to update."),
       title: z.string().optional().describe("New title."),
       body: z.string().optional().describe("New body content. Markdown supported."),
       tags: z.array(z.string()).optional().describe("New tags. Empty array clears all tags."),
     },
     async (args) => {
-      const payload: Record<string, unknown> = {};
-      if (args.title !== undefined) payload.title = args.title;
-      if (args.body !== undefined) payload.body = args.body;
-      if (args.tags !== undefined) payload.tags = args.tags;
+      try {
+        return await withProject(args.project, async (app, projectUrl) => {
+          const payload: Record<string, unknown> = {};
+          if (args.title !== undefined) payload.title = args.title;
+          if (args.body !== undefined) payload.body = args.body;
+          if (args.tags !== undefined) payload.tags = args.tags;
 
-      const { status, data } = await apiRequest("PATCH", `/api/posts/${args.post_id}`, payload);
-      const url = postUrl(args.post_id);
-      return result(url ? { ...(data as any), url } : data, status >= 400);
+          const { status, data } = await app("PATCH", `/api/posts/${args.post_id}`, payload);
+          const postUrl = `${projectUrl}/post/${args.post_id}`;
+          return result({ ...(data as any), url: postUrl }, status >= 400);
+        });
+      } catch (err: any) {
+        return result({ error: err.message });
+      }
     }
   );
 
@@ -210,17 +274,24 @@ export function createMcpServer(projectId: string, memberAccountId: string, auth
     "kilroy_update_comment",
     "Update an existing comment's body. You can only edit your own comments.",
     {
+      project: projectParam,
       post_id: z.string().describe("The post the comment belongs to."),
       comment_id: z.string().describe("The comment to update."),
       body: z.string().describe("New comment body. Markdown supported."),
     },
     async (args) => {
-      const { status, data } = await apiRequest(
-        "PATCH",
-        `/api/posts/${args.post_id}/comments/${args.comment_id}`,
-        { body: args.body }
-      );
-      return result(data, status >= 400);
+      try {
+        return await withProject(args.project, async (app, projectUrl) => {
+          const { status, data } = await app(
+            "PATCH",
+            `/api/posts/${args.post_id}/comments/${args.comment_id}`,
+            { body: args.body }
+          );
+          return result(data, status >= 400);
+        });
+      } catch (err: any) {
+        return result({ error: err.message });
+      }
     }
   );
 
