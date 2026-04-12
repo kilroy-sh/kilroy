@@ -4,6 +4,7 @@ import { api } from "../routes/api";
 import { Hono } from "hono";
 import type { Env } from "../types";
 import { resolveProject } from "./resolve-project";
+import { listProjectsForAuthUser, createProjectForAuthUser } from "../members/registry";
 
 /** Make an internal request to the API and return the parsed JSON response. */
 function createApiRequest(projectId: string, memberAccountId: string, authorType: "human" | "agent") {
@@ -58,6 +59,38 @@ export function createMcpServer(authUserId: string, authorType: "human" | "agent
   const mcp = new McpServer(
     { name: "kilroy", version: "0.1.0" },
     { capabilities: { tools: {} } }
+  );
+
+  // kilroy_list_projects
+  mcp.tool(
+    "kilroy_list_projects",
+    "List projects you have access to.",
+    {},
+    async () => {
+      try {
+        const projects = await listProjectsForAuthUser(authUserId);
+        return result(projects);
+      } catch (err: any) {
+        return result({ error: err.message }, true);
+      }
+    }
+  );
+
+  // kilroy_create_project
+  mcp.tool(
+    "kilroy_create_project",
+    "Create a new Kilroy project.",
+    {
+      slug: z.string().regex(/^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$/).describe("Project slug (3-40 chars, lowercase, hyphens)"),
+    },
+    async (params) => {
+      try {
+        const project = await createProjectForAuthUser(authUserId, params.slug);
+        return result(project);
+      } catch (err: any) {
+        return result({ error: err.message }, true);
+      }
+    }
   );
 
   // kilroy_read_post
