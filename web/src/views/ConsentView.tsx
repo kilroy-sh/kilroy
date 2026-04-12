@@ -1,90 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { KilroyMark } from '../components/KilroyMark';
 
-interface Project {
-  id: string;
-  slug: string;
-  account_slug: string;
-}
-
 export function ConsentView() {
   const { user, account, loading } = useAuth();
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState('');
-  const [newProjectSlug, setNewProjectSlug] = useState('');
-  const [creating, setCreating] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    if (loading || !user || !account) return;
-    fetch('/api/projects', { credentials: 'include' })
-      .then(r => r.json())
-      .then(data => {
-        const owned = (data.owned || []).map((project: { id: string; slug: string }) => ({
-          id: project.id,
-          slug: project.slug,
-          account_slug: account.slug,
-        }));
-        const joined = (data.joined || []).map((project: { id: string; slug: string; owner: string }) => ({
-          id: project.id,
-          slug: project.slug,
-          account_slug: project.owner,
-        }));
-        const accessible = [...owned, ...joined].filter(
-          (project: Project, index: number, all: Project[]) =>
-            all.findIndex((candidate) => candidate.id === project.id) === index,
-        );
-        setProjects(accessible);
-        if (accessible.length === 1) setSelectedProjectId(accessible[0].id);
-      })
-      .catch(() => {});
-  }, [user, account, loading]);
-
-  const slugPattern = /^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$/;
-
-  const handleCreateProject = async () => {
-    if (!slugPattern.test(newProjectSlug)) {
-      setError('3-40 characters, lowercase letters, numbers, and hyphens');
-      return;
-    }
-    setCreating(true);
-    setError('');
-    try {
-      const res = await fetch('/api/projects', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ slug: newProjectSlug }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        setError(data.error || 'Failed to create project');
-        return;
-      }
-      const project = await res.json();
-      setProjects(prev => [...prev, { id: project.id, slug: project.slug, account_slug: account!.slug }]);
-      setSelectedProjectId(project.id);
-      setNewProjectSlug('');
-    } catch {
-      setError('Network error');
-    } finally {
-      setCreating(false);
-    }
-  };
-
   const handleConsent = async () => {
-    if (!selectedProjectId) {
-      setError('Select a project to connect');
-      return;
-    }
     setSubmitting(true);
     setError('');
     try {
-      const project = projects.find(p => p.id === selectedProjectId);
-      if (!project) return;
-
       const res = await fetch('/api/auth/oauth2/consent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -92,15 +18,12 @@ export function ConsentView() {
         body: JSON.stringify({
           accept: true,
           oauth_query: window.location.search.slice(1),
-          project_id: project.id,
-          account_slug: project.account_slug,
-          project_slug: project.slug,
         }),
       });
 
       if (!res.ok) {
         const data = await res.json();
-        setError(data.error || 'Consent failed');
+        setError(data.error_description || data.error || 'Consent failed');
         setSubmitting(false);
         return;
       }
@@ -131,53 +54,18 @@ export function ConsentView() {
           <h1 className="consent-title">Connect to Kilroy</h1>
         </div>
 
-        <p className="landing-desc">Select a project to connect your agent to.</p>
-
-        {projects.length > 0 && (
-          <div className="consent-projects">
-            {projects.map(p => (
-              <label key={p.id} className={`consent-project ${selectedProjectId === p.id ? 'selected' : ''}`}>
-                <input
-                  type="radio"
-                  name="project"
-                  value={p.id}
-                  checked={selectedProjectId === p.id}
-                  onChange={() => setSelectedProjectId(p.id)}
-                />
-                <span className="consent-project-slug">{p.account_slug}/{p.slug}</span>
-              </label>
-            ))}
-          </div>
-        )}
-
-        <div className="consent-create">
-          <p className="consent-create-label">Or create a new project:</p>
-          <div className="consent-create-row">
-            <input
-              className="landing-bar-input"
-              type="text"
-              value={newProjectSlug}
-              onChange={e => setNewProjectSlug(e.target.value.toLowerCase())}
-              placeholder="new-project"
-            />
-            <button
-              className="login-btn login-btn-sm login-btn-github"
-              onClick={handleCreateProject}
-              disabled={creating}
-            >
-              {creating ? 'Creating...' : 'Create'}
-            </button>
-          </div>
-        </div>
+        <p className="landing-desc">
+          Allow your agent to read and write to your Kilroy projects.
+        </p>
 
         {error && <p className="landing-error consent-error">{error}</p>}
 
         <button
           className="login-btn login-btn-github consent-submit"
           onClick={handleConsent}
-          disabled={submitting || !selectedProjectId}
+          disabled={submitting}
         >
-          {submitting ? 'Connecting...' : 'Connect'}
+          {submitting ? 'Connecting...' : 'Allow'}
         </button>
       </div>
     </div>
