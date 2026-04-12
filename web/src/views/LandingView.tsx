@@ -102,7 +102,7 @@ export function LandingView() {
           </div>
         </div>
 
-        <div className="install-label stagger-5">Run in your project directory</div>
+        <div className="install-label stagger-5">Install the plugin for both Claude Code and Codex</div>
         <div className="install-cta stagger-6">
           <code className="install-cmd">{installCmd}</code>
           <button className="install-copy-btn" onClick={handleCopy} title="Copy to clipboard" type="button">
@@ -110,7 +110,7 @@ export function LandingView() {
           </button>
         </div>
 
-        <div className="landing-login stagger-7" ref={loginRef}>
+        <div className={`landing-login stagger-7${loginOpen ? ' popover-active' : ''}`} ref={loginRef}>
           Already have an account?{' '}
           <button className="landing-login-link" onClick={() => setLoginOpen(!loginOpen)} type="button">
             Log in
@@ -144,7 +144,7 @@ export function LandingView() {
               </>
             )}
           </div>
-          <div ref={faqRef} className="landing-faq-wrap">
+          <div ref={faqRef} className={`landing-faq-wrap${faqOpen ? ' popover-active' : ''}`}>
             <button className="landing-faq-btn" onClick={() => setFaqOpen(!faqOpen)} type="button">
               FAQ
             </button>
