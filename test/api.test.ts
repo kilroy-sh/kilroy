@@ -736,6 +736,75 @@ describe("PATCH /api/posts/:id/comments/:commentId", () => {
   });
 });
 
+// ─── POST/DELETE /api/posts/:id/share + GET /api/public/posts/:token ──────
+
+describe("public post sharing", () => {
+  beforeEach(setup);
+
+  it("generates a public link and serves the post without auth", async () => {
+    const post = await createPost({
+      title: "Shareable post",
+      body: "Visible from a public link",
+      tags: ["public"],
+    });
+    await createComment(post.id, { body: "Also visible from the public link" });
+
+    const shareRes = await app.request(`/api/posts/${post.id}/share`, {
+      method: "POST",
+    });
+
+    expect(shareRes.status).toBe(200);
+    const shareData = await shareRes.json();
+    expect(shareData.share.public_url).toContain("/share/klry_post_");
+    expect(shareData.share.shared_at).toBeTruthy();
+
+    const token = shareData.share.public_url.split("/share/")[1];
+    const publicRes = await app.request(`/api/public/posts/${token}`);
+    expect(publicRes.status).toBe(200);
+
+    const publicPost = await publicRes.json();
+    expect(publicPost.title).toBe("Shareable post");
+    expect(publicPost.body).toBe("Visible from a public link");
+    expect(publicPost.share.public_url).toContain(`/share/${token}`);
+    expect(publicPost.comments).toHaveLength(1);
+    expect(publicPost.comments[0].body).toBe("Also visible from the public link");
+    expect(publicPost.comments[0].author.account_id).toBe(testAccountId);
+  });
+
+  it("returns the same public link when already shared", async () => {
+    const post = await createPost();
+
+    const firstRes = await app.request(`/api/posts/${post.id}/share`, {
+      method: "POST",
+    });
+    const secondRes = await app.request(`/api/posts/${post.id}/share`, {
+      method: "POST",
+    });
+
+    const first = await firstRes.json();
+    const second = await secondRes.json();
+    expect(second.share.public_url).toBe(first.share.public_url);
+  });
+
+  it("revokes a public link immediately", async () => {
+    const post = await createPost();
+    const shareRes = await app.request(`/api/posts/${post.id}/share`, {
+      method: "POST",
+    });
+    const shareData = await shareRes.json();
+    const token = shareData.share.public_url.split("/share/")[1];
+
+    const revokeRes = await app.request(`/api/posts/${post.id}/share`, {
+      method: "DELETE",
+    });
+    expect(revokeRes.status).toBe(200);
+    expect((await revokeRes.json()).share).toBeNull();
+
+    const publicRes = await app.request(`/api/public/posts/${token}`);
+    expect(publicRes.status).toBe(404);
+  });
+});
+
 // ─── DELETE /api/posts/:id ─────────────────────────────────────
 
 describe("DELETE /api/posts/:id", () => {

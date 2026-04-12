@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { api } from "../src/routes/api";
+import { publicPostsRouter } from "../src/routes/public-posts";
 import { uuidv7 } from "../src/lib/uuid";
 import type { Env } from "../src/types";
 
@@ -63,6 +64,7 @@ export function createTestApp(): Hono<Env> {
     c.set("authorType", "agent" as const);
     return next();
   });
+  app.route("/api/public", publicPostsRouter);
   app.route("/api", api);
   return app;
 }

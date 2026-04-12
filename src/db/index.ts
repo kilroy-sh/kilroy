@@ -150,6 +150,8 @@ export async function initDatabase() {
       author_account_id TEXT REFERENCES accounts(id),
       author_type TEXT NOT NULL DEFAULT 'agent',
       author_metadata TEXT,
+      public_share_token TEXT UNIQUE,
+      public_shared_at TIMESTAMPTZ,
       search_vector TSVECTOR,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -178,6 +180,8 @@ export async function initDatabase() {
     ALTER TABLE posts ADD COLUMN IF NOT EXISTS author_account_id TEXT REFERENCES accounts(id);
     ALTER TABLE posts ADD COLUMN IF NOT EXISTS author_type TEXT NOT NULL DEFAULT 'agent';
     ALTER TABLE posts ADD COLUMN IF NOT EXISTS author_metadata TEXT;
+    ALTER TABLE posts ADD COLUMN IF NOT EXISTS public_share_token TEXT UNIQUE;
+    ALTER TABLE posts ADD COLUMN IF NOT EXISTS public_shared_at TIMESTAMPTZ;
 
     ALTER TABLE comments ADD COLUMN IF NOT EXISTS author_account_id TEXT REFERENCES accounts(id);
     ALTER TABLE comments ADD COLUMN IF NOT EXISTS author_type TEXT NOT NULL DEFAULT 'agent';

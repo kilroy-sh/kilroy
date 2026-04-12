@@ -3,10 +3,20 @@ import { eq, and, asc } from "drizzle-orm";
 import { db } from "../db";
 import { posts, comments, accounts } from "../db/schema";
 import { uuidv7 } from "../lib/uuid";
+import { getBaseUrl } from "../lib/url";
 import { formatPost, formatComment } from "../lib/format";
 import type { Env } from "../types";
 
 export const postsRouter = new Hono<Env>();
+
+function generatePublicShareToken(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  const hex = Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  return `klry_post_${hex}`;
+}
 
 async function getAccountDisplay(accountId: string | null) {
   if (!accountId) return null;
@@ -18,6 +28,7 @@ async function getAccountDisplay(accountId: string | null) {
 postsRouter.get("/:id", async (c) => {
   const postId = c.req.param("id");
   const projectId = c.get("projectId");
+  const baseUrl = getBaseUrl(c.req.url);
 
   const [post] = await db.select().from(posts).where(and(eq(posts.id, postId), eq(posts.projectId, projectId)));
   if (!post) {
@@ -52,7 +63,7 @@ postsRouter.get("/:id", async (c) => {
   const postDisplay = post.authorAccountId ? displayMap.get(post.authorAccountId) || null : null;
 
   return c.json({
-    ...formatPost(post, postDisplay),
+    ...formatPost(post, postDisplay, baseUrl),
     body: post.body,
     contributors,
     comments: postComments.map((comment) => {
@@ -83,6 +94,7 @@ postsRouter.post("/", async (c) => {
   const projectId = c.get("projectId");
   const memberAccountId = c.get("memberAccountId");
   const authorType = c.get("authorType");
+  const baseUrl = getBaseUrl(c.req.url);
   const now = new Date();
   const id = uuidv7();
 
@@ -96,6 +108,8 @@ postsRouter.post("/", async (c) => {
     authorAccountId: memberAccountId,
     authorType: authorType,
     authorMetadata: body.author_metadata ? JSON.stringify(body.author_metadata) : null,
+    publicShareToken: null,
+    publicSharedAt: null,
     createdAt: now,
     updatedAt: now,
   };
@@ -108,7 +122,7 @@ postsRouter.post("/", async (c) => {
 
   return c.json(
     {
-      ...formatPost(post, display),
+      ...formatPost(post, display, baseUrl),
     },
     201
   );
@@ -254,6 +268,7 @@ postsRouter.patch("/:id", async (c) => {
 
   const projectId = c.get("projectId");
   const memberAccountId = c.get("memberAccountId");
+  const baseUrl = getBaseUrl(c.req.url);
 
   const [post] = await db.select().from(posts).where(and(eq(posts.id, postId), eq(posts.projectId, projectId)));
   if (!post) {
@@ -299,7 +314,52 @@ postsRouter.patch("/:id", async (c) => {
   // Read back the full post for response
   const [updated] = await db.select().from(posts).where(eq(posts.id, postId));
   const display = await getAccountDisplay(updated.authorAccountId);
-  return c.json(formatPost(updated, display));
+  return c.json(formatPost(updated, display, baseUrl));
+});
+
+// POST /posts/:id/share — Generate or return an existing public share link
+postsRouter.post("/:id/share", async (c) => {
+  const postId = c.req.param("id");
+  const projectId = c.get("projectId");
+  const baseUrl = getBaseUrl(c.req.url);
+
+  const [post] = await db.select().from(posts).where(and(eq(posts.id, postId), eq(posts.projectId, projectId)));
+  if (!post) {
+    return c.json({ error: "Post not found", code: "NOT_FOUND" }, 404);
+  }
+
+  let sharedPost = post;
+  if (!post.publicShareToken) {
+    const shareToken = generatePublicShareToken();
+    const sharedAt = new Date();
+    await db.update(posts)
+      .set({ publicShareToken: shareToken, publicSharedAt: sharedAt })
+      .where(eq(posts.id, postId));
+
+    const [updated] = await db.select().from(posts).where(eq(posts.id, postId));
+    sharedPost = updated;
+  }
+
+  return c.json({
+    share: formatPost(sharedPost, null, baseUrl).share,
+  });
+});
+
+// DELETE /posts/:id/share — Revoke a public share link
+postsRouter.delete("/:id/share", async (c) => {
+  const postId = c.req.param("id");
+  const projectId = c.get("projectId");
+
+  const [post] = await db.select().from(posts).where(and(eq(posts.id, postId), eq(posts.projectId, projectId)));
+  if (!post) {
+    return c.json({ error: "Post not found", code: "NOT_FOUND" }, 404);
+  }
+
+  await db.update(posts)
+    .set({ publicShareToken: null, publicSharedAt: null })
+    .where(eq(posts.id, postId));
+
+  return c.json({ share: null });
 });
 
 // DELETE /posts/:id — Permanently delete a post and all comments

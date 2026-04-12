@@ -10,9 +10,11 @@ export function formatPost(post: {
   authorAccountId: string | null;
   authorType: string;
   authorMetadata: string | null;
+  publicShareToken: string | null;
+  publicSharedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
-}, authorDisplay?: { slug: string; displayName: string } | null) {
+}, authorDisplay?: { slug: string; displayName: string } | null, baseUrl?: string) {
   return {
     id: post.id,
     title: post.title,
@@ -24,6 +26,10 @@ export function formatPost(post: {
       metadata: post.authorMetadata ? JSON.parse(post.authorMetadata) : null,
       ...(authorDisplay ? { slug: authorDisplay.slug, display_name: authorDisplay.displayName } : {}),
     },
+    share: post.publicShareToken ? {
+      public_url: baseUrl ? `${baseUrl}/share/${post.publicShareToken}` : null,
+      shared_at: post.publicSharedAt ? post.publicSharedAt.toISOString() : null,
+    } : null,
     created_at: post.createdAt.toISOString(),
     updated_at: post.updatedAt.toISOString(),
   };

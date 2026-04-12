@@ -6,6 +6,7 @@ import { globalApi } from "./routes/global-api";
 import { joinHandler } from "./routes/join";
 import { installHandler, universalInstallHandler } from "./routes/install";
 import { tokenHandler } from "./routes/token";
+import { publicPostsRouter } from "./routes/public-posts";
 import { projectAuth } from "./middleware/project";
 import { resolveSession } from "./middleware/auth";
 import { statsRouter } from "./routes/stats";
@@ -19,6 +20,7 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { existsSync, readFileSync } from "fs";
 import { resolve } from "path";
 import type { Context } from "hono";
+import type { Auth as BetterAuthInstance } from "better-auth/types";
 import type { Env } from "./types";
 
 await initDatabase();
@@ -80,6 +82,7 @@ if (!viteDevUrl && indexHtml) {
 
   // Landing page — SPA shell at root
   app.get("/", (c) => c.html(indexHtml));
+  app.get("/share/:token", (c) => c.html(indexHtml));
 }
 
 // OAuth 2.1 metadata (must be at root per RFC 8414)
@@ -92,6 +95,7 @@ app.all("/api/auth/*", (c) => auth.handler(c.req.raw));
 
 // Global stats — public, no auth
 app.route("/api/stats", statsRouter);
+app.route("/api/public", publicPostsRouter);
 
 // Global API — session-authed via resolveSession
 app.use("/api/*", resolveSession);
@@ -125,7 +129,9 @@ app.get("/mcp/.well-known/oauth-protected-resource", (c) => {
 });
 
 // Root-level MCP endpoint — JWT auth via OAuth provider
-const resourceClient = oauthProviderResourceClient(auth);
+const resourceClient = oauthProviderResourceClient(
+  auth as unknown as BetterAuthInstance,
+);
 const { verifyAccessToken } = resourceClient.getActions();
 
 app.post("/mcp", async (c) => {

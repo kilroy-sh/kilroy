@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { readPost, createComment, updateStatus, deletePost } from '../lib/api';
+import { readPost, createComment, updateStatus, deletePost, sharePost, revokePostShare } from '../lib/api';
 import { useProject, useProjectPath } from '../context/ProjectContext';
 import { Markdown } from '../components/Markdown';
 import { SkeletonCards } from '../components/Skeleton';
@@ -58,6 +58,9 @@ export function PostView() {
   const [error, setError] = useState('');
   const [commentBody, setCommentBody] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [shareBusy, setShareBusy] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
+  const [sharePanelOpen, setSharePanelOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const load = () => {
@@ -127,6 +130,41 @@ export function PostView() {
     URL.revokeObjectURL(url);
   };
 
+  const handleShare = async () => {
+    if (!id) return;
+    setShareBusy(true);
+    try {
+      const data = await sharePost(accountSlug, projectSlug, id);
+      setPost((prev: any) => prev ? { ...prev, share: data.share } : prev);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setShareBusy(false);
+    }
+  };
+
+  const handleCopyShare = async () => {
+    const shareUrl = post?.share?.public_url;
+    if (!shareUrl) return;
+    await navigator.clipboard.writeText(shareUrl);
+    setShareCopied(true);
+    setTimeout(() => setShareCopied(false), 2000);
+  };
+
+  const handleRevokeShare = async () => {
+    if (!id || !confirm('Revoke this public link? Anyone with it will lose access immediately.')) return;
+    setShareBusy(true);
+    try {
+      await revokePostShare(accountSlug, projectSlug, id);
+      setPost((prev: any) => prev ? { ...prev, share: null } : prev);
+      setShareCopied(false);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setShareBusy(false);
+    }
+  };
+
   if (error) return <div className="content"><div className="error">{error}</div></div>;
   if (!post) return <div className="content"><SkeletonCards count={1} /></div>;
 
@@ -165,9 +203,44 @@ export function PostView() {
             <button className="text-action" onClick={() => handleStatus('active')}>restore</button>
           )}
           <button className="text-action text-action-danger" onClick={handleDelete}>delete</button>
+          <button
+            className={`text-action${sharePanelOpen ? ' text-action-active' : ''}`}
+            onClick={() => setSharePanelOpen((open) => !open)}
+          >
+            share publicly
+          </button>
           <button className="text-action" onClick={handleDownloadMarkdown}>download markdown</button>
           <button className="text-action" onClick={() => window.print()}>export pdf</button>
         </div>
+
+        {sharePanelOpen && (
+          <div className="post-share-box">
+            <div className="post-share-label">Public Share Link</div>
+            {post.share?.public_url ? (
+              <>
+                <div className="post-share-link-row">
+                  <code>{post.share.public_url}</code>
+                  <button className="btn btn-sm" onClick={handleCopyShare}>
+                    {shareCopied ? 'Copied!' : 'Copy'}
+                  </button>
+                  <button className="btn btn-sm" onClick={handleRevokeShare} disabled={shareBusy}>
+                    {shareBusy ? 'Working...' : 'Revoke'}
+                  </button>
+                </div>
+                <div className="post-share-hint">
+                  Anyone with this link can read the post.
+                </div>
+              </>
+            ) : (
+              <div className="post-share-link-row">
+                <span className="post-share-hint">Generate a public link to share this post.</span>
+                <button className="btn btn-sm" onClick={handleShare} disabled={shareBusy}>
+                  {shareBusy ? 'Working...' : 'Share publicly'}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         <Markdown content={post.body} className="post-body prose" />
 

@@ -79,14 +79,14 @@ async function ftsSearch(
   `, [tsquery, projectId, limit * 2]) as Array<{
     post_id: string;
     comment_id: string;
-    snippet: string;
+    snippet: string | null;
     rank: number;
   }>;
 
   // Merge and dedupe by post_id, keeping best match per post
   const bestByPost = new Map<
     string,
-    { snippet: string; rank: number; match_location: string }
+    { snippet: string | null; rank: number; match_location: string }
   >();
 
   for (const m of postMatches) {

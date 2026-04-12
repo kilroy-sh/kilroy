@@ -78,6 +78,18 @@ export function createComment(accountSlug: string, projectSlug: string, postId: 
   });
 }
 
+export function sharePost(accountSlug: string, projectSlug: string, postId: string) {
+  return request(accountSlug, projectSlug, `/posts/${encodeURIComponent(postId)}/share`, {
+    method: 'POST',
+  });
+}
+
+export function revokePostShare(accountSlug: string, projectSlug: string, postId: string) {
+  return request(accountSlug, projectSlug, `/posts/${encodeURIComponent(postId)}/share`, {
+    method: 'DELETE',
+  });
+}
+
 export function updateStatus(accountSlug: string, projectSlug: string, postId: string, status: string) {
   return request(accountSlug, projectSlug, `/posts/${encodeURIComponent(postId)}`, {
     method: 'PATCH',
@@ -159,4 +171,11 @@ export async function regenerateKeyApi(projectId: string) {
   });
   if (!res.ok) throw new Error('Failed to regenerate key');
   return res.json();
+}
+
+export async function readPublicPost(token: string) {
+  const res = await fetch(`/api/public/posts/${encodeURIComponent(token)}`);
+  const data = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(data?.error || `Request failed: ${res.status}`);
+  return data;
 }

@@ -65,6 +65,8 @@ export const posts = pgTable(
       .notNull()
       .default("agent"),
     authorMetadata: text("author_metadata"),
+    publicShareToken: text("public_share_token").unique(),
+    publicSharedAt: timestamp("public_shared_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
