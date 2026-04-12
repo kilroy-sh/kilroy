@@ -14,8 +14,7 @@ import { oauthProviderAuthServerMetadata } from "@better-auth/oauth-provider";
 import { oauthProviderResourceClient } from "@better-auth/oauth-provider/resource-client";
 import { createMcpServer } from "./mcp/server";
 import { getBaseUrl } from "./lib/url";
-import { getProjectByAuthUserId } from "./members/registry";
-import { setPendingProject } from "./pending-projects";
+import { getAccountById } from "./accounts/registry";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { existsSync, readFileSync } from "fs";
 import { resolve } from "path";
@@ -87,29 +86,6 @@ const oauthMetadata = oauthProviderAuthServerMetadata(auth);
 app.get("/.well-known/oauth-authorization-server", (c) => oauthMetadata(c.req.raw));
 app.get("/.well-known/oauth-authorization-server/*", (c) => oauthMetadata(c.req.raw));
 
-// Intercept consent requests to extract project selection before Better Auth sees them.
-// The project info is stored in a Map keyed by session ID, then read by consentReferenceId
-// in auth.ts — all within this same request.
-app.use("/api/auth/oauth2/consent", async (c, next) => {
-  if (c.req.method === "POST") {
-    try {
-      const cloned = c.req.raw.clone();
-      const body = await cloned.json();
-      if (body.project_id) {
-        const session = await auth.api.getSession({ headers: c.req.raw.headers });
-        if (session) {
-          setPendingProject(session.session.id, {
-            projectId: body.project_id,
-            accountSlug: body.account_slug,
-            projectSlug: body.project_slug,
-          });
-        }
-      }
-    } catch {}
-  }
-  await next();
-});
-
 // Better Auth handles all auth routes
 app.all("/api/auth/*", (c) => auth.handler(c.req.raw));
 
@@ -154,7 +130,6 @@ const { verifyAccessToken } = resourceClient.getActions();
 app.post("/mcp", async (c) => {
   const baseUrl = getBaseUrl(c.req.url);
 
-  // Extract Bearer token
   const authorization = c.req.header("Authorization") ?? "";
   const accessToken = authorization.startsWith("Bearer ")
     ? authorization.slice(7)
@@ -166,7 +141,6 @@ app.post("/mcp", async (c) => {
     });
   }
 
-  // Verify the JWT
   let payload;
   try {
     payload = await verifyAccessToken(accessToken, {
@@ -179,31 +153,17 @@ app.post("/mcp", async (c) => {
     });
   }
 
-  // Read project info from JWT claims
-  const projectId = payload.projectId as string | undefined;
-  const accountSlug = payload.accountSlug as string | undefined;
-  const projectSlug = payload.projectSlug as string | undefined;
   const sub = payload.sub as string | undefined;
-
-  if (!projectId || !accountSlug || !projectSlug || !sub) {
-    return c.text("Missing project claims in token", 403);
+  if (!sub) {
+    return c.text("Missing user identity in token", 403);
   }
 
-  // Verify membership
-  const membership = await getProjectByAuthUserId(sub, projectId);
-  if (!membership) {
-    return c.text("Not a member of this project", 403);
-  }
-
-  // Create MCP server scoped to the project
-  const projectUrl = `${baseUrl}/${accountSlug}/${projectSlug}`;
-  const mcp = createMcpServer(projectId, membership.memberAccountId, "agent", projectUrl);
+  const mcp = createMcpServer(sub, "agent", baseUrl);
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
   });
   await mcp.connect(transport);
-  const response = await transport.handleRequest(c.req.raw);
-  return response;
+  return await transport.handleRequest(c.req.raw);
 });
 
 // Universal install — no project, no token
@@ -230,20 +190,22 @@ projectApp.route("/api", api);
 
 // MCP endpoint — stateless streamable HTTP transport
 projectApp.all("/mcp", async (c) => {
-  const projectId = c.get("projectId");
   const memberAccountId = c.get("memberAccountId");
   const authorType = c.get("authorType");
-  const accountSlug = c.get("accountSlug");
-  const projectSlug = c.get("projectSlug");
   const baseUrl = getBaseUrl(c.req.url);
-  const projectUrl = `${baseUrl}/${accountSlug}/${projectSlug}`;
-  const mcp = createMcpServer(projectId, memberAccountId, authorType, projectUrl);
+
+  // Resolve app-level account ID to Better Auth user ID
+  const account = await getAccountById(memberAccountId);
+  if (!account) {
+    return c.text("Account not found", 403);
+  }
+
+  const mcp = createMcpServer(account.authUserId, authorType, baseUrl);
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
   });
   await mcp.connect(transport);
-  const response = await transport.handleRequest(c.req.raw);
-  return response;
+  return await transport.handleRequest(c.req.raw);
 });
 
 // Project-level static assets and SPA fallback

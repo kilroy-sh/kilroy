@@ -3,16 +3,16 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 
 import { createMcpServer } from "../src/mcp/server";
-import { resetDb, testProjectId, testAccountId } from "./helpers";
+import { resetDb } from "./helpers";
+
+const TEST_PROJECT = "test-account/test-workspace";
 
 let client: Client;
 
 async function setupMcp() {
   await resetDb();
 
-  // Import testProjectId and testAccountId after resetDb populates them
-  const { testProjectId: projectId, testAccountId: accountId } = await import("./helpers");
-  const mcp = createMcpServer(projectId, accountId, "agent");
+  const mcp = createMcpServer("test-user-id", "agent", "http://localhost:3000");
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
 
   await mcp.connect(serverTransport);
@@ -32,13 +32,15 @@ async function callTool(name: string, args: Record<string, unknown> = {}) {
 describe("MCP tool registration", () => {
   beforeEach(setupMcp);
 
-  it("registers all 9 tools", async () => {
+  it("registers all 11 tools", async () => {
     const result = await client.listTools();
     const names = result.tools.map((t) => t.name).sort();
     expect(names).toEqual([
       "kilroy_comment",
       "kilroy_create_post",
+      "kilroy_create_project",
       "kilroy_delete_post",
+      "kilroy_list_projects",
       "kilroy_read_post",
       "kilroy_search",
       "kilroy_tags",
@@ -63,6 +65,7 @@ describe("kilroy_create_post", () => {
 
   it("creates a post and returns it", async () => {
     const { data } = await callTool("kilroy_create_post", {
+      project: TEST_PROJECT,
       title: "OAuth gotcha",
       body: "Redirect URI must match exactly.",
       tags: ["oauth", "gotcha"],
@@ -76,6 +79,7 @@ describe("kilroy_create_post", () => {
 
   it("returns error for missing fields", async () => {
     const { data, isError } = await callTool("kilroy_create_post", {
+      project: TEST_PROJECT,
       title: "missing body",
       body: "",
       tags: ["test"],
@@ -92,17 +96,19 @@ describe("kilroy_read_post", () => {
 
   it("reads a post with comments", async () => {
     const { data: post } = await callTool("kilroy_create_post", {
+      project: TEST_PROJECT,
       title: "Test",
       body: "Test body",
       tags: ["test"],
     });
 
     await callTool("kilroy_comment", {
+      project: TEST_PROJECT,
       post_id: post.id,
       body: "Great find!",
     });
 
-    const { data } = await callTool("kilroy_read_post", { post_id: post.id });
+    const { data } = await callTool("kilroy_read_post", { project: TEST_PROJECT, post_id: post.id });
 
     expect(data.title).toBe("Test");
     expect(data.body).toBe("Test body");
@@ -116,6 +122,7 @@ describe("kilroy_read_post", () => {
 
   it("returns error for non-existent post", async () => {
     const { data, isError } = await callTool("kilroy_read_post", {
+      project: TEST_PROJECT,
       post_id: "nonexistent",
     });
     expect(isError).toBe(true);
@@ -130,12 +137,13 @@ describe("kilroy_search", () => {
 
   it("finds posts by content", async () => {
     await callTool("kilroy_create_post", {
+      project: TEST_PROJECT,
       title: "Race condition in auth",
       body: "Found a race condition in token refresh",
       tags: ["auth"],
     });
 
-    const { data } = await callTool("kilroy_search", { query: "race condition" });
+    const { data } = await callTool("kilroy_search", { project: TEST_PROJECT, query: "race condition" });
 
     expect(data.results).toHaveLength(1);
     expect(data.results[0].title).toBe("Race condition in auth");
@@ -149,12 +157,14 @@ describe("kilroy_comment", () => {
 
   it("adds a comment to a post", async () => {
     const { data: post } = await callTool("kilroy_create_post", {
+      project: TEST_PROJECT,
       title: "Test",
       body: "Content",
       tags: ["test"],
     });
 
     const { data } = await callTool("kilroy_comment", {
+      project: TEST_PROJECT,
       post_id: post.id,
       body: "Great find!",
     });
@@ -168,6 +178,7 @@ describe("kilroy_comment", () => {
 
   it("returns error for non-existent post", async () => {
     const { data, isError } = await callTool("kilroy_comment", {
+      project: TEST_PROJECT,
       post_id: "nonexistent",
       body: "test",
     });
@@ -183,12 +194,14 @@ describe("kilroy_update_post_status", () => {
 
   it("archives an active post", async () => {
     const { data: post } = await callTool("kilroy_create_post", {
+      project: TEST_PROJECT,
       title: "Test",
       body: "Content",
       tags: ["test"],
     });
 
     const { data } = await callTool("kilroy_update_post_status", {
+      project: TEST_PROJECT,
       post_id: post.id,
       status: "archived",
     });
@@ -198,17 +211,20 @@ describe("kilroy_update_post_status", () => {
 
   it("rejects invalid transition", async () => {
     const { data: post } = await callTool("kilroy_create_post", {
+      project: TEST_PROJECT,
       title: "Test",
       body: "Content",
       tags: ["test"],
     });
 
     await callTool("kilroy_update_post_status", {
+      project: TEST_PROJECT,
       post_id: post.id,
       status: "archived",
     });
 
     const { data, isError } = await callTool("kilroy_update_post_status", {
+      project: TEST_PROJECT,
       post_id: post.id,
       status: "obsolete",
     });
@@ -224,12 +240,14 @@ describe("kilroy_update_post", () => {
 
   it("updates a post's body", async () => {
     const { data: post } = await callTool("kilroy_create_post", {
+      project: TEST_PROJECT,
       title: "Original",
       body: "Original body",
       tags: ["test"],
     });
 
     const { data } = await callTool("kilroy_update_post", {
+      project: TEST_PROJECT,
       post_id: post.id,
       body: "Updated body with src/new/path.ts",
     });
@@ -242,6 +260,7 @@ describe("kilroy_update_post", () => {
 
   it("returns error for non-existent post", async () => {
     const { data, isError } = await callTool("kilroy_update_post", {
+      project: TEST_PROJECT,
       post_id: "nonexistent",
       title: "test",
     });
@@ -257,17 +276,20 @@ describe("kilroy_update_comment", () => {
 
   it("updates a comment's body", async () => {
     const { data: post } = await callTool("kilroy_create_post", {
+      project: TEST_PROJECT,
       title: "Test",
       body: "Content",
       tags: ["test"],
     });
 
     const { data: comment } = await callTool("kilroy_comment", {
+      project: TEST_PROJECT,
       post_id: post.id,
       body: "Original comment",
     });
 
     const { data } = await callTool("kilroy_update_comment", {
+      project: TEST_PROJECT,
       post_id: post.id,
       comment_id: comment.id,
       body: "Updated comment",
@@ -282,12 +304,14 @@ describe("kilroy_update_comment", () => {
 
   it("returns error for non-existent comment", async () => {
     const { data: post } = await callTool("kilroy_create_post", {
+      project: TEST_PROJECT,
       title: "Test",
       body: "Content",
       tags: ["test"],
     });
 
     const { data, isError } = await callTool("kilroy_update_comment", {
+      project: TEST_PROJECT,
       post_id: post.id,
       comment_id: "nonexistent",
       body: "test",
@@ -305,23 +329,25 @@ describe("kilroy_delete_post", () => {
 
   it("deletes a post", async () => {
     const { data: post } = await callTool("kilroy_create_post", {
+      project: TEST_PROJECT,
       title: "Test",
       body: "Content",
       tags: ["test"],
     });
 
-    const { data } = await callTool("kilroy_delete_post", { post_id: post.id });
+    const { data } = await callTool("kilroy_delete_post", { project: TEST_PROJECT, post_id: post.id });
 
     expect(data.deleted).toBe(true);
     expect(data.post_id).toBe(post.id);
 
     // Verify it's gone
-    const { isError } = await callTool("kilroy_read_post", { post_id: post.id });
+    const { isError } = await callTool("kilroy_read_post", { project: TEST_PROJECT, post_id: post.id });
     expect(isError).toBe(true);
   });
 
   it("returns error for non-existent post", async () => {
     const { data, isError } = await callTool("kilroy_delete_post", {
+      project: TEST_PROJECT,
       post_id: "nonexistent",
     });
     expect(isError).toBe(true);

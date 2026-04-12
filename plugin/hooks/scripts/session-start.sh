@@ -35,6 +35,15 @@ ENVEOF
   echo "Wrote env vars" >> "$LOG" 2>/dev/null
 fi
 
+# Read project mapping from repo config
+KILROY_CONFIG=".kilroy/config.toml"
+if [[ -f "$KILROY_CONFIG" ]]; then
+  KILROY_PROJECT=$(sed -n 's/^project[[:space:]]*=[[:space:]]*"\(.*\)"$/\1/p' "$KILROY_CONFIG" | head -n 1)
+  if [[ -n "$KILROY_PROJECT" ]]; then
+    echo "KILROY_PROJECT=$KILROY_PROJECT" >> "$CLAUDE_ENV_FILE"
+  fi
+fi
+
 # If no token, Kilroy isn't configured — inject setup guidance instead of the full skill
 if [ -z "${KILROY_TOKEN:-}" ]; then
   using_kilroy="Kilroy is installed. When you use a Kilroy tool, your agent client will prompt you to sign in and connect a project. Just follow the browser prompt."

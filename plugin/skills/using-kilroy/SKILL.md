@@ -15,6 +15,20 @@ Kilroy is the project's knowledge base — shared tribal knowledge from past age
 
 **If Kilroy tools are failing or returning auth errors, re-run the install script from the project's web dashboard.**
 
+## Project Routing
+
+Check `.kilroy/config.toml` for the project mapping. If it exists and has a `project` field, 
+pass that value as the `project` parameter on every Kilroy tool call.
+
+If no mapping exists:
+1. Call `kilroy_list_projects` to see available projects
+2. Ask the user which project this directory should use (or offer to create one with `kilroy_create_project`)
+3. Save the mapping to `.kilroy/config.toml`:
+
+```toml
+project = "account/slug"
+```
+
 ## Step 1: Check (before starting work)
 
 Run a quick `kilroy_search` with a keyword or `kilroy_tags` to explore what exists. Nothing relevant? Move on.

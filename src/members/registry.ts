@@ -2,6 +2,7 @@ import { eq, and, inArray } from "drizzle-orm";
 import { db } from "../db";
 import { projectMembers, projects, accounts } from "../db/schema";
 import { uuidv7 } from "../lib/uuid";
+import { createProject } from "../projects/registry";
 
 function generateMemberKey(): string {
   const bytes = new Uint8Array(16);
@@ -210,4 +211,62 @@ export async function listMembershipsForAccount(accountId: string) {
         eq(projectMembers.role, "member")
       )
     );
+}
+
+/**
+ * List all projects the auth user is a member of (as owner or member).
+ * Returns projects with their account slug for display as account/project format.
+ */
+export async function listProjectsForAuthUser(authUserId: string) {
+  // Find all app accounts for this auth user
+  const userAccounts = await db
+    .select({ id: accounts.id })
+    .from(accounts)
+    .where(eq(accounts.authUserId, authUserId));
+
+  if (userAccounts.length === 0) return [];
+
+  const accountIds = userAccounts.map((a) => a.id);
+
+  // Find all project memberships across all accounts
+  const rows = await db
+    .select({
+      id: projects.id,
+      slug: projects.slug,
+      accountSlug: accounts.slug,
+    })
+    .from(projectMembers)
+    .innerJoin(projects, eq(projectMembers.projectId, projects.id))
+    .innerJoin(accounts, eq(projects.accountId, accounts.id))
+    .where(inArray(projectMembers.accountId, accountIds));
+
+  return rows.map((r) => ({
+    id: r.id,
+    slug: r.slug,
+    account_slug: r.accountSlug,
+  }));
+}
+
+/**
+ * Create a project under the auth user's account.
+ * The user becomes the project owner.
+ */
+export async function createProjectForAuthUser(authUserId: string, slug: string) {
+  // Find the user's account
+  const [account] = await db
+    .select({ id: accounts.id, slug: accounts.slug })
+    .from(accounts)
+    .where(eq(accounts.authUserId, authUserId));
+
+  if (!account) {
+    throw new Error("No account found for this user. Complete onboarding first.");
+  }
+
+  const project = await createProject(account.id, slug);
+
+  return {
+    id: project.id,
+    slug: project.slug,
+    account_slug: account.slug,
+  };
 }
