@@ -61,11 +61,9 @@ export function createMcpServer(authUserId: string, authorType: "human" | "agent
     { capabilities: { tools: {} } }
   );
 
-  // kilroy_list_projects
-  mcp.tool(
+  mcp.registerTool(
     "kilroy_list_projects",
-    "List projects you have access to.",
-    {},
+    { description: "List projects you have access to." },
     async () => {
       try {
         const projects = await listProjectsForAuthUser(authUserId);
@@ -76,12 +74,13 @@ export function createMcpServer(authUserId: string, authorType: "human" | "agent
     }
   );
 
-  // kilroy_create_project
-  mcp.tool(
+  mcp.registerTool(
     "kilroy_create_project",
-    "Create a new Kilroy project.",
     {
-      slug: z.string().regex(/^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$/).describe("Project slug (3-40 chars, lowercase, hyphens)"),
+      description: "Create a new Kilroy project.",
+      inputSchema: {
+        slug: z.string().regex(/^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$/).describe("Project slug (3-40 chars, lowercase, hyphens)"),
+      },
     },
     async (params) => {
       try {
@@ -93,13 +92,14 @@ export function createMcpServer(authUserId: string, authorType: "human" | "agent
     }
   );
 
-  // kilroy_read_post
-  mcp.tool(
+  mcp.registerTool(
     "kilroy_read_post",
-    "Read a post and all its comments.",
     {
-      project: projectParam,
-      post_id: z.string().describe("The post's UUID v7."),
+      description: "Read a post and all its comments.",
+      inputSchema: {
+        project: projectParam,
+        post_id: z.string().describe("The post's UUID v7."),
+      },
     },
     async (args) => {
       try {
@@ -113,20 +113,21 @@ export function createMcpServer(authUserId: string, authorType: "human" | "agent
     }
   );
 
-  // kilroy_search
-  mcp.tool(
+  mcp.registerTool(
     "kilroy_search",
-    "Search posts by keyword or phrase. Returns the best matches across titles, bodies, and tags. Multi-word queries match any term — results with more matches rank higher.",
     {
-      project: projectParam,
-      query: z.string().describe("Search query."),
-      regex: z.boolean().optional().describe("If true, treat query as a regular expression."),
-      tags: z.array(z.string()).optional().describe("Only search posts that have all of these tags."),
-      status: z.enum(["active", "archived", "obsolete", "all"]).optional().describe("Filter by status."),
-      order_by: z.enum(["relevance", "updated_at", "created_at"]).optional().describe("Sort field."),
-      order: z.enum(["asc", "desc"]).optional().describe("Sort direction."),
-      cursor: z.string().optional().describe("Pagination cursor from a previous response."),
-      limit: z.number().int().min(1).max(100).optional().describe("Maximum number of results to return (1-100)."),
+      description: "Search posts by keyword or phrase. Returns the best matches across titles, bodies, and tags. Multi-word queries match any term — results with more matches rank higher.",
+      inputSchema: {
+        project: projectParam,
+        query: z.string().describe("Search query."),
+        regex: z.boolean().optional().describe("If true, treat query as a regular expression."),
+        tags: z.array(z.string()).optional().describe("Only search posts that have all of these tags."),
+        status: z.enum(["active", "archived", "obsolete", "all"]).optional().describe("Filter by status."),
+        order_by: z.enum(["relevance", "updated_at", "created_at"]).optional().describe("Sort field."),
+        order: z.enum(["asc", "desc"]).optional().describe("Sort direction."),
+        cursor: z.string().optional().describe("Pagination cursor from a previous response."),
+        limit: z.number().int().min(1).max(100).optional().describe("Maximum number of results to return (1-100)."),
+      },
     },
     async (args) => {
       try {
@@ -150,14 +151,15 @@ export function createMcpServer(authUserId: string, authorType: "human" | "agent
     }
   );
 
-  // kilroy_tags
-  mcp.tool(
+  mcp.registerTool(
     "kilroy_tags",
-    "List tags in this project with post counts. Pass tags to see what other tags co-occur with them — useful for exploring what knowledge exists.",
     {
-      project: projectParam,
-      tags: z.array(z.string()).optional().describe("Filter to co-occurring tags. Returns tags that appear alongside these on the same posts."),
-      status: z.enum(["active", "archived", "obsolete", "all"]).optional().describe("Filter by post status."),
+      description: "List tags in this project with post counts. Pass tags to see what other tags co-occur with them — useful for exploring what knowledge exists.",
+      inputSchema: {
+        project: projectParam,
+        tags: z.array(z.string()).optional().describe("Filter to co-occurring tags. Returns tags that appear alongside these on the same posts."),
+        status: z.enum(["active", "archived", "obsolete", "all"]).optional().describe("Filter by post status."),
+      },
     },
     async (args) => {
       try {
@@ -175,16 +177,17 @@ export function createMcpServer(authUserId: string, authorType: "human" | "agent
     }
   );
 
-  // kilroy_create_post
-  mcp.tool(
+  mcp.registerTool(
     "kilroy_create_post",
-    "Create a new post. Every post needs at least one tag.",
     {
-      project: projectParam,
-      title: z.string().describe("Post title — carry the finding, not just the topic. E.g. 'TikTok creator content converts at 270% ROAS' not 'TikTok analysis'."),
-      body: z.string().describe("Content of the post. Markdown supported. Start with a TL;DR in bullet points if longer than a paragraph."),
-      tags: z.array(z.string()).min(1).describe("Tags for discoverability. Tag the subject, not the activity — e.g. tiktok, auth, churn, not analysis or debugging. At least one required."),
-      author_metadata: z.record(z.string(), z.unknown()).optional().describe("Agent runtime metadata (git_user, os_user, session_id, agent). Injected automatically by Claude Code plugin."),
+      description: "Create a new post. Every post needs at least one tag.",
+      inputSchema: {
+        project: projectParam,
+        title: z.string().describe("Post title — carry the finding, not just the topic. E.g. 'TikTok creator content converts at 270% ROAS' not 'TikTok analysis'."),
+        body: z.string().describe("Content of the post. Markdown supported. Start with a TL;DR in bullet points if longer than a paragraph."),
+        tags: z.array(z.string()).min(1).describe("Tags for discoverability. Tag the subject, not the activity — e.g. tiktok, auth, churn, not analysis or debugging. At least one required."),
+        author_metadata: z.record(z.string(), z.unknown()).optional().describe("Agent runtime metadata (git_user, os_user, session_id, agent). Injected automatically by Claude Code plugin."),
+      },
     },
     async (args) => {
       try {
@@ -204,15 +207,16 @@ export function createMcpServer(authUserId: string, authorType: "human" | "agent
     }
   );
 
-  // kilroy_comment
-  mcp.tool(
+  mcp.registerTool(
     "kilroy_comment",
-    "Add a comment to an existing post.",
     {
-      project: projectParam,
-      post_id: z.string().describe("The post to comment on."),
-      body: z.string().describe("Content of the comment. Markdown supported."),
-      author_metadata: z.record(z.string(), z.unknown()).optional().describe("Agent runtime metadata (git_user, os_user, session_id, agent). Injected automatically by Claude Code plugin."),
+      description: "Add a comment to an existing post.",
+      inputSchema: {
+        project: projectParam,
+        post_id: z.string().describe("The post to comment on."),
+        body: z.string().describe("Content of the comment. Markdown supported."),
+        author_metadata: z.record(z.string(), z.unknown()).optional().describe("Agent runtime metadata (git_user, os_user, session_id, agent). Injected automatically by Claude Code plugin."),
+      },
     },
     async (args) => {
       try {
@@ -230,14 +234,15 @@ export function createMcpServer(authUserId: string, authorType: "human" | "agent
     }
   );
 
-  // kilroy_update_post_status
-  mcp.tool(
+  mcp.registerTool(
     "kilroy_update_post_status",
-    "Change a post's status.",
     {
-      project: projectParam,
-      post_id: z.string().describe("The post to update."),
-      status: z.enum(["active", "archived", "obsolete"]).describe("New status."),
+      description: "Change a post's status.",
+      inputSchema: {
+        project: projectParam,
+        post_id: z.string().describe("The post to update."),
+        status: z.enum(["active", "archived", "obsolete"]).describe("New status."),
+      },
     },
     async (args) => {
       try {
@@ -253,13 +258,15 @@ export function createMcpServer(authUserId: string, authorType: "human" | "agent
     }
   );
 
-  // kilroy_delete_post
-  mcp.tool(
+  mcp.registerTool(
     "kilroy_delete_post",
-    "Permanently delete a post and all its comments. This is irreversible.",
     {
-      project: projectParam,
-      post_id: z.string().describe("The post to delete."),
+      description: "Permanently delete a post and all its comments. This is irreversible.",
+      inputSchema: {
+        project: projectParam,
+        post_id: z.string().describe("The post to delete."),
+      },
+      annotations: { destructiveHint: true },
     },
     async (args) => {
       try {
@@ -273,16 +280,17 @@ export function createMcpServer(authUserId: string, authorType: "human" | "agent
     }
   );
 
-  // kilroy_update_post
-  mcp.tool(
+  mcp.registerTool(
     "kilroy_update_post",
-    "Update an existing post's content. You can only edit your own posts.",
     {
-      project: projectParam,
-      post_id: z.string().describe("The post to update."),
-      title: z.string().optional().describe("New title."),
-      body: z.string().optional().describe("New body content. Markdown supported."),
-      tags: z.array(z.string()).optional().describe("New tags. Empty array clears all tags."),
+      description: "Update an existing post's content. You can only edit your own posts.",
+      inputSchema: {
+        project: projectParam,
+        post_id: z.string().describe("The post to update."),
+        title: z.string().optional().describe("New title."),
+        body: z.string().optional().describe("New body content. Markdown supported."),
+        tags: z.array(z.string()).optional().describe("New tags. Empty array clears all tags."),
+      },
     },
     async (args) => {
       try {
@@ -302,15 +310,16 @@ export function createMcpServer(authUserId: string, authorType: "human" | "agent
     }
   );
 
-  // kilroy_update_comment
-  mcp.tool(
+  mcp.registerTool(
     "kilroy_update_comment",
-    "Update an existing comment's body. You can only edit your own comments.",
     {
-      project: projectParam,
-      post_id: z.string().describe("The post the comment belongs to."),
-      comment_id: z.string().describe("The comment to update."),
-      body: z.string().describe("New comment body. Markdown supported."),
+      description: "Update an existing comment's body. You can only edit your own comments.",
+      inputSchema: {
+        project: projectParam,
+        post_id: z.string().describe("The post the comment belongs to."),
+        comment_id: z.string().describe("The comment to update."),
+        body: z.string().describe("New comment body. Markdown supported."),
+      },
     },
     async (args) => {
       try {
