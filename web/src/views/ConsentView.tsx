@@ -32,6 +32,9 @@ export function ConsentView() {
       const redirectUrl = data.url || data.redirectTo;
       if (redirectUrl) {
         window.location.href = redirectUrl;
+      } else {
+        setError('No redirect URL in response');
+        setSubmitting(false);
       }
     } catch {
       setError('Network error');
