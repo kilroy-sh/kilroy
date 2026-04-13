@@ -5,7 +5,6 @@ import { api } from "./routes/api";
 import { globalApi } from "./routes/global-api";
 import { joinHandler } from "./routes/join";
 import { installHandler, universalInstallHandler } from "./routes/install";
-import { tokenHandler } from "./routes/token";
 import { publicPostsRouter } from "./routes/public-posts";
 import { projectAuth } from "./middleware/project";
 import { resolveSession } from "./middleware/auth";
@@ -15,7 +14,6 @@ import { oauthProviderAuthServerMetadata } from "@better-auth/oauth-provider";
 import { oauthProviderResourceClient } from "@better-auth/oauth-provider/resource-client";
 import { createMcpServer } from "./mcp/server";
 import { getBaseUrl } from "./lib/url";
-import { getAccountById } from "./accounts/registry";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { existsSync, readFileSync } from "fs";
 import { resolve } from "path";
@@ -232,38 +230,14 @@ const projectApp = new Hono<Env>();
 // Install is public — no auth needed, OAuth handles it at runtime
 projectApp.route("/install", installHandler);
 
-// Token exchange bypasses projectAuth — member key in body IS the auth
-projectApp.route("/api/token", tokenHandler);
-
 // Join API bypasses projectAuth — invite token IS the auth
 projectApp.route("/api/join", joinHandler);
 
-// projectAuth middleware for remaining API and MCP
+// projectAuth middleware for project REST API
 projectApp.use("/api/*", projectAuth);
-projectApp.use("/mcp", projectAuth);
 
 // Project API routes
 projectApp.route("/api", api);
-
-// MCP endpoint — stateless streamable HTTP transport
-projectApp.all("/mcp", async (c) => {
-  const memberAccountId = c.get("memberAccountId");
-  const authorType = c.get("authorType");
-  const baseUrl = getBaseUrl(c.req.url);
-
-  // Resolve app-level account ID to Better Auth user ID
-  const account = await getAccountById(memberAccountId);
-  if (!account) {
-    return c.text("Account not found", 403);
-  }
-
-  const mcp = createMcpServer(account.authUserId, authorType, baseUrl);
-  const transport = new WebStandardStreamableHTTPServerTransport({
-    sessionIdGenerator: undefined,
-  });
-  await mcp.connect(transport);
-  return await transport.handleRequest(c.req.raw);
-});
 
 // Project-level static assets and SPA fallback
 if (!viteDevUrl && indexHtml) {
