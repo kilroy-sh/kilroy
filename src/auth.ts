@@ -30,8 +30,8 @@ export const auth = betterAuth({
     oauthProvider({
       loginPage: "/login",
       consentPage: "/consent",
-      scopes: ["kilroy:access"],
-      clientRegistrationDefaultScopes: ["kilroy:access"],
+      scopes: ["kilroy:access", "offline_access"],
+      clientRegistrationDefaultScopes: ["kilroy:access", "offline_access"],
       validAudiences: [
         process.env.BETTER_AUTH_URL!,
         `${process.env.BETTER_AUTH_URL!}/mcp`,

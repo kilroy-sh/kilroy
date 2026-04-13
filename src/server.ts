@@ -86,11 +86,60 @@ if (!viteDevUrl && indexHtml) {
 }
 
 // OAuth 2.1 metadata (must be at root per RFC 8414)
+// Better Auth's oauth-provider omits `resource_indicators_supported` from its
+// metadata even though it accepts the `resource` parameter and issues JWTs
+// when given one. Spec-compliant clients (Codex) only send `resource=` when
+// the server advertises support — without it they get opaque tokens that our
+// /mcp handler can't verify locally. We patch the flag in here.
 const oauthMetadata = oauthProviderAuthServerMetadata(auth);
-app.get("/.well-known/oauth-authorization-server", (c) => oauthMetadata(c.req.raw));
-app.get("/.well-known/oauth-authorization-server/*", (c) => oauthMetadata(c.req.raw));
+const serveAuthServerMetadata = async (c: Context) => {
+  const upstream = await oauthMetadata(c.req.raw);
+  const body = (await upstream.json()) as Record<string, unknown>;
+  return c.json(
+    { ...body, resource_indicators_supported: true },
+    200,
+    {
+      "Cache-Control":
+        upstream.headers.get("Cache-Control") ??
+        "public, max-age=15, stale-while-revalidate=15, stale-if-error=86400",
+    },
+  );
+};
+app.get("/.well-known/oauth-authorization-server", serveAuthServerMetadata);
+app.get("/.well-known/oauth-authorization-server/*", serveAuthServerMetadata);
 
-// Better Auth handles all auth routes
+// Codex (and other current MCP clients) don't honor `resource_indicators_supported`
+// — they never send a `resource=` parameter in the /oauth2/token request, so
+// better-auth issues opaque access tokens that /mcp can't verify locally.
+// We inject `resource=<baseUrl>/mcp` into the form body when missing so every
+// token exchange produces a JWT. Safe because our `validAudiences` already
+// includes that URL. Remove when MCP clients become RFC 8707-compliant.
+app.post("/api/auth/oauth2/token", async (c) => {
+  const contentType = c.req.header("Content-Type") ?? "";
+  if (!contentType.includes("application/x-www-form-urlencoded")) {
+    return auth.handler(c.req.raw);
+  }
+  const bodyText = await c.req.text();
+  const params = new URLSearchParams(bodyText);
+  if (!params.has("resource")) {
+    // Must match an entry in auth.ts `validAudiences` — use the configured
+    // BETTER_AUTH_URL so this works regardless of how the request arrived
+    // (localhost, proxy, direct).
+    const authBase = process.env.BETTER_AUTH_URL ?? getBaseUrl(c.req.url);
+    params.set("resource", `${authBase}/mcp`);
+  }
+  const headers = new Headers(c.req.raw.headers);
+  headers.delete("content-length");
+  return auth.handler(
+    new Request(c.req.raw.url, {
+      method: "POST",
+      headers,
+      body: params.toString(),
+    }),
+  );
+});
+
+// Better Auth handles all other auth routes
 app.all("/api/auth/*", (c) => auth.handler(c.req.raw));
 
 // Global stats — public, no auth
