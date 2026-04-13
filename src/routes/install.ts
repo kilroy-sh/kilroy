@@ -357,6 +357,33 @@ function shellPreamble(title: string): string {
 # Kilroy installer — ${title}
 set -eu
 
+# ── Output helpers ─────────────────────────────────────────
+if [ -t 1 ]; then
+  K_O=$(printf '\\033[38;5;208m')
+  K_D=$(printf '\\033[2m')
+  K_B=$(printf '\\033[1m')
+  K_R=$(printf '\\033[0m')
+else
+  K_O=""; K_D=""; K_B=""; K_R=""
+fi
+
+k_logo() {
+  printf '\\n'
+  printf '        %s╻%s\\n'           "$K_O" "$K_R"
+  printf '    %s╭───┸───╮%s\\n'       "$K_O" "$K_R"
+  printf '    %s│ ◉   ◉ │%s\\n'       "$K_O" "$K_R"
+  printf '%s────┤   ┃   ├────%s  %skilroy%s  %s·  an agent was here%s\\n' \\
+    "$K_O" "$K_R" "$K_B" "$K_R" "$K_D" "$K_R"
+  printf '        %s┃%s\\n'           "$K_O" "$K_R"
+  printf '\\n'
+}
+
+k_say()   { printf '  %s\\n' "$1"; }
+k_blank() { printf '\\n'; }
+k_ok()    { printf '    %s✓%s %s\\n' "$K_O" "$K_R" "$1"; }
+k_warn()  { printf '    %s!%s %s\\n' "$K_O" "$K_R" "$1"; }
+k_err()   { printf '    %s✗%s %s\\n' "$K_O" "$K_R" "$1"; }
+
 # Find runtimes for config merging
 PYTHON=""
 if command -v python3 >/dev/null 2>&1; then PYTHON=python3;
@@ -368,6 +395,7 @@ elif command -v bun >/dev/null 2>&1; then JS=bun; fi
 
 CODEX_PLUGIN_READY=0
 CLAUDE_READY=0
+CODEX_AUTH_DONE=0
 
 warn_if_tracked() {
   if ! command -v git >/dev/null 2>&1; then
@@ -379,7 +407,7 @@ warn_if_tracked() {
   fi
 
   if git ls-files --error-unmatch "$1" >/dev/null 2>&1; then
-    echo "Warning: $1 is tracked by git. Kilroy credentials will be written there."
+    k_warn "$1 is tracked by git — Kilroy credentials will be written there"
   fi
 }
 
@@ -422,7 +450,6 @@ function shellCodexPluginInstall(
 ): string {
   return `
 # ── Install Codex plugin ──
-echo "Installing Kilroy plugin for Codex..."
 MARKETPLACE_NAME=""
 if [ -n "$PYTHON" ]; then
   MARKETPLACE_NAME="$("$PYTHON" - <<'PY'
@@ -431,8 +458,6 @@ PY
 )"
 elif [ -n "$JS" ]; then
   MARKETPLACE_NAME="$($JS -e '${esc(mergeCodexMarketplace.js)}')"
-else
-  echo "Warning: could not install the Codex plugin without python, node, or bun."
 fi
 
 if [ -n "$MARKETPLACE_NAME" ]; then
@@ -451,6 +476,14 @@ PY
     $JS -e '${esc(mergeCodexPluginState.js)}'
     CODEX_PLUGIN_READY=1
   fi
+fi
+
+if [ "$CODEX_PLUGIN_READY" -eq 1 ]; then
+  k_ok "Codex plugin installed"
+elif [ -z "$PYTHON" ] && [ -z "$JS" ]; then
+  k_warn "Skipped Codex plugin (needs python3, node, or bun)"
+else
+  k_err "Codex plugin install failed"
 fi`;
 }
 
@@ -465,10 +498,10 @@ function shellClaudeCodeInstall(
   return `
 # ── Install Claude Code plugin ──
 if command -v claude >/dev/null 2>&1; then
-  echo "Installing Kilroy plugin for Claude Code..."
-  claude plugin marketplace add kilroy-sh/kilroy </dev/null 2>/dev/null || true
-  if claude plugin install kilroy@kilroy-marketplace --scope user </dev/null; then
-    echo "Configuring Claude Code workspace..."
+  CC_LOG=$(mktemp 2>/dev/null || echo "/tmp/kilroy-cc-$$.log")
+  claude plugin marketplace add kilroy-sh/kilroy </dev/null >"$CC_LOG" 2>&1 || true
+  if claude plugin install kilroy@kilroy-marketplace --scope user </dev/null >>"$CC_LOG" 2>&1; then
+    k_ok "Claude Code plugin installed"
     mkdir -p .claude
     warn_if_tracked .claude/settings.local.json
     SETTINGS=".claude/settings.local.json"
@@ -485,15 +518,18 @@ PY
 ${settingsJson}
 EOF_SETTINGS
       CLAUDE_READY=1
-    else
-      echo "Warning: could not merge $SETTINGS without python, node, or bun."
     fi
-    ensure_local_git_excludes
+    if [ "$CLAUDE_READY" -eq 1 ]; then
+      k_ok "Claude Code workspace configured"
+      ensure_local_git_excludes
+    else
+      k_warn "Could not merge $SETTINGS (needs python3, node, or bun)"
+    fi
   else
-    echo "Warning: Claude Code plugin install failed. Re-run after Claude Code is set up."
+    k_err "Claude Code plugin install failed"
+    sed 's/^/      /' "$CC_LOG"
   fi
-else
-  echo "Claude Code not found; skipping Claude-specific plugin install."
+  rm -f "$CC_LOG"
 fi`;
 }
 
@@ -514,22 +550,45 @@ export function generateUniversalInstallScript(baseUrl: string): string {
   const claudeCode = shellClaudeCodeInstall(mergeSettings, settingsJson);
 
   return `${preamble}
+
+k_logo
+k_say "Setting up Kilroy..."
+k_blank
 ${codexPlugin}
 
 ensure_local_git_excludes
 ${claudeCode}
 
 if [ "$CODEX_PLUGIN_READY" -ne 1 ] && [ "$CLAUDE_READY" -ne 1 ]; then
-  echo ""
-  echo "Error: Kilroy could not configure Codex or Claude Code automatically."
-  echo "Install python3, node, or bun for Codex setup, or install Claude Code first."
+  k_blank
+  k_err "Could not configure Codex or Claude Code."
+  k_say "Install python3, node, or bun for Codex setup, or install Claude Code first."
+  k_blank
   exit 1
 fi
 
-echo ""
-echo "  Done. Kilroy is installed."
-echo "  Start a new session — Kilroy will prompt you to connect when needed."
-echo ""
+# ── Codex OAuth (interactive, one-time) ──
+if [ "$CODEX_PLUGIN_READY" -eq 1 ] && command -v codex >/dev/null 2>&1; then
+  k_blank
+  if [ -e /dev/tty ] && [ -r /dev/tty ]; then
+    k_say "Signing Codex into Kilroy (a browser window will open)..."
+    k_blank
+    if codex mcp login kilroy </dev/tty >/dev/tty 2>/dev/tty; then
+      k_blank
+      k_ok "Codex authenticated"
+      CODEX_AUTH_DONE=1
+    else
+      k_blank
+      k_warn "Codex sign-in didn't complete — run: codex mcp login kilroy"
+    fi
+  else
+    k_warn "Codex needs a one-time sign-in — run: codex mcp login kilroy"
+  fi
+fi
+
+k_blank
+printf '  %sDone.%s Start a new session to use Kilroy.\\n' "$K_B" "$K_R"
+k_blank
 `;
 }
 
@@ -554,6 +613,10 @@ export function generateInstallScript(
   const claudeCode = shellClaudeCodeInstall(mergeSettings, settingsJson);
 
   return `${preamble}
+
+k_logo
+k_say "Setting up Kilroy for ${accountSlug}/${slug}..."
+k_blank
 
 CODEX_TRUST_READY=0
 ${codexPlugin}
@@ -580,25 +643,39 @@ ensure_local_git_excludes
 ${claudeCode}
 
 if [ "$CODEX_PLUGIN_READY" -ne 1 ] && [ "$CLAUDE_READY" -ne 1 ]; then
-  echo ""
-  echo "Error: Kilroy could not configure Codex or Claude Code automatically."
-  echo "Install python3, node, or bun for Codex setup, or install Claude Code first."
+  k_blank
+  k_err "Could not configure Codex or Claude Code."
+  k_say "Install python3, node, or bun for Codex setup, or install Claude Code first."
+  k_blank
   exit 1
 fi
 
-echo ""
-echo "  Done. Kilroy is ready for project ${accountSlug}/${slug}."
-if [ "$CODEX_PLUGIN_READY" -eq 1 ]; then
-  if [ "$CODEX_TRUST_READY" -eq 1 ]; then
-    echo "  Codex: start a new session in this repo; Kilroy will prompt you to sign in."
+if [ "$CODEX_PLUGIN_READY" -eq 1 ] && [ "$CODEX_TRUST_READY" -ne 1 ]; then
+  k_warn "Codex repo trust not set — trust this repo in Codex before starting a session"
+fi
+
+# ── Codex OAuth (interactive, one-time) ──
+if [ "$CODEX_PLUGIN_READY" -eq 1 ] && command -v codex >/dev/null 2>&1; then
+  k_blank
+  if [ -e /dev/tty ] && [ -r /dev/tty ]; then
+    k_say "Signing Codex into Kilroy (a browser window will open)..."
+    k_blank
+    if codex mcp login kilroy </dev/tty >/dev/tty 2>/dev/tty; then
+      k_blank
+      k_ok "Codex authenticated"
+      CODEX_AUTH_DONE=1
+    else
+      k_blank
+      k_warn "Codex sign-in didn't complete — run: codex mcp login kilroy"
+    fi
   else
-    echo "  Codex: start a new session in this repo after trusting the repo in Codex."
+    k_warn "Codex needs a one-time sign-in — run: codex mcp login kilroy"
   fi
 fi
-if [ "$CLAUDE_READY" -eq 1 ]; then
-  echo "  Claude Code: start a new session in this repo to connect."
-fi
-echo ""
+
+k_blank
+printf '  %sDone.%s Kilroy is ready for ${accountSlug}/${slug}. Start a new session.\\n' "$K_B" "$K_R"
+k_blank
 `;
 }
 
@@ -610,13 +687,15 @@ function esc(s: string): string {
 function getCodexPluginFiles(): InstallFile[] {
   const pluginRoot = resolve(import.meta.dir, "../../plugin");
   const manifestPath = resolve(pluginRoot, ".codex-plugin/plugin.json");
-  const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-  delete manifest.mcpServers;
 
   return [
     {
       path: ".codex-plugin/plugin.json",
-      content: `${JSON.stringify(manifest, null, 2)}\n`,
+      content: readFileSync(manifestPath, "utf8"),
+    },
+    {
+      path: ".mcp.json",
+      content: readFileSync(resolve(pluginRoot, ".mcp.json"), "utf8"),
     },
     ...readInstallFiles(resolve(pluginRoot, "skills"), "skills"),
   ];
