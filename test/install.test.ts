@@ -127,4 +127,29 @@ describe("generateInstallScript", () => {
     expect(homeCodexConfig).toContain(`[projects."${realpathSync(projectDir)}"]`);
     expect(homeCodexConfig).toContain('trust_level = "trusted"');
   });
+
+  it("includes OpenCode plugin and MCP entries", () => {
+    const script = generateInstallScript(
+      "https://kilroy.sh/srijan/sagaland",
+      "sagaland",
+      "srijan",
+    );
+
+    // Guards on the `opencode` binary being present
+    expect(script).toContain("command -v opencode");
+    // Writes to the OpenCode config path
+    expect(script).toContain(".config/opencode/opencode.json");
+    // Registers the thin repo as a plugin entry
+    expect(script).toContain(
+      "kilroy@git+https://github.com/kilroy-sh/kilroy-opencode.git",
+    );
+    // Registers Kilroy MCP as a remote server with OAuth, pointed at the project URL
+    expect(script).toContain('"type": "remote"');
+    expect(script).toContain('"url": "https://kilroy.sh/srijan/sagaland/mcp"');
+    expect(script).toContain('"oauth": {}');
+    // OpenCode readiness flag exists in preamble
+    expect(script).toContain("OPENCODE_READY=0");
+    // OAuth kickoff command
+    expect(script).toContain("opencode mcp auth kilroy");
+  });
 });
