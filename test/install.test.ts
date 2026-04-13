@@ -143,9 +143,12 @@ describe("generateInstallScript", () => {
     expect(script).toContain(
       "kilroy@git+https://github.com/kilroy-sh/kilroy-opencode.git",
     );
-    // Registers Kilroy MCP as a remote server with OAuth, pointed at the project URL
+    // Registers Kilroy MCP as a remote server with OAuth, pointed at the ROOT
+    // /mcp endpoint (not the project-scoped one — OAuth JWTs don't pass the
+    // projectAuth middleware). Project routing happens via .kilroy/config.toml.
     expect(script).toContain('"type": "remote"');
-    expect(script).toContain('"url": "https://kilroy.sh/srijan/sagaland/mcp"');
+    expect(script).toContain('"url": "https://kilroy.sh/mcp"');
+    expect(script).not.toContain('"url": "https://kilroy.sh/srijan/sagaland/mcp"');
     // Python embedded script uses literal True; JS variant uses lowercase true
     expect(script).toContain('"enabled": True');
     expect(script).toContain("enabled: true");

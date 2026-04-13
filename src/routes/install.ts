@@ -739,7 +739,12 @@ export function generateInstallScript(
   const mergeMarketplace = codexMarketplaceScripts();
   const mergePluginState = codexPluginStateScripts();
   const mergeProjectTrust = codexProjectTrustScripts();
-  const mergeOpenCode = opencodeConfigScripts(projectUrl);
+  // OpenCode's MCP entry must target the ROOT /mcp endpoint (JWT OAuth via
+  // server.ts:187), NOT the project-scoped /{account}/{project}/mcp endpoint
+  // (which uses projectAuth/member-key middleware and rejects OAuth JWTs).
+  // Project routing happens via .kilroy/config.toml + the `project` parameter
+  // on each tool call, not via the endpoint URL.
+  const mergeOpenCode = opencodeConfigScripts(new URL(projectUrl).origin);
 
   const preamble = shellPreamble(`project "${slug}"`);
   const codexPlugin = shellCodexPluginInstall(mergeMarketplace, mergePluginState);
