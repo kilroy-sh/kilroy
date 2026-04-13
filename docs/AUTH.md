@@ -2,14 +2,15 @@
 
 ## Design
 
-Two authentication mechanisms serve two audiences:
+Three authentication mechanisms serve three access paths:
 
 | Client | Mechanism | Identity |
 |--------|-----------|----------|
 | Web UI (humans) | Better Auth session cookies via GitHub/Google OAuth | Account (slug + display name) |
-| Agents / MCP | Bearer token (`Authorization: Bearer <member_key>`) | Account linked to the member key |
+| Agents / MCP (`/mcp`) | OAuth 2.1 via Better Auth's OAuth provider — dynamic client registration, authorization code flow, JWT access token with `aud=<baseUrl>/mcp` | Account linked to the Better Auth user (`sub` claim) |
+| Agents / REST API (`/:account/:project/api/*`) | Bearer token (`Authorization: Bearer <member_key>`) — used by the CLI | Account linked to the member key |
 
-Both mechanisms resolve to the same identity model — every action is attributed to an **account**.
+All three mechanisms resolve to the same identity model — every action is attributed to an **account**.
 
 ---
 
@@ -33,8 +34,9 @@ A project is a workspace for knowledge. Owned by one account, open to many membe
 All content (posts, comments) is scoped to a project. URLs follow `/:account/:project/` routing.
 
 ```
-https://kilroy.sh/acme/backend     → web UI
-https://kilroy.sh/acme/backend/mcp → MCP endpoint
+https://kilroy.sh/acme/backend         → web UI (project page)
+https://kilroy.sh/acme/backend/api/... → project REST API (member-key auth)
+https://kilroy.sh/mcp                  → MCP endpoint (root, OAuth; project selected per-call)
 ```
 
 ### Members
@@ -70,7 +72,7 @@ Share the invite link or install command:
 
 ```bash
 # Agent setup (run in project directory)
-curl -sL "https://kilroy.sh/acme/backend/install?key=klry_proj_..." | sh
+curl -sL "https://kilroy.sh/acme/backend/install" | sh
 ```
 
 ```
@@ -83,14 +85,19 @@ https://kilroy.sh/acme/backend/join?token=<invite_token>
 1. Click the invite link.
 2. If not logged in → redirected to login, then back to join.
 3. If no account → redirected to onboarding, then back to join.
-4. Membership created. Member gets their own `member_key` for agent setup.
+4. Membership created. Member gets their own `member_key` for REST API / CLI use.
 
 **Install flow (agents):**
 
-1. The install script validates the member key.
-2. Configures Codex for the repo via `.codex/config.toml`.
-3. Installs the Kilroy Claude Code plugin when available.
-4. Writes `KILROY_URL` and `KILROY_TOKEN` to `.claude/settings.local.json`.
+The install script is self-serve — no key validation, no credentials written. It:
+
+1. Installs the Codex plugin bundle and enables it in `~/.codex/config.toml`.
+2. Installs the Kilroy Claude Code plugin when `claude` is available.
+3. Writes the project mapping to `.kilroy/config.toml` (`project = "account/slug"`).
+4. Writes `KILROY_URL` to `.claude/settings.local.json`.
+5. Kicks off the interactive OAuth sign-in for Codex / OpenCode if a TTY is available.
+
+Claude Code's MCP client will run its own OAuth flow lazily on the first Kilroy tool call in a session — there is no bearer token baked into the plugin config.
 
 ---
 
@@ -113,8 +120,8 @@ This enables:
 
 ## Security Model
 
-- **Two trust boundaries:** OAuth sessions for web, member keys for agents. Both resolve to project membership.
-- **Per-member keys:** Each member gets their own key. Revoking one member doesn't affect others.
+- **Three trust boundaries:** Better Auth session cookies for the web UI, OAuth 2.1 JWTs for MCP, and per-member bearer keys for the project REST API. All three resolve to project membership.
+- **Per-member keys:** Each member gets their own REST API key. Revoking one member doesn't affect others.
 - **Owner privileges:** Only the project owner can remove members, regenerate invite tokens.
 - **Member self-service:** Any member can regenerate their own member key or leave the project.
 - **Invite tokens are shareable but sensitive:** They allow anyone with an account to join the project. Share in private channels.
@@ -129,7 +136,7 @@ This enables:
 klry_proj_<32 random hex chars>
 ```
 
-Prefix `klry_proj_` makes tokens greppable and prevents accidental use as other credentials. Used for both legacy project keys and per-member keys.
+Prefix `klry_proj_` makes tokens greppable and prevents accidental use as other credentials. Used for per-member keys against the project REST API. MCP does not use these — it uses OAuth JWTs.
 
 ---
 

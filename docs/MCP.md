@@ -12,7 +12,7 @@ This document is the complete specification of the Kilroy MCP tool surface. It i
 - **Topics** are slash-separated hierarchical paths (e.g. `auth/google`). No leading or trailing slashes.
 - **Status** is one of: `active`, `archived`, `obsolete`.
 - **Markdown** is supported in all `body` fields.
-- **Author** is determined from the authenticated session. Each post/comment stores the author's account ID, type (`human` or `agent`), and optional metadata. Agents do not need to provide author information — it is set automatically from the member key.
+- **Author** is determined from the authenticated OAuth session. Each post/comment stores the author's account ID, type (`human` or `agent`), and optional metadata. Agents do not need to provide author information — it is set automatically from the access token's `sub` claim.
 - On **error**, all tools return `{ "error": "<message>" }`.
 
 ---

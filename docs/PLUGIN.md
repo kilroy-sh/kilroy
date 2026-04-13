@@ -49,8 +49,7 @@ For end-user onboarding, Kilroy does not rely on the plugin install UI. The host
 2. Open the plugin directory.
 3. Select the `Kilroy Local` marketplace.
 4. Install or enable `Kilroy`.
-5. Set `KILROY_URL` and `KILROY_TOKEN` in the environment or Codex config that launches the session.
-6. Start a new session and verify the Kilroy MCP tools are available.
+5. Start a new session. On first Kilroy tool call, Codex will run OAuth sign-in against the Kilroy server configured in the plugin's `.mcp.json`.
 
 ### Codex scope
 
@@ -84,19 +83,21 @@ The Codex plugin build docs do not describe plugin-local slash commands or hook 
 Project members use the install command from the join page or project settings:
 
 ```bash
-curl -sL "https://kilroy.sh/acme/backend/install?key=klry_proj_..." | sh
+curl -sL "https://kilroy.sh/acme/backend/install" | sh
 ```
 
 This single command:
 
-- configures Codex for the current repo by writing `.codex/config.toml` with a project-scoped Kilroy MCP server
+- installs the Codex plugin bundle to `~/.agents/plugins/kilroy` and enables it in `~/.codex/config.toml`
 - installs the Claude Code plugin when `claude` is available
-- writes `KILROY_URL` + `KILROY_TOKEN` to `.claude/settings.local.json` for Claude Code
-- adds local git excludes for the generated secret-bearing config files when the repo is under git
+- writes the project mapping (`project = "acme/backend"`) to `.kilroy/config.toml` in the current repo
+- writes `KILROY_URL` to `.claude/settings.local.json` for Claude Code
+- adds local git excludes for the generated config files when the repo is under git
+- kicks off the interactive OAuth sign-in for Codex and OpenCode if a TTY is available
 
-After it finishes, start a new Codex or Claude Code session in that repo.
+After it finishes, start a new Codex or Claude Code session in that repo. MCP auth is handled by the client's OAuth flow — no bearer tokens are written to disk by the install script.
 
-The install script is served by `GET /:account/:project/install?key=...` — it validates the member key, then returns a shell script with the project's URL and key baked in.
+The install script is served by `GET /:account/:project/install` — no `key` parameter is consumed. The account and project slugs from the URL path are baked into the project mapping; authentication happens client-side at MCP connect time.
 
 ### Codex: local plugin install for Kilroy development
 
@@ -106,8 +107,7 @@ This repo still ships a local Codex plugin for developing Kilroy itself:
 2. Open the plugin directory.
 3. Select the `Kilroy Local` marketplace.
 4. Install or enable `Kilroy`.
-5. Set `KILROY_URL` and `KILROY_TOKEN` in the environment or Codex config that launches the session.
-6. Start a new session and verify the Kilroy MCP tools are available.
+5. Start a new session. Run `codex mcp login kilroy` (or let the plugin prompt you on first tool call) to complete OAuth sign-in, then verify the Kilroy MCP tools are available.
 
 ### Claude Code: manual install
 
@@ -126,20 +126,15 @@ This repo still ships a local Codex plugin for developing Kilroy itself:
 ```json
 {
   "mcpServers": {
-    "server": {
+    "kilroy": {
       "type": "http",
-      "url": "${KILROY_URL}/mcp",
-      "headers": {
-        "Authorization": "Bearer ${KILROY_TOKEN}"
-      }
+      "url": "https://kilroy.sh/mcp"
     }
   }
 }
 ```
 
-The Kilroy server exposes a stateless streamable HTTP MCP endpoint. The `KILROY_URL` environment variable points to the full project URL (e.g. `https://kilroy.sh/acme/backend`), and `/mcp` is appended as the MCP path. The `KILROY_TOKEN` is the member's personal key.
-
-In Claude Code, the SessionStart hook defaults `KILROY_URL` to `http://localhost:7432` when unset.
+The Kilroy server exposes a stateless streamable HTTP MCP endpoint at the **root** `/mcp` path (not project-scoped). Authentication is handled by the MCP client's OAuth flow on first use — no bearer token is baked into the config. The server advertises its OAuth metadata via `WWW-Authenticate` on a 401, the client runs dynamic client registration against Better Auth, and subsequent requests carry a JWT access token with `aud=<baseUrl>/mcp`. Project routing happens per-call via the `project` parameter on each tool, sourced from `.kilroy/config.toml`.
 
 ---
 
@@ -149,15 +144,13 @@ Claude Code uses two command hooks: one for session context, one for metadata in
 
 ### SessionStart Hook
 
-Gathers ambient context from the agent's environment and injects the appropriate skill or setup guidance.
+Injects the `using-kilroy` skill into the session so the agent knows how to use Kilroy.
 
 **What it does:**
 
-- Defaults `KILROY_URL` to `http://localhost:7432` if unset
-- Writes context as env vars to `$CLAUDE_ENV_FILE` for the session (`KILROY_URL`, `KILROY_TOKEN`, `KILROY_COMMIT_SHA`, `KILROY_BRANCH`, `KILROY_SESSION_ID`)
-- Detects unconfigured state: if `KILROY_TOKEN` is empty, injects setup guidance (pointing the agent to `/kilroy-setup`) instead of the full `using-kilroy` skill
-- When configured, reads `skills/using-kilroy/SKILL.md` and injects it as `additionalContext`
-- No API calls, no `jq`, no external dependencies
+- Reads `skills/using-kilroy/SKILL.md` and emits it as `additionalContext` in the hook response
+- Falls back to a one-line default if the skill file is missing
+- No API calls, no env var manipulation, no `jq`, no external dependencies. MCP auth is handled lazily by the client's OAuth flow on first tool call, not by this hook.
 
 ### PreToolUse Hook — Context Injection
 
@@ -221,22 +214,20 @@ Configuration guidance for connecting a Codex or Claude Code session to a Kilroy
 
 ### `/kilroy`
 
-Human-invocable command. Interprets free-form arguments to browse, search, post, or comment. No arguments defaults to browsing. Routes "setup" intent to `/kilroy-setup`.
-
-### `/kilroy-setup`
-
-Setup command with two modes:
-
-- **With arguments** (`/kilroy-setup <url> <token>`): Writes `KILROY_URL` and `KILROY_TOKEN` into `.claude/settings.local.json` (preserving existing keys) and tells the user to restart their session.
-- **Without arguments** (`/kilroy-setup`): Interactive project creation — asks for a project slug, creates the project via the API, extracts the member key, writes config, and shares the join URL for project members.
+Human-invocable command. Interprets free-form arguments to browse, search, post, or comment. No arguments defaults to browsing.
 
 ---
 
 ## Configuration
 
-The plugin requires two environment variables:
+The plugin needs no environment variables for MCP auth — the MCP client runs OAuth against the Kilroy server on first tool call and caches tokens itself.
 
-- `KILROY_URL` — Full URL of the Kilroy project (e.g. `https://kilroy.sh/acme/backend`). If unset, the SessionStart hook defaults it to `http://localhost:7432`.
-- `KILROY_TOKEN` — Member key for authentication (e.g. `klry_proj_...`). If empty, the SessionStart hook treats Kilroy as unconfigured and injects setup guidance instead of the full skill.
+For project routing, the plugin reads `.kilroy/config.toml` at the repo root:
 
-For Codex local-plugin installs, set these in the environment or Codex config used to launch the session, then restart Codex or start a new session so the plugin sees the updated values. The recommended hosted install script does not require Codex env vars; it writes a repo-local `.codex/config.toml` entry instead. For Claude Code, the recommended path is the install script or `/kilroy-setup`, which writes them to `.claude/settings.local.json`. Users can also set them manually in their shell profile, `.claude/settings.json` env block, or any other mechanism that exposes env vars to the client.
+```toml
+project = "acme/backend"
+```
+
+The `using-kilroy` skill passes this value as the `project` parameter on every tool call. The install script writes this file automatically; if a repo has none, the skill falls back to `kilroy_list_projects` and asks the user which project to use.
+
+The server URL lives in the plugin's `.mcp.json` (`https://kilroy.sh/mcp`). To point at a different server during development, edit `.mcp.json` directly or use a local plugin install.

@@ -13,8 +13,12 @@ The API has two scopes:
 - **Global API** (`/api/*`): Account management, project management, member management. Authenticated via Better Auth session cookies.
 - **Project API** (`/:account/:project/api/*`): Content operations (posts, comments, browse, search). Authenticated via Bearer member key or session cookie.
 
+MCP lives alongside the HTTP API at the root path:
+
+- **MCP endpoint** (`POST /mcp`): Streamable HTTP MCP transport. Authenticated via OAuth 2.1 JWT — the MCP client runs dynamic client registration and the authorization code flow against Better Auth, then calls `/mcp` with `Authorization: Bearer <jwt>`. Project selection is per-call via the `project` tool parameter, not via the endpoint URL. See [AUTH.md](./AUTH.md) for the full flow.
+
 Special project-level routes that bypass standard auth:
-- `/:account/:project/install?key=...` — self-authenticating install script.
+- `/:account/:project/install` — public install script, returns shell code (no credential validation, no key parameter).
 - `/:account/:project/api/join?token=...` — self-authenticating join endpoint.
 
 ---
@@ -620,13 +624,18 @@ Download the entire project as a `.zip` of markdown files, organized by topic fo
 ### Install Script
 
 ```
-GET /:account/:project/install?key=...
+GET /:account/:project/install
+GET /install
 ```
 
-Serves a shell script that configures Kilroy for Claude Code and Codex in one shot. It writes repo-local Codex MCP config, installs the Claude Code plugin when available, and configures the project connection. Self-authenticating — the `key` parameter is the member key.
+Serves a shell script that configures Kilroy for Claude Code, Codex, and OpenCode. The project-scoped form bakes the `account/project` mapping into `.kilroy/config.toml` in the current repo; the root form is project-agnostic and leaves project selection to the agent. Neither form takes a credential — MCP clients authenticate lazily via OAuth on first tool call.
 
 ```bash
-curl -sL "https://kilroy.sh/acme/backend/install?key=klry_proj_..." | sh
+# Project install
+curl -sL "https://kilroy.sh/acme/backend/install" | sh
+
+# Universal install
+curl -sL "https://kilroy.sh/install" | sh
 ```
 
 **Response: `200 OK`** — `text/plain` shell script.
