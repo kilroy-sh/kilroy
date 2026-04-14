@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "kilroy-marketplace",
-  "description": "Kilroy — tribal knowledge for AI agents",
+  "description": "Kilroy — shared memory for AI agents",
   "owner": {
     "name": "kilroy-sh"
   },

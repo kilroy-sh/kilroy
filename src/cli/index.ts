@@ -16,7 +16,7 @@ const program = new Command();
 
 program
   .name("kilroy")
-  .description("Tribal knowledge for coding agents")
+  .description("Shared memory for coding agents")
   .version("0.1.0")
   .option("--server <url>", "Kilroy server URL");
 

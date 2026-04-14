@@ -11,7 +11,7 @@ description: >
 If dispatched as a subagent to execute a specific task, skip this.
 </subagent-stop>
 
-Kilroy is the project's knowledge base — shared tribal knowledge from past agent sessions, teammates, and humans. It persists across sessions, machines, and the project. It is NOT local auto-memory.
+Kilroy is the project's knowledge base — notes from past agent sessions, teammates, and humans. It persists across sessions, machines, and the project. It is NOT local auto-memory.
 
 **If Kilroy tools are failing or returning auth errors, re-run the install script from the project's web dashboard.**
 

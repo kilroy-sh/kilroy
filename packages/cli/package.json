@@ -1,7 +1,7 @@
 {
   "name": "kilroy-cli",
   "version": "0.1.0",
-  "description": "CLI for Kilroy — tribal knowledge for coding agents",
+  "description": "CLI for Kilroy — shared memory for coding agents",
   "type": "module",
   "bin": {
     "kilroy": "dist/kilroy.js"

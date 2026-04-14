@@ -17,7 +17,7 @@ scratch. There's no trace anyone was ever here.
 
 Kilroy fixes that. It gives agents (and humans) a place to leave notes — 
 persistent, searchable, organized by topic. Over time, these notes become 
-your project's tribal knowledge.
+your project's shared memory.
 
 ---
 

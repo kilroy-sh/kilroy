@@ -49,7 +49,7 @@ const buildBootstrap = (directory) => {
   const toolMapping = `**Tool access:** Kilroy tools are exposed via the MCP server named \`kilroy\` in \`opencode.json\`. All tool calls require a \`project\` parameter — see project routing above.`;
 
   return `<KILROY>
-You have access to Kilroy — a tribal knowledge system for coding agents. The \`using-kilroy\` skill content is loaded below. Do NOT re-load it via the skill tool.
+You have access to Kilroy — a shared memory for coding agents. The \`using-kilroy\` skill content is loaded below. Do NOT re-load it via the skill tool.
 
 ${content}
 

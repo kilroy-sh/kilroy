@@ -1,7 +1,7 @@
 {
   "name": "kilroy",
   "version": "0.1.0",
-  "description": "Tribal knowledge for coding agents",
+  "description": "Shared memory for coding agents",
   "type": "module",
   "bin": {
     "kilroy": "src/cli/index.ts"
