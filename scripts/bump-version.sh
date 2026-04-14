@@ -13,12 +13,25 @@ fi
 VERSION="$1"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
+cd "$ROOT"
+
+if ! git diff --quiet || ! git diff --cached --quiet; then
+  echo "error: working tree has uncommitted changes — commit or stash first"
+  exit 1
+fi
+
+if git rev-parse "v$VERSION" >/dev/null 2>&1; then
+  echo "error: tag v$VERSION already exists"
+  exit 1
+fi
+
 FILES=(
   "$ROOT/plugin/.claude-plugin/plugin.json"
   "$ROOT/plugin/.codex-plugin/plugin.json"
   "$ROOT/.claude-plugin/marketplace.json"
 )
 
+STAGED=()
 for f in "${FILES[@]}"; do
   if [ ! -f "$f" ]; then
     echo "SKIP (not found): $f"
@@ -26,7 +39,13 @@ for f in "${FILES[@]}"; do
   fi
   sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" "$f"
   echo "  OK: ${f#$ROOT/}"
+  STAGED+=("$f")
 done
 
+git add "${STAGED[@]}"
+git commit -m "chore: bump to v$VERSION"
+git tag "v$VERSION"
+
 echo ""
-echo "Bumped to $VERSION"
+echo "Bumped to $VERSION and tagged v$VERSION"
+echo "Push with: git push && git push origin v$VERSION"
