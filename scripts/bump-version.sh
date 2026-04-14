@@ -42,6 +42,21 @@ for f in "${FILES[@]}"; do
   STAGED+=("$f")
 done
 
+# Self-host references — different patterns than JSON version fields.
+COMPOSE="$ROOT/docker-compose.yml"
+if [ -f "$COMPOSE" ]; then
+  sed -i "s|KILROY_REF:-v[0-9][0-9.]*|KILROY_REF:-v$VERSION|g" "$COMPOSE"
+  echo "  OK: docker-compose.yml"
+  STAGED+=("$COMPOSE")
+fi
+
+README="$ROOT/README.md"
+if [ -f "$README" ]; then
+  sed -i "s|/raw/v[0-9][0-9.]*/|/raw/v$VERSION/|g" "$README"
+  echo "  OK: README.md"
+  STAGED+=("$README")
+fi
+
 git add "${STAGED[@]}"
 git commit -m "chore: bump to v$VERSION"
 git tag "v$VERSION"
