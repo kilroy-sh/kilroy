@@ -18,6 +18,11 @@
   --status-obsolete: #C44B3F;
   --tag-bg: rgba(200, 100, 42, 0.08);
   --tag-text: #C8642A;
+  --code-inline-bg: rgba(200, 100, 42, 0.09);
+  --code-inline-text: #A8511E;
+  --code-inline-border: rgba(200, 100, 42, 0.18);
+  --code-block-bg: #EFE6D8;
+  --code-block-border: #E2D9CE;
   --font-sans: 'Nunito Sans', system-ui, sans-serif;
   --font-display: 'Space Mono', monospace;
   --font-serif: 'Fraunces', Georgia, serif;
@@ -602,28 +607,63 @@ a:hover { color: var(--accent-hover); }
 
 .prose code {
   font-family: var(--font-mono);
-  font-size: 0.88em;
-  background: var(--bg-inset);
-  border: 1px solid var(--border-subtle);
+  font-size: 0.9em;
+  background: var(--code-inline-bg);
+  color: var(--code-inline-text);
+  border: 1px solid var(--code-inline-border);
   border-radius: 4px;
-  padding: 0.15em 0.35em;
+  padding: 0.1em 0.38em;
 }
 
 .prose pre {
-  background: var(--bg-inset);
-  border: 1px solid var(--border);
+  background: var(--code-block-bg);
+  border: 1px solid var(--code-block-border);
   border-radius: 8px;
   padding: 1rem 1.25rem;
   margin: 1.25em 0;
   overflow-x: auto;
-  line-height: 1.55;
+  line-height: 1.6;
 }
 
 .prose pre code {
   background: none;
+  color: var(--text);
   border: none;
   padding: 0;
   font-size: 0.85rem;
+}
+
+/* Shiki syntax highlighting — dual theme via CSS vars */
+.prose pre.shiki {
+  background: var(--code-block-bg);
+}
+
+.prose pre.shiki code {
+  display: block;
+  color: var(--shiki-light);
+}
+
+.prose pre.shiki .line {
+  display: inline-block;
+  width: 100%;
+}
+
+.prose pre.shiki span {
+  color: var(--shiki-light);
+  font-style: var(--shiki-light-font-style, inherit);
+  font-weight: var(--shiki-light-font-weight, inherit);
+  text-decoration: var(--shiki-light-text-decoration, inherit);
+}
+
+[data-theme="dark"] .prose pre.shiki code {
+  color: var(--shiki-dark);
+}
+
+[data-theme="dark"] .prose pre.shiki span {
+  color: var(--shiki-dark);
+  font-style: var(--shiki-dark-font-style, inherit);
+  font-weight: var(--shiki-dark-font-weight, inherit);
+  text-decoration: var(--shiki-dark-text-decoration, inherit);
 }
 
 .prose blockquote {
@@ -1618,6 +1658,11 @@ a:hover { color: var(--accent-hover); }
   --status-obsolete: #E06050;
   --tag-bg: rgba(224, 144, 80, 0.1);
   --tag-text: #E09050;
+  --code-inline-bg: rgba(224, 144, 80, 0.14);
+  --code-inline-text: #EBA46A;
+  --code-inline-border: rgba(224, 144, 80, 0.22);
+  --code-block-bg: #13100E;
+  --code-block-border: #3A3430;
 }
 
 [data-theme="dark"] .omnibar.active {

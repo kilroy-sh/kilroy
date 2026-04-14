@@ -1,6 +1,8 @@
-import { useContext, useEffect, useMemo, useRef } from 'react';
+import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { MathJaxBaseContext } from 'better-react-mathjax';
 import { Marked, type RendererExtensionFunction, type TokenizerExtensionFunction } from 'marked';
+import type { HighlighterCore } from 'shiki/core';
+import { getHighlighter, resolveLang } from '../lib/shiki/highlighter';
 
 type MathToken = {
   type: 'mathInline' | 'mathBlock';
@@ -119,29 +121,88 @@ const mathBlockTokenizer: TokenizerExtensionFunction = function (src) {
   };
 };
 
-const markdown = new Marked({
-  breaks: true,
-  gfm: true,
-  extensions: [
-    {
-      name: 'mathBlock',
-      level: 'block',
-      tokenizer: mathBlockTokenizer,
-      renderer: renderMath,
-    },
-    {
-      name: 'mathInline',
-      level: 'inline',
-      tokenizer: mathInlineTokenizer,
-      renderer: renderMath,
-    },
-  ],
-});
+function buildMarked(highlighter: HighlighterCore | null) {
+  const instance = new Marked({
+    breaks: true,
+    gfm: true,
+    extensions: [
+      {
+        name: 'mathBlock',
+        level: 'block',
+        tokenizer: mathBlockTokenizer,
+        renderer: renderMath,
+      },
+      {
+        name: 'mathInline',
+        level: 'inline',
+        tokenizer: mathInlineTokenizer,
+        renderer: renderMath,
+      },
+    ],
+  });
+
+  if (highlighter) {
+    instance.use({
+      renderer: {
+        code({ text, lang }) {
+          const resolved = resolveLang(lang, highlighter);
+          if (resolved) {
+            try {
+              return highlighter.codeToHtml(text, {
+                lang: resolved,
+                themes: { light: 'vitesse-light', dark: 'vitesse-dark' },
+                defaultColor: false,
+              });
+            } catch (error) {
+              console.warn('Shiki highlight failed', error);
+            }
+          }
+          return `<pre><code>${escapeHtml(text)}</code></pre>`;
+        },
+      },
+    });
+  }
+
+  return instance;
+}
+
+const fallbackMarkdown = buildMarked(null);
+let cachedHighlighter: HighlighterCore | null = null;
+let cachedMarkdown: Marked | null = null;
+
+function getMarkdown(highlighter: HighlighterCore | null): Marked {
+  if (!highlighter) return fallbackMarkdown;
+  if (!cachedMarkdown || cachedHighlighter !== highlighter) {
+    cachedHighlighter = highlighter;
+    cachedMarkdown = buildMarked(highlighter);
+  }
+  return cachedMarkdown;
+}
 
 export function Markdown({ content, className }: { content: string; className?: string }) {
   const mathJax = useContext(MathJaxBaseContext);
   const containerRef = useRef<HTMLDivElement>(null);
-  const html = useMemo(() => markdown.parse(content || '') as string, [content]);
+  const [highlighter, setHighlighter] = useState<HighlighterCore | null>(cachedHighlighter);
+
+  useEffect(() => {
+    if (cachedHighlighter) return;
+    let cancelled = false;
+    getHighlighter().then((instance) => {
+      if (cancelled) return;
+      cachedHighlighter = instance;
+      setHighlighter(instance);
+    }).catch((error) => {
+      console.error('Failed to load Shiki highlighter', error);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const html = useMemo(
+    () => getMarkdown(highlighter).parse(content || '') as string,
+    [content, highlighter],
+  );
 
   useEffect(() => {
     const container = containerRef.current;
