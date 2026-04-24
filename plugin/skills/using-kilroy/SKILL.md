@@ -1,10 +1,11 @@
 ---
 name: using-kilroy
 description: >
-  This skill should be active at the start of every session and throughout any
-  non-trivial work. It establishes Kilroy as the project's knowledge base —
-  agents check it before starting work and capture findings worth preserving.
-  Skip only for trivial changes like typo fixes or renames.
+  Use when starting work on code with non-obvious constraints or history,
+  debugging, making architectural decisions, working with external services,
+  when the user references something from a past session, or after completing
+  analyses, hitting unexpected results, or resolving issues worth capturing
+  for future sessions.
 ---
 
 <subagent-stop>
@@ -64,76 +65,151 @@ If already posted in this session on the same topic, `kilroy_update_post` to ref
 
 Skip when trivial and self-evident from code, or personal to this user's preferences (use local memory instead).
 
-### Writing posts
+## Writing posts — the 5 natures
 
-**TL;DR rule:** Add a TL;DR at the top of any post longer than one paragraph. Bullet points. The punchline, not a summary.
+Every post's first tag is exactly one of:
 
-**Title carries the finding, not the topic.** "TikTok creator content converts at 270% ROAS" not "TikTok campaign analysis." The title IS the search result.
-
-**Put the useful thing first.** Conclusion, gotcha, root cause — whatever a future reader needs. Context and methodology go below.
-
-**Write plainly.** Short sentences. Plain English. Teammate notes, not consultant deliverables.
-
-**One story per post.** A multi-finding analysis is fine if it's one coherent narrative. Two unrelated things are two posts.
-
-### Post templates
-
-Pick the shape that fits the story.
-
-**Problem → Solution** (debugging, workarounds, gotchas)
 ```
-Symptom: what broke or behaved unexpectedly
-Root cause: why
-Fix: what resolved it
-Watch out for: related gotchas or edge cases
+analysis · decision · bug · recipe · knowledge
 ```
 
-**Decision** (architecture choices, tool picks, approach changes)
+These are **gravity wells**, not fill-in-the-blank templates. Each has a canonical shape the post settles into. Sections are omittable when content is thin — if a section is being padded, delete the section, not the content.
+
+### `analysis`
+Investigation producing findings.
+
+- **Reach for it when:** you asked a question of data, behavior, or code and now have an answer.
+- **Shape:** Headline finding in the title. TL;DR leads with the load-bearing number or name — standalone punchline. Body: the one or two numbers that back the finding + minimal method (enough to reproduce). Implications and full method are optional.
+- **Title exemplar:** "TikTok creator content converts at 270% ROAS, 3x paid" — not "TikTok campaign analysis."
+
+### `decision`
+A choice made with the rationale that made it.
+
+- **Reach for it when:** a direction was picked and reversing it later without reading the rationale would be costly.
+- **Shape:** Decision in the title. TL;DR: the decision + the one deciding factor. Body: brief context, alternatives named and dismissed (not fully weighed), deciding factor(s). Proposals (decisions not yet finalized) use the same shape — add `proposal` as an open tag and update the post when the decision lands.
+- **Title exemplar:** "Postgres over Redis for session store — operational simplicity outweighs latency" — not "Session store decision."
+
+### `bug`
+Reality didn't match expectation; root cause and fix captured.
+
+- **Reach for it when:** something broke or misbehaved and you either fixed it or documented a workaround.
+- **Shape:** Symptom and/or root cause in the title. TL;DR: what broke, why, how to resolve — all three. Body: reproducible symptom, root cause (chain from symptom to cause), fix, watch-outs for related edge cases.
+- **Title exemplar:** "Codex MCP OAuth: must inject `resource=` on `/oauth2/token` or tokens are opaque" — not "OAuth debugging notes."
+
+### `recipe`
+A reproducible procedure.
+
+- **Reach for it when:** you figured out a sequence that future-you or another agent will want to re-run.
+- **Shape:** Goal in the title ("how to X"). TL;DR: the goal + the shape of the procedure in one line. Body: prerequisites, numbered steps, gotchas. "Why these steps" is optional.
+- **Title exemplar:** "Run Kilroy locally against Postgres with seed data in under 60s" — not "Local setup."
+
+### `knowledge`
+A durable fact, invariant, constraint, or mental model.
+
+- **Reach for it when:** you learned something about the system or domain that will matter again, unrelated to any specific investigation or fix. Includes schema quirks, vendor limitations, team norms, glossary entries, external constraints, feedback patterns.
+- **Shape:** The fact IS the title. TL;DR often omittable — a one-paragraph body usually suffices. If there's a why, include it. If there's an enforcer (legal, vendor, code path), name it.
+- **Title exemplar:** "`orders` table: always filter `deleted_at IS NULL` — soft-delete added but not enforced in queries" — not "orders schema notes."
+
+**Shape mismatch is the signal to split.** If the draft has sections from two shapes fighting each other, or you can't pick a single title that carries the whole post, it's two posts.
+
+## One nature per post
+
+If content straddles two natures, it wants to be two posts, cross-linked. An analysis that uncovered a bug that you then fixed → the analysis post and the bug post are different things, each linking to the other. The shape-mismatch signal above is how the writer notices this.
+
+## Extract-when-standalone test
+
+Some posts contain nuggets that want their own post — most commonly a schema quirk or debugging pattern inside an `analysis`, or a general recipe inside a `bug`.
+
+**Three tests. All three must pass to extract:**
+
+1. **Standalone title.** Can you write a title that makes sense to someone who hasn't read the containing post?
+2. **Independent reuse.** Would another agent, on a different task, want to find this?
+3. **Independent lifecycle.** Does this outlive the containing post?
+
+**Pass all three → extract** to a new `knowledge` or `recipe` post. Cross-link from the original.
+
+**Fail any one → keep inline**, but call it out structurally: `Watch out for:` in `bug`, `Gotcha:` in `analysis`, `Prerequisites:` or `Gotchas:` in `recipe`, `Note:` in `decision` or `knowledge`. The callout lets a future skimmer spot the nugget.
+
+Most sentences fail test 1 (no standalone title). When in doubt, keep inline; a future session can promote later.
+
+## Tagging
+
+**The first tag is the nature.** Exactly one of `analysis`, `decision`, `bug`, `recipe`, `knowledge`. Required on every post.
+
+Everything after is open — domain, tool, source, provenance, status, whatever aids discovery.
+
+- **Tag the subject, not the activity.** `churn`, `tiktok`, `auth` — not `debugging`, `investigation`.
+- **Check `kilroy_tags` first.** Reuse before inventing. `tiktok` not `tiktok-ads`.
+- **2–5 open tags** after the nature tag.
+- **Include tool/service** if relevant: `posthog`, `appsflyer`, `revenuecat`.
+- **Provenance tags welcome:** `feedback`, `retrospective`, `proposal`, `user-interview`, `customer-support` — not nature tags, but useful discovery signals.
+
+## Title and TL;DR
+
+**Title carries the finding, not the topic.**
+- ✗ "TikTok campaign analysis"
+- ✓ "TikTok creator content converts at 270% ROAS, 3x paid"
+
+Specificity beats elegance. Include the number, name, or decision when it's load-bearing.
+
+**Avoid stale-prone content in titles.** Named users, specific dates, "current" state age into misinformation — put them in the body with timestamps.
+
+**TL;DR is a punchline, not a table of contents.** A reader stopping at the TL;DR should walk away with the whole story compressed — headline + load-bearing numbers.
+
+Anti-example (ToC shape — illustrative):
+> - N total rows in the main table; only M users are active this period.
+> - A share of users sit on the free tier […]
+> - Only a small fraction have active trials.
+> - The pro tier dominates revenue.
+
+Rewrite (punchline shape — illustrative):
+> Pro tier dominates revenue (most of total), concentrated in a single top account. Active trials are a tiny slice — the main conversion lever is unused.
+
+**Bullets XOR prose — whichever compresses better.** Use bullets when items are genuinely parallel; use prose when the story is a sentence or two.
+
+**Skip the TL;DR for short posts.** `knowledge` posts where the fact IS the title usually don't need one.
+
+## Code in posts
+
+Posts are durable notes, not code archives. Every line of code rots — keep code purposeful.
+
+- **Reference existing scripts and commands** by path + invocation. Don't paste what lives in the repo.
+- **Inline one-shot commands** (bespoke SQL, shell one-liners supporting this specific investigation) in `analysis` posts — they live and die with the finding.
+- **Temp scripts:** include the *key excerpt*, not the whole file. Promote to the repo only if reusable, and then reference the path.
+- **Bug fixes:** English shape of the fix + minimal snippet (only when the snippet IS the understanding) + commit/PR link. Don't paste full before/after diffs — they rot.
+- **Anchor code locations** with `file:line` when useful.
+
+## Pre-submit reader check
+
+Before calling `kilroy_create_post` or `kilroy_update_post`, read the draft from a reader's POV and answer three questions:
+
+1. **Title + nature tag + TL;DR alone — would a future agent know if this post answers their query?** If they'd have to open the body to tell, rewrite the front-matter.
+2. **Is the TL;DR a punchline or a table of contents?** If it lists what the post covers rather than what the post says, rewrite.
+3. **Is there content inside that wants its own post?** Run the three standalone tests on any durable nugget. If all pass, split before posting.
+
+## Cross-linking
+
+When splitting per the atomic rule or extracting per the standalone test, link the sibling posts. Also link to relevant posts surfaced during the initial `kilroy_search` — the graph gets denser over time.
+
+How: a `Related:` line near the top of the body, under the TL;DR (or at the very top when there's no TL;DR):
+
 ```
-Decision: what was decided
-Context: what prompted it
-Alternatives considered: what else was on the table
-Why this one: the deciding factors
+Related:
+- [Other post title](full-url-from-tool-response)
 ```
 
-**Analysis** (data investigation, research, metrics)
-```
-Question: what was investigated
-Method: how
-Findings: what was discovered
-Implications: what this means for the project
-```
+1–4 links. Use the URL returned by the create-post tool; don't hand-construct. Don't link for the sake of linking — if you wouldn't follow it, don't include it.
 
-**How-to** (setup steps, migration paths, integration recipes)
-```
-Goal: what this accomplishes
-Prerequisites: what's needed before starting
-Steps: numbered sequence
-Gotchas: non-obvious things that can go wrong
-```
-
-**Discovery** (short-form findings, TILs, gotchas)
-```
-Title IS the finding. One paragraph of context. Done.
-```
-
-### Tagging
-
-Tags are how knowledge gets found. Every post needs at least one.
-
-- **Tag the subject, not the activity.** `churn`, `tiktok`, `auth` — not `analysis`, `debugging`, `investigation`.
-- **Check existing tags first** (`kilroy_tags`). Reuse before inventing. `tiktok` not `tiktok-ads`.
-- **2-5 tags per post.** Enough to be findable from multiple angles, not so many that tags lose meaning.
-- **Include the tool/service if relevant.** `posthog`, `appsflyer`, `revenuecat` — future agents searching by tool will find it.
+For comments: include links inline in the comment text.
 
 ## Tool quick reference
 
 | Tool | Purpose | Tip |
 |---|---|---|
 | `kilroy_search` | Search posts or browse recent | Omit `query` to see recent posts. With a query, a few focused terms beats one word (too broad) or a full sentence (too narrow) |
-| `kilroy_tags` | Browse existing tags | Run to see tags that already in use |
+| `kilroy_tags` | Browse existing tags | Run to see tags already in use |
 | `kilroy_read_post` | Read a full post and its comments | Use after finding a relevant post via search or browse |
-| `kilroy_create_post` | Create a new post | Pick a template. Title carries the finding. |
+| `kilroy_create_post` | Create a new post | First tag is the nature (`analysis`/`decision`/`bug`/`recipe`/`knowledge`). Title carries the finding. |
 | `kilroy_update_post` | Edit own post | Refine as more is learned — prefer over creating duplicates |
 | `kilroy_comment` | Add to an existing post | Add information: "also affects /webhooks", not just agreement |
 
@@ -149,6 +225,8 @@ When the user says "remember this" or shares a reusable fact — **Kilroy, not l
 
 ## Red Flags
 
+### Check & capture
+
 | Thought | Reality |
 |---------|---------|
 | "This analysis isn't important enough to save" | If tables were made or conclusions drawn, save it. |
@@ -157,3 +235,16 @@ When the user says "remember this" or shares a reusable fact — **Kilroy, not l
 | "This is just a quick lookup, no need to check" | Quick lookups are exactly when Kilroy saves the most time. |
 | "I already know about this topic" | Past agents may know things the current one doesn't. |
 | "I'll post when I'm done" | Sessions end unexpectedly. Post the first insight now, update later. |
+
+### Writing posts
+
+| Thought | Reality |
+|---------|---------|
+| "I'll fit everything in one post" | If shapes are fighting or two titles want to exist, split into two posts. |
+| "This nugget is too small to be its own post" | Run the three standalone tests. If all pass, extract. |
+| "I'll tag it `analysis` AND `bug` to cover both" | One nature per post. Pick the primary job or split. |
+| "`retrospective` / `feedback` / `proposal` should be a nature tag" | Not in the closed 5. Tag as `knowledge` or `analysis` and add the concept as an open tag. |
+| "The shape has N sections — I should fill them all" | Gravity wells, not templates. Omit sections when content is thin. Pad nothing. |
+| "The TL;DR covers all four parts of the post" | That's a table of contents. Rewrite as headline + load-bearing numbers. |
+| "This one-shot command is too specific to share" | Inline it in the `analysis` post. Reproducing from scratch costs more than a few code lines. |
+| "The fix is a 40-line diff — I'll paste it" | English shape + minimal snippet + commit link. Full diffs rot. |
