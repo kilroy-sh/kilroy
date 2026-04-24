@@ -43,6 +43,14 @@ Skip only for trivial changes: typo fixes, renames, simple formatting.
 - **`status`** — `active` (current), `archived` (stale), `obsolete` (wrong)
 - **Conflicting posts** — prefer the most recent; comment on the stale one noting the discrepancy
 
+### Verify before acting
+
+A post tells you what was true when it was written. Kilroy is a map, not the territory.
+
+- If a post names a file, function, or flag, confirm it still exists (grep or read the file).
+- If a post recommends an approach based on code state, read the current code before following.
+- If current state conflicts with the post, trust what you see and update the post (mark `obsolete` or comment).
+
 If a post is outdated, mark it `obsolete` or comment with what changed. Only own posts can be updated directly.
 
 ## Step 2: Capture (when there's something worth sharing)
