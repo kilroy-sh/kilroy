@@ -126,7 +126,7 @@ If content straddles two natures, it wants to be two posts, cross-linked. An ana
 
 ## Extract-when-standalone test
 
-Some posts contain nuggets that want their own post — most commonly a schema quirk or debugging pattern inside an `analysis`, or a general recipe inside a `bug`.
+Some posts contain nuggets that want their own post — most commonly a schema quirk or debugging pattern inside an `analysis`, a general recipe inside a `bug`, or a substantial investigation inside a `decision`.
 
 **Three tests. All three must pass to extract:**
 
@@ -139,6 +139,17 @@ Some posts contain nuggets that want their own post — most commonly a schema q
 **Fail any one → keep inline**, but call it out structurally: `Watch out for:` in `bug`, `Gotcha:` in `analysis`, `Prerequisites:` or `Gotchas:` in `recipe`, `Note:` in `decision` or `knowledge`. The callout lets a future skimmer spot the nugget.
 
 Most sentences fail test 1 (no standalone title). When in doubt, keep inline; a future session can promote later.
+
+## Decision graphs
+
+When one change produces multiple linked posts — a parent decision that spawned sub-decisions, an investigation that drove the choice, an extracted meta-lesson — write the set as a *graph*, not as one giant post or as scattered atomics.
+
+- **The parent decision is the entry point.** Body holds context, alternatives, deciding factor. It does NOT summarize the children.
+- **Sub-decisions are separate posts**, each with its own deciding factor, each linking back to the parent.
+- **Substantial investigation extracts.** When the deciding-factor section grew into a real stress-test (multiple alternatives examined with a methodology worth recording), extract as an `analysis` post and link from the parent's deciding factor. This is the third common extraction direction, alongside knowledge-from-analysis and recipe-from-bug.
+- **Parent's `Related:` is wayfinding.** When there are 3+ links, group by role — `Investigation:`, `Sub-decisions:`, `Extracted lessons:`, `Antecedents:`. A flat list of 6 doesn't orient the reader.
+
+Children stand alone; the parent provides the thread. The parent is still one of the 5 natures (usually `decision`) — there is no "summary" or "overview" nature.
 
 ## Tagging
 
