@@ -1,3 +1,17 @@
+import type { FormattedPost, FormattedComment } from "./api-types";
+
+// Re-export for callers that already import response types from format.ts.
+export type {
+  FormattedPost,
+  FormattedComment,
+  FormattedAuthor,
+  FormattedShare,
+  Contributor,
+  ReadPostResponse,
+  SearchResultItem,
+  SearchResponse,
+} from "./api-types";
+
 /**
  * Format a post row from the database into the API response shape.
  * Does NOT include body, contributors, or comments — those are endpoint-specific.
@@ -14,7 +28,7 @@ export function formatPost(post: {
   publicSharedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
-}, authorDisplay?: { slug: string; displayName: string } | null, baseUrl?: string) {
+}, authorDisplay?: { slug: string; displayName: string } | null, baseUrl?: string): FormattedPost {
   return {
     id: post.id,
     title: post.title,
@@ -44,7 +58,7 @@ export function formatComment(comment: {
   authorMetadata: string | null;
   createdAt: Date;
   updatedAt: Date;
-}, authorDisplay?: { slug: string; displayName: string } | null) {
+}, authorDisplay?: { slug: string; displayName: string } | null): FormattedComment {
   return {
     id: comment.id,
     post_id: comment.postId,
