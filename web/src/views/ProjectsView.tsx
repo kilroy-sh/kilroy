@@ -4,46 +4,30 @@ import { useAuth } from '../context/AuthContext';
 import { KilroyMark } from '../components/KilroyMark';
 import { InviteCard } from '../components/InviteCard';
 import { Navbar } from '../components/Navbar';
-
-interface Project {
-  id: string;
-  slug: string;
-  created_at: string;
-}
-
-interface JoinedProject {
-  id: string;
-  slug: string;
-  owner: string;
-  joined_at: string;
-}
-
-interface NewProject extends Project {
-  member_key: string;
-  project_url: string;
-  install_command: string;
-  invite_link: string;
-  account_slug: string;
-}
+import { listProjects, createProjectApi } from '../lib/api';
+import type {
+  OwnedProjectSummary,
+  JoinedProjectSummary,
+  CreateProjectResponse,
+} from '@kilroy/api-types';
 
 export function ProjectsView() {
   const { user, account, loading } = useAuth();
   const navigate = useNavigate();
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [joinedProjects, setJoinedProjects] = useState<JoinedProject[]>([]);
+  const [projects, setProjects] = useState<OwnedProjectSummary[]>([]);
+  const [joinedProjects, setJoinedProjects] = useState<JoinedProjectSummary[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [slug, setSlug] = useState('');
   const [error, setError] = useState('');
   const [creating, setCreating] = useState(false);
-  const [created, setCreated] = useState<NewProject | null>(null);
+  const [created, setCreated] = useState<CreateProjectResponse | null>(null);
 
   useEffect(() => {
     if (loading) return;
     if (!user) { navigate('/login'); return; }
     if (!account) { navigate('/onboarding'); return; }
 
-    fetch('/api/projects', { credentials: 'include' })
-      .then((r) => r.json())
+    listProjects()
       .then((d) => {
         setProjects(d.owned || []);
         setJoinedProjects(d.joined || []);
@@ -66,26 +50,13 @@ export function ProjectsView() {
 
     setCreating(true);
     try {
-      const res = await fetch('/api/projects', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ slug: cleaned }),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || 'Failed to create project');
-        setCreating(false);
-        return;
-      }
-
+      const data = await createProjectApi(cleaned);
       setCreated(data);
       setProjects((prev) => [{ id: data.id, slug: data.slug, created_at: new Date().toISOString() }, ...prev]);
       setSlug('');
       setCreating(false);
-    } catch {
-      setError('Failed to connect to server');
+    } catch (e: any) {
+      setError(e?.message || 'Failed to create project');
       setCreating(false);
     }
   };

@@ -1,23 +1,17 @@
 import { useState, useEffect } from 'react';
 import { KilroyMark } from '../components/KilroyMark';
-
-interface Stats {
-  projects: number;
-  writes: { total: number; last24h: number };
-}
+import { getStats } from '../lib/api';
+import type { StatsResponse } from '@kilroy/api-types';
 
 export function StatsView() {
-  const [stats, setStats] = useState<Stats | null>(null);
+  const [stats, setStats] = useState<StatsResponse | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetch('/api/stats')
-      .then((r) => {
-        if (!r.ok) throw new Error('Failed to load stats');
-        return r.json();
-      })
-      .then(setStats)
-      .catch((e) => setError(e.message));
+    getStats().then((s) => {
+      if (s) setStats(s);
+      else setError('Failed to load stats');
+    });
   }, []);
 
   useEffect(() => {

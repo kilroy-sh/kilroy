@@ -22,7 +22,12 @@
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "noUncheckedSideEffectImports": true,
+
+    /* Shared types from server package (pure-types file, no runtime) */
+    "paths": {
+      "@kilroy/api-types": ["../src/lib/api-types.ts"]
+    }
   },
-  "include": ["src"]
+  "include": ["src", "../src/lib/api-types.ts"]
 }

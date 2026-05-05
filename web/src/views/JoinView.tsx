@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useProject } from '../context/ProjectContext';
 import { KilroyMark } from '../components/KilroyMark';
 import { InviteCard } from '../components/InviteCard';
+import { getJoinInfo } from '../lib/api';
 
 type JoinState =
   | { kind: 'loading' }
@@ -25,31 +26,24 @@ export function JoinView() {
       return;
     }
 
-    fetch(`/${accountSlug}/${projectSlug}/api/join?token=${encodeURIComponent(token)}`, {
-      credentials: 'include',
-    })
-      .then(async (res) => {
-        const d = await res.json();
-        if (!res.ok) throw new Error(d.error || 'Invalid or expired invite link');
-
-        if (d.requires_login) {
+    getJoinInfo(accountSlug, projectSlug, token)
+      .then((d) => {
+        if ('requires_login' in d && d.requires_login) {
           sessionStorage.setItem('joinReturnTo', window.location.pathname + window.location.search);
           setState({ kind: 'requires_login' });
-        } else if (d.requires_onboarding) {
+        } else if ('requires_onboarding' in d && d.requires_onboarding) {
           sessionStorage.setItem('joinReturnTo', window.location.pathname + window.location.search);
           setState({ kind: 'requires_onboarding' });
-        } else if (d.already_member || d.joined) {
-          setState({
-            kind: 'member',
-            joined: !!d.joined,
-            install_command: d.install_command,
-          });
+        } else if ('already_member' in d && d.already_member) {
+          setState({ kind: 'member', joined: false, install_command: d.install_command });
+        } else if ('joined' in d && d.joined) {
+          setState({ kind: 'member', joined: true, install_command: d.install_command });
         } else {
           throw new Error('Unexpected response from server');
         }
       })
       .catch((e) => {
-        setState({ kind: 'error', message: e.message || 'Something went wrong' });
+        setState({ kind: 'error', message: e?.message || 'Something went wrong' });
       });
   }, [token, accountSlug, projectSlug]);
 

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { KilroyMark } from '../components/KilroyMark';
+import { oauthConsent } from '../lib/api';
 
 export function ConsentView() {
   const { user, account, loading } = useAuth();
@@ -11,24 +12,11 @@ export function ConsentView() {
     setSubmitting(true);
     setError('');
     try {
-      const res = await fetch('/api/auth/oauth2/consent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          accept: true,
-          oauth_query: window.location.search.slice(1),
-        }),
+      const data = await oauthConsent({
+        accept: true,
+        oauth_query: window.location.search.slice(1),
       });
 
-      if (!res.ok) {
-        const data = await res.json();
-        setError(data.error_description || data.error || 'Consent failed');
-        setSubmitting(false);
-        return;
-      }
-
-      const data = await res.json();
       const redirectUrl = data.url || data.redirectTo;
       if (redirectUrl) {
         window.location.href = redirectUrl;
@@ -36,8 +24,8 @@ export function ConsentView() {
         setError('No redirect URL in response');
         setSubmitting(false);
       }
-    } catch {
-      setError('Network error');
+    } catch (e: any) {
+      setError(e?.message || 'Network error');
       setSubmitting(false);
     }
   };

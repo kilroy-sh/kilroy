@@ -5,17 +5,14 @@ import { KilroyMark } from '../components/KilroyMark';
 import { GitHubIcon, GoogleIcon } from '../components/ProviderIcons';
 import { EmailAuthForm } from '../components/EmailAuthForm';
 import { Icon } from '@iconify/react';
-
-interface Stats {
-  projects: number;
-  writes: { total: number; last24h: number };
-}
+import { getStats } from '../lib/api';
+import type { StatsResponse } from '@kilroy/api-types';
 
 export function LandingView() {
   const { user, account, loading, signIn, config } = useAuth();
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
-  const [stats, setStats] = useState<Stats | null>(null);
+  const [stats, setStats] = useState<StatsResponse | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
   const [faqOpen, setFaqOpen] = useState(false);
   const loginRef = useRef<HTMLDivElement>(null);
@@ -50,10 +47,7 @@ export function LandingView() {
   }, [user, account, loading]);
 
   useEffect(() => {
-    fetch('/api/stats')
-      .then((r) => r.ok ? r.json() : null)
-      .then(setStats)
-      .catch(() => {});
+    getStats().then(setStats);
   }, []);
 
   const installCmd = `curl -sL ${window.location.origin}/install | sh`;

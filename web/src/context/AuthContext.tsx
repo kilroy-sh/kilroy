@@ -1,16 +1,13 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { authClient } from '../lib/auth-client';
+import { getAccount, getAuthConfig } from '../lib/api';
+import type { AccountSummary, AuthConfig } from '@kilroy/api-types';
 
 interface User { id: string; email: string; name: string; }
-interface Account { id: string; slug: string; display_name: string; }
-interface AuthConfig {
-  emailPassword: boolean;
-  providers: Array<'github' | 'google'>;
-}
 interface AuthState {
   loading: boolean;
   user: User | null;
-  account: Account | null;
+  account: AccountSummary | null;
   config: AuthConfig | null;
   signIn: (provider: 'github' | 'google', callbackURL?: string) => Promise<void>;
   signInEmail: (email: string, password: string, callbackURL?: string) => Promise<{ error?: string }>;
@@ -24,23 +21,16 @@ const AuthContext = createContext<AuthState | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
-  const [account, setAccount] = useState<Account | null>(null);
+  const [account, setAccount] = useState<AccountSummary | null>(null);
   const [config, setConfig] = useState<AuthConfig | null>(null);
 
   const fetchAccount = async () => {
-    try {
-      const res = await fetch('/api/account', { credentials: 'include' });
-      if (!res.ok) { setAccount(null); return; }
-      const data = await res.json();
-      setAccount(data.has_account ? data.account : null);
-    } catch { setAccount(null); }
+    const data = await getAccount();
+    setAccount(data?.has_account ? data.account : null);
   };
 
   useEffect(() => {
-    fetch('/api/auth-config')
-      .then((r) => r.ok ? r.json() : null)
-      .then((data) => { if (data) setConfig(data); })
-      .catch(() => {});
+    getAuthConfig().then((data) => { if (data) setConfig(data); });
   }, []);
 
   useEffect(() => {

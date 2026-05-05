@@ -3,17 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { KilroyMark } from '../components/KilroyMark';
 import { InviteCard } from '../components/InviteCard';
+import { getSlugSuggestion, createAccount, createProjectApi } from '../lib/api';
+import type { CreateProjectResponse } from '@kilroy/api-types';
 
 type Step = 'handle' | 'project' | 'ready';
-
-interface CreatedProject {
-  slug: string;
-  account_slug: string;
-  member_key: string;
-  project_url: string;
-  install_command: string;
-  invite_link: string;
-}
 
 export function OnboardingView() {
   const { user, account, loading, refreshAccount } = useAuth();
@@ -23,7 +16,7 @@ export function OnboardingView() {
   const [projectSlug, setProjectSlug] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [created, setCreated] = useState<CreatedProject | null>(null);
+  const [created, setCreated] = useState<CreateProjectResponse | null>(null);
   const [accountSlug, setAccountSlug] = useState('');
   const inFlowRef = useRef(false);
 
@@ -52,8 +45,7 @@ export function OnboardingView() {
     }
 
     if (!account) {
-      fetch('/api/account/slug-suggestion', { credentials: 'include' })
-        .then((r) => r.json())
+      getSlugSuggestion()
         .then((d) => { if (d.suggestion) setHandle(d.suggestion); })
         .catch(() => {});
     }
@@ -86,19 +78,7 @@ export function OnboardingView() {
 
     setSubmitting(true);
     try {
-      const res = await fetch('/api/account', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ slug: cleaned }),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || 'Failed to create account');
-        setSubmitting(false);
-        return;
-      }
+      await createAccount(cleaned);
 
       inFlowRef.current = true;
       await refreshAccount();
@@ -117,8 +97,8 @@ export function OnboardingView() {
 
       setStep('project');
       setSubmitting(false);
-    } catch {
-      setError('Failed to connect to server');
+    } catch (e: any) {
+      setError(e?.message || 'Failed to create account');
       setSubmitting(false);
     }
   };
@@ -135,19 +115,7 @@ export function OnboardingView() {
 
     setSubmitting(true);
     try {
-      const res = await fetch('/api/projects', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ slug: cleaned }),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || 'Failed to create project');
-        setSubmitting(false);
-        return;
-      }
+      const data = await createProjectApi(cleaned);
 
       if (isOAuthFlow) {
         handleComplete();
@@ -157,8 +125,8 @@ export function OnboardingView() {
       setError('');
       setStep('ready');
       setSubmitting(false);
-    } catch {
-      setError('Failed to connect to server');
+    } catch (e: any) {
+      setError(e?.message || 'Failed to create project');
       setSubmitting(false);
     }
   };
