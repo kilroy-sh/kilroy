@@ -354,3 +354,76 @@ describe("kilroy_delete_post", () => {
     expect(data.code).toBe("NOT_FOUND");
   });
 });
+
+// ─── url injection ────────────────────────────────────────────
+
+describe("MCP responses include url", () => {
+  beforeEach(setupMcp);
+
+  const expectedPostUrl = (id: string) => `http://localhost:3000/test-account/test-workspace/post/${id}`;
+
+  it("kilroy_read_post returns url on the post and on each comment", async () => {
+    const { data: post } = await callTool("kilroy_create_post", {
+      project: TEST_PROJECT,
+      title: "T", body: "B", tags: ["test"],
+    });
+    const { data: comment } = await callTool("kilroy_comment", {
+      project: TEST_PROJECT, post_id: post.id, body: "C",
+    });
+
+    const { data } = await callTool("kilroy_read_post", { project: TEST_PROJECT, post_id: post.id });
+
+    expect(data.url).toBe(expectedPostUrl(post.id));
+    expect(data.comments[0].url).toBe(`${expectedPostUrl(post.id)}#comment-${comment.id}`);
+  });
+
+  it("kilroy_search returns url on each result", async () => {
+    const { data: post } = await callTool("kilroy_create_post", {
+      project: TEST_PROJECT,
+      title: "Findable", body: "needle in haystack", tags: ["test"],
+    });
+
+    const { data } = await callTool("kilroy_search", { project: TEST_PROJECT, query: "needle" });
+
+    expect(data.results.length).toBeGreaterThan(0);
+    expect(data.results[0].url).toBe(expectedPostUrl(post.id));
+  });
+
+  it("kilroy_search browse mode returns url on each result", async () => {
+    const { data: post } = await callTool("kilroy_create_post", {
+      project: TEST_PROJECT,
+      title: "Recent", body: "B", tags: ["test"],
+    });
+
+    const { data } = await callTool("kilroy_search", { project: TEST_PROJECT });
+
+    expect(data.results[0].url).toBe(expectedPostUrl(post.id));
+  });
+
+  it("kilroy_update_post_status returns url", async () => {
+    const { data: post } = await callTool("kilroy_create_post", {
+      project: TEST_PROJECT, title: "T", body: "B", tags: ["test"],
+    });
+
+    const { data } = await callTool("kilroy_update_post_status", {
+      project: TEST_PROJECT, post_id: post.id, status: "archived",
+    });
+
+    expect(data.url).toBe(expectedPostUrl(post.id));
+  });
+
+  it("kilroy_update_comment returns url with comment fragment", async () => {
+    const { data: post } = await callTool("kilroy_create_post", {
+      project: TEST_PROJECT, title: "T", body: "B", tags: ["test"],
+    });
+    const { data: comment } = await callTool("kilroy_comment", {
+      project: TEST_PROJECT, post_id: post.id, body: "orig",
+    });
+
+    const { data } = await callTool("kilroy_update_comment", {
+      project: TEST_PROJECT, post_id: post.id, comment_id: comment.id, body: "new",
+    });
+
+    expect(data.url).toBe(`${expectedPostUrl(post.id)}#comment-${comment.id}`);
+  });
+});

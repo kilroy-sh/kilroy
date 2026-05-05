@@ -43,6 +43,69 @@ function result(data: unknown, isError = false) {
   };
 }
 
+// URL helpers + response enrichers. Helpers take `unknown` because the API
+// wrapper returns `unknown` data (success and error responses share the channel),
+// and narrow with type guards on the real response types from format.ts.
+
+import type {
+  FormattedPost,
+  FormattedComment,
+  ReadPostResponse,
+  SearchResponse,
+  SearchResultItem,
+} from "../lib/api-types";
+
+// MCP enriches API responses with public URLs. These are the post-enrichment shapes.
+type MCPPost = FormattedPost & { url: string };
+type MCPComment = FormattedComment & { url: string };
+type MCPReadPost = ReadPostResponse & { url: string; comments: MCPComment[] };
+type MCPSearchResponse = SearchResponse & { results: Array<SearchResultItem & { url: string }> };
+
+const isObj = (d: unknown): d is Record<string, unknown> =>
+  typeof d === "object" && d !== null;
+const isPost = (d: unknown): d is FormattedPost => isObj(d) && typeof d.id === "string";
+const isComment = (d: unknown): d is FormattedComment =>
+  isObj(d) && typeof d.id === "string" && typeof d.post_id === "string";
+const isReadPost = (d: unknown): d is ReadPostResponse =>
+  isPost(d) && Array.isArray((d as ReadPostResponse).comments);
+const isSearch = (d: unknown): d is SearchResponse =>
+  isObj(d) && Array.isArray(d.results);
+
+const postUrl = (projectUrl: string, postId: string) => `${projectUrl}/post/${postId}`;
+const commentUrl = (projectUrl: string, postId: string, commentId: string) =>
+  `${postUrl(projectUrl, postId)}#comment-${commentId}`;
+
+/** Add `url` to a post response, and to each nested comment if it's a read response. No-op on error shapes. */
+function enrichPost<T>(data: T, projectUrl: string): T | MCPPost | MCPReadPost {
+  if (!isPost(data)) return data;
+  if (isReadPost(data)) {
+    return {
+      ...data,
+      url: postUrl(projectUrl, data.id),
+      comments: data.comments.map((c) => ({
+        ...c,
+        url: commentUrl(projectUrl, data.id, c.id),
+      })),
+    };
+  }
+  return { ...data, url: postUrl(projectUrl, data.id) };
+}
+
+/** Add `url` to a comment response. No-op on error shapes. */
+function enrichComment<T>(data: T, projectUrl: string): T | MCPComment {
+  if (!isComment(data)) return data;
+  return { ...data, url: commentUrl(projectUrl, data.post_id, data.id) };
+}
+
+/** Add `url` to each item in a search response. No-op on error shapes. */
+function enrichSearch<T>(data: T, projectUrl: string): T | MCPSearchResponse {
+  if (!isSearch(data)) return data;
+  return {
+    ...data,
+    results: data.results.map((r) => ({ ...r, url: postUrl(projectUrl, r.post_id) })),
+  };
+}
+
 const projectParam = z.string().describe("Project in account/slug format (e.g. srijan/sagaland)");
 
 export function createMcpServer(authUserId: string, authorType: "human" | "agent", baseUrl: string) {
@@ -105,7 +168,7 @@ export function createMcpServer(authUserId: string, authorType: "human" | "agent
       try {
         return await withProject(args.project, async (app, projectUrl) => {
           const { status, data } = await app("GET", `/api/posts/${args.post_id}`);
-          return result(data, status >= 400);
+          return result(enrichPost(data, projectUrl), status >= 400);
         });
       } catch (err: any) {
         return result({ error: err.message }, true);
@@ -143,7 +206,7 @@ export function createMcpServer(authUserId: string, authorType: "human" | "agent
           if (args.limit !== undefined) params.set("limit", String(args.limit));
 
           const { status, data } = await app("GET", `/api/search?${params}`);
-          return result(data, status >= 400);
+          return result(enrichSearch(data, projectUrl), status >= 400);
         });
       } catch (err: any) {
         return result({ error: err.message }, true);
@@ -198,8 +261,7 @@ export function createMcpServer(authUserId: string, authorType: "human" | "agent
             tags: args.tags,
             author_metadata: args.author_metadata,
           });
-          const postUrl = (data as any)?.id ? `${projectUrl}/post/${(data as any).id}` : undefined;
-          return result(postUrl ? { ...(data as any), url: postUrl } : data, status >= 400);
+          return result(enrichPost(data, projectUrl), status >= 400);
         });
       } catch (err: any) {
         return result({ error: err.message }, true);
@@ -225,8 +287,7 @@ export function createMcpServer(authUserId: string, authorType: "human" | "agent
             body: args.body,
             author_metadata: args.author_metadata,
           });
-          const postUrl = `${projectUrl}/post/${args.post_id}`;
-          return result({ ...(data as any), url: postUrl }, status >= 400);
+          return result(enrichComment(data, projectUrl), status >= 400);
         });
       } catch (err: any) {
         return result({ error: err.message }, true);
@@ -250,7 +311,7 @@ export function createMcpServer(authUserId: string, authorType: "human" | "agent
           const { status, data } = await app("PATCH", `/api/posts/${args.post_id}`, {
             status: args.status,
           });
-          return result(data, status >= 400);
+          return result(enrichPost(data, projectUrl), status >= 400);
         });
       } catch (err: any) {
         return result({ error: err.message }, true);
@@ -301,8 +362,7 @@ export function createMcpServer(authUserId: string, authorType: "human" | "agent
           if (args.tags !== undefined) payload.tags = args.tags;
 
           const { status, data } = await app("PATCH", `/api/posts/${args.post_id}`, payload);
-          const postUrl = `${projectUrl}/post/${args.post_id}`;
-          return result({ ...(data as any), url: postUrl }, status >= 400);
+          return result(enrichPost(data, projectUrl), status >= 400);
         });
       } catch (err: any) {
         return result({ error: err.message }, true);
@@ -329,7 +389,7 @@ export function createMcpServer(authUserId: string, authorType: "human" | "agent
             `/api/posts/${args.post_id}/comments/${args.comment_id}`,
             { body: args.body }
           );
-          return result(data, status >= 400);
+          return result(enrichComment(data, projectUrl), status >= 400);
         });
       } catch (err: any) {
         return result({ error: err.message }, true);
