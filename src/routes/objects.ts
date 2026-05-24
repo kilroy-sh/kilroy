@@ -72,7 +72,7 @@ objectsRouter.post("/upload/:slotId", async (c) => {
 
 objectsRouter.get("/:id", async (c) => {
   const id = c.req.param("id");
-  const objectProjectId = c.get("projectId");
+  const projectId = c.get("projectId");
 
   const rows = await client.unsafe(
     `SELECT id, project_id, mime, size_bytes, sha256, storage_backend, storage_key
@@ -81,10 +81,22 @@ objectsRouter.get("/:id", async (c) => {
   );
   const obj = rows[0];
   if (!obj) return c.text("Not found", 404);
-  if (obj.project_id !== objectProjectId) {
-    // Member of a different project shouldn't be able to read this object
-    // through this project's URL. Public-share logic comes in Task 8.
-    return c.text("Not found", 404);
+  if (obj.project_id !== projectId) return c.text("Not found", 404);
+
+  // Members may always read. Anonymous (no memberAccountId) is allowed only
+  // when the object is referenced from a publicly-shared post in this project.
+  const memberAccountId = c.get("memberAccountId");
+  if (!memberAccountId) {
+    const objectUrlSuffix = `/o/${id}`;
+    const ref = await client.unsafe(
+      `SELECT 1 FROM posts
+       WHERE project_id = $1
+         AND public_share_token IS NOT NULL
+         AND body LIKE $2
+       LIMIT 1`,
+      [projectId, `%${objectUrlSuffix}%`],
+    );
+    if (ref.length === 0) return c.text("Forbidden", 403);
   }
 
   const storage =

@@ -142,3 +142,58 @@ describe("GET /o/:id (member auth)", () => {
     expect(res.status).toBe(404);
   });
 });
+
+function anonymousApp() {
+  const app = new Hono<Env>();
+  app.use("*", async (c, next) => {
+    // Resolve project from path like the real server does.
+    c.set("projectId", testProjectId);
+    c.set("projectSlug", "test-workspace");
+    c.set("accountSlug", "test-account");
+    // No memberAccountId — anonymous
+    await next();
+  });
+  app.route("/o", objectsRouter);
+  return app;
+}
+
+async function createPostWithObject(objectUrl: string, opts: { shared: boolean }) {
+  const postId = uuidv7();
+  const shareToken = opts.shared ? "klry_post_test123" : null;
+  const sharedAt = opts.shared ? "now()" : "NULL";
+  await client.unsafe(`
+    INSERT INTO posts (id, project_id, title, body, public_share_token, public_shared_at, author_account_id)
+    VALUES ('${postId}', '${testProjectId}', 'fixture', 'see ![chart](${objectUrl})',
+            ${shareToken ? `'${shareToken}'` : "NULL"}, ${sharedAt}, '${testAccountId}')
+  `);
+  return postId;
+}
+
+describe("GET /o/:id (public access via shared post)", () => {
+  beforeEach(resetDb);
+
+  it("allows anonymous read when object is referenced from a shared post", async () => {
+    const memberApp = appWithObjects();
+    const created = await uploadFixture(memberApp);
+    await createPostWithObject(created.url, { shared: true });
+
+    const res = await anonymousApp().request(`/o/${created.id}`);
+    expect(res.status).toBe(200);
+  });
+
+  it("returns 403 anonymously when no shared post references the object", async () => {
+    const memberApp = appWithObjects();
+    const created = await uploadFixture(memberApp);
+    await createPostWithObject(created.url, { shared: false });
+
+    const res = await anonymousApp().request(`/o/${created.id}`);
+    expect(res.status).toBe(403);
+  });
+
+  it("returns 403 anonymously when object exists but is unreferenced", async () => {
+    const memberApp = appWithObjects();
+    const created = await uploadFixture(memberApp);
+    const res = await anonymousApp().request(`/o/${created.id}`);
+    expect(res.status).toBe(403);
+  });
+});
