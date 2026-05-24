@@ -144,6 +144,27 @@ function buildMarked(highlighter: HighlighterCore | null) {
     ],
   });
 
+  instance.use({
+    renderer: {
+      // Detect Kilroy object URLs at parse time and emit a placeholder span.
+      // The placeholder is part of the rendered HTML (so it survives across
+      // effect re-runs and StrictMode double-invokes), and a separate effect
+      // mounts an <AttachmentChip> React tree into each placeholder.
+      link({ href, text }) {
+        const parsed = parseObjectUrl(href);
+        if (!parsed) return false;
+        return (
+          `<span class="kilroy-attachment-placeholder"` +
+          ` data-href="${escapeHtml(href)}"` +
+          ` data-account="${escapeHtml(parsed.accountSlug)}"` +
+          ` data-project="${escapeHtml(parsed.projectSlug)}"` +
+          ` data-id="${escapeHtml(parsed.objectId)}"` +
+          ` data-label="${escapeHtml(text)}"></span>`
+        );
+      },
+    },
+  });
+
   if (highlighter) {
     instance.use({
       renderer: {
@@ -240,35 +261,36 @@ export function Markdown({ content, className }: { content: string; className?: 
     const container = containerRef.current;
     if (!container) return;
 
-    const roots: Root[] = [];
-    const anchors = Array.from(container.querySelectorAll<HTMLAnchorElement>('a[href]'));
-    for (const anchor of anchors) {
-      const href = anchor.getAttribute('href') ?? '';
-      const parsed = parseObjectUrl(href);
-      if (!parsed) continue;
-      if (anchor.querySelector('img')) continue; // keep image-in-link intact
-
-      const wrapper = document.createElement('span');
-      wrapper.className = 'attachment-chip-mount';
-      anchor.replaceWith(wrapper);
-      const root = createRoot(wrapper);
-      roots.push(root);
+    // Placeholders are written by the marked link renderer (see buildMarked);
+    // they're part of the dangerouslySetInnerHTML payload, so they survive
+    // across renders (the inner HTML wrapper is memoized — see below).
+    const placeholders = Array.from(
+      container.querySelectorAll<HTMLSpanElement>('.kilroy-attachment-placeholder'),
+    );
+    const roots: Root[] = placeholders.map((el) => {
+      const root = createRoot(el);
       root.render(
         <AttachmentChip
-          accountSlug={parsed.accountSlug}
-          projectSlug={parsed.projectSlug}
-          objectId={parsed.objectId}
-          href={href}
-          label={anchor.textContent}
+          accountSlug={el.dataset.account ?? ''}
+          projectSlug={el.dataset.project ?? ''}
+          objectId={el.dataset.id ?? ''}
+          href={el.dataset.href ?? ''}
+          label={el.dataset.label ?? null}
         />,
       );
-    }
+      return root;
+    });
 
     return () => {
-      // Defer to next tick — React 19 warns if you unmount synchronously in a parent effect cleanup.
-      queueMicrotask(() => { for (const root of roots) root.unmount(); });
+      for (const root of roots) root.unmount();
     };
   }, [html]);
 
-  return <div ref={containerRef} className={className} dangerouslySetInnerHTML={{ __html: html }} />;
+  // Memoize the wrapper object — React diffs dangerouslySetInnerHTML by
+  // reference equality on the wrapper, not on the inner string. A fresh
+  // `{__html: html}` literal each render makes React re-set innerHTML on
+  // every render, which would wipe any React roots we mount into children
+  // (e.g. AttachmentChip).
+  const innerHTML = useMemo(() => ({ __html: html }), [html]);
+  return <div ref={containerRef} className={className} dangerouslySetInnerHTML={innerHTML} />;
 }
