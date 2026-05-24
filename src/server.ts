@@ -38,7 +38,7 @@ function isBackendRoute(path: string): boolean {
   if (path === "/mcp") return true;
   if (path === "/install") return true;
   if (path.startsWith("/api/")) return true;
-  return /^\/[^/]+\/[^/]+\/(api|mcp|install|join)(\/|$)/.test(path);
+  return /^\/[^/]+\/[^/]+\/(api|mcp|install|join|o)(\/|$)/.test(path);
 }
 
 async function proxyToVite(c: Context, baseUrl: string): Promise<Response> {

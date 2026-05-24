@@ -33,7 +33,7 @@ async function provisionSlot(opts: { expired?: boolean } = {}) {
   return id;
 }
 
-describe("POST /o/upload/:slotId", () => {
+describe("PUT /o/upload/:slotId", () => {
   beforeEach(resetDb);
 
   it("consumes a slot, persists the object, returns id+url; object id == slot id", async () => {
@@ -41,7 +41,7 @@ describe("POST /o/upload/:slotId", () => {
     const app = appWithObjects();
 
     const res = await app.request(`/o/upload/${slot}`, {
-      method: "POST",
+      method: "PUT",
       headers: { "Content-Type": "text/plain" },
       body: "hello world",
     });
@@ -73,11 +73,11 @@ describe("POST /o/upload/:slotId", () => {
     const slot = await provisionSlot();
     const app = appWithObjects();
     const first = await app.request(`/o/upload/${slot}`, {
-      method: "POST", body: "first", headers: { "Content-Type": "text/plain" },
+      method: "PUT", body: "first", headers: { "Content-Type": "text/plain" },
     });
     expect(first.status).toBe(201);
     const second = await app.request(`/o/upload/${slot}`, {
-      method: "POST", body: "second", headers: { "Content-Type": "text/plain" },
+      method: "PUT", body: "second", headers: { "Content-Type": "text/plain" },
     });
     expect(second.status).toBe(410); // Gone: slot already consumed
   });
@@ -86,7 +86,7 @@ describe("POST /o/upload/:slotId", () => {
     const slot = await provisionSlot({ expired: true });
     const app = appWithObjects();
     const res = await app.request(`/o/upload/${slot}`, {
-      method: "POST", body: "x", headers: { "Content-Type": "text/plain" },
+      method: "PUT", body: "x", headers: { "Content-Type": "text/plain" },
     });
     expect(res.status).toBe(410);
   });
@@ -94,7 +94,7 @@ describe("POST /o/upload/:slotId", () => {
   it("rejects an unknown slot", async () => {
     const app = appWithObjects();
     const res = await app.request(`/o/upload/${uuidv7()}`, {
-      method: "POST", body: "x", headers: { "Content-Type": "text/plain" },
+      method: "PUT", body: "x", headers: { "Content-Type": "text/plain" },
     });
     expect(res.status).toBe(404);
   });
@@ -104,7 +104,7 @@ describe("POST /o/upload/:slotId", () => {
     const app = appWithObjects();
     const tooBig = new Uint8Array(10 * 1024 * 1024 + 1);
     const res = await app.request(`/o/upload/${slot}`, {
-      method: "POST", body: tooBig, headers: { "Content-Type": "application/octet-stream" },
+      method: "PUT", body: tooBig, headers: { "Content-Type": "application/octet-stream" },
     });
     expect(res.status).toBe(413);
   });
@@ -113,7 +113,7 @@ describe("POST /o/upload/:slotId", () => {
 async function uploadFixture(app: ReturnType<typeof appWithObjects>) {
   const slot = await provisionSlot();
   const res = await app.request(`/o/upload/${slot}`, {
-    method: "POST",
+    method: "PUT",
     headers: { "Content-Type": "text/plain" },
     body: "hello world",
   });

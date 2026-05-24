@@ -13,7 +13,7 @@ export const objectsRouter = new Hono<Env>();
 // returned URL is stable from the moment the slot was provisioned.
 // The slot row carries the uploader's account id (set at provision time);
 // no member credentials are required here — the slot is the bearer.
-objectsRouter.post("/upload/:slotId", async (c) => {
+objectsRouter.put("/upload/:slotId", async (c) => {
   const slotId = c.req.param("slotId");
   const projectId = c.get("projectId");
 
@@ -105,7 +105,7 @@ objectsRouter.get("/:id", async (c) => {
       : new (await import("../storage/s3")).S3Storage();
 
   const bytes = await storage.get(obj.storage_key as string);
-  return new Response(bytes, {
+  return new Response(bytes.buffer as ArrayBuffer, {
     status: 200,
     headers: {
       "Content-Type": obj.mime as string,
