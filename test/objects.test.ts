@@ -217,7 +217,7 @@ describe("HEAD /o/:id", () => {
     expect(res.headers.get("Content-Type")).toBe("text/csv");
     expect(res.headers.get("Content-Length")).toBe("8");
     expect(res.headers.get("ETag")).toMatch(/^"[a-f0-9]{64}"$/);
-    expect(res.headers.get("Content-Disposition")).toBe('attachment; filename="report.csv"');
+    expect(res.headers.get("Content-Disposition")).toBe('inline; filename="report.csv"');
     expect(res.headers.get("Last-Modified")).toBeTruthy();
     const body = await res.text();
     expect(body).toBe(""); // HEAD never returns a body
@@ -253,7 +253,7 @@ describe("HEAD /o/:id", () => {
       body: "x",
     });
     const res = await app.request(`/o/${slot}`);
-    expect(res.headers.get("Content-Disposition")).toBe('attachment; filename="data.csv"');
+    expect(res.headers.get("Content-Disposition")).toBe('inline; filename="data.csv"');
   });
 
   it("HEAD returns 403 for anonymous when no shared post references the object", async () => {

@@ -123,7 +123,10 @@ async function handleGetOrHead(c: Context<Env>, includeBody: boolean) {
     // T1 input sanitizer normally guarantees this is safe to interpolate, but
     // we guard at emit time too — if a future write path skips the sanitizer,
     // we'd rather drop the header than emit a malformed/injected one.
-    headers["Content-Disposition"] = `attachment; filename="${obj.filename}"`;
+    // `inline` (not `attachment`) so PDFs/images render in <iframe>/<img>
+    // tags. Explicit "Download" actions use the anchor `download` attribute,
+    // which forces a download regardless of disposition.
+    headers["Content-Disposition"] = `inline; filename="${obj.filename}"`;
   }
 
   if (!includeBody) {
