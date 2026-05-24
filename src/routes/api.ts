@@ -6,6 +6,7 @@ import { searchRouter } from "./search";
 import { findRouter } from "./find";
 import { infoRouter } from "./info";
 import { exportRouter } from "./export";
+import { objectSlotsRouter } from "./object-slots";
 
 export const api = new Hono<Env>();
 
@@ -15,3 +16,4 @@ api.route("/search", searchRouter);
 api.route("/find", findRouter);
 api.route("/info", infoRouter);
 api.route("/export", exportRouter);
+api.route("/o/slots", objectSlotsRouter);
