@@ -11,6 +11,7 @@ import { resolveSession } from "./middleware/auth";
 import { objectsRouter } from "./routes/objects";
 import { objectContext } from "./middleware/object-context";
 import { statsRouter } from "./routes/stats";
+import { getStorage, describeStorage } from "./storage";
 import { auth } from "./auth";
 import { oauthProviderAuthServerMetadata } from "@better-auth/oauth-provider";
 import { oauthProviderResourceClient } from "@better-auth/oauth-provider/resource-client";
@@ -263,5 +264,7 @@ if (!viteDevUrl && indexHtml) {
 app.route("/:account/:project", projectApp);
 
 const port = parseInt(process.env.KILROY_PORT || "7432");
+getStorage(); // eager init — fails loudly if S3 config is partial
 console.log(`Kilroy server running on http://localhost:${port}`);
+console.log(describeStorage());
 export default { port, fetch: app.fetch };
