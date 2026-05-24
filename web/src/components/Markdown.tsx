@@ -1,8 +1,11 @@
 import { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
 import { MathJaxBaseContext } from 'better-react-mathjax';
 import { Marked, type RendererExtensionFunction, type TokenizerExtensionFunction } from 'marked';
 import type { HighlighterCore } from 'shiki/core';
 import { getHighlighter, resolveLang } from '../lib/shiki/highlighter';
+import { parseObjectUrl } from '../lib/objectUrl';
+import { AttachmentChip } from './AttachmentChip';
 
 type MathToken = {
   type: 'mathInline' | 'mathBlock';
@@ -232,6 +235,40 @@ export function Markdown({ content, className }: { content: string; className?: 
       cancelled = true;
     };
   }, [html, mathJax]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const roots: Root[] = [];
+    const anchors = Array.from(container.querySelectorAll<HTMLAnchorElement>('a[href]'));
+    for (const anchor of anchors) {
+      const href = anchor.getAttribute('href') ?? '';
+      const parsed = parseObjectUrl(href);
+      if (!parsed) continue;
+      if (anchor.querySelector('img')) continue; // keep image-in-link intact
+
+      const wrapper = document.createElement('span');
+      wrapper.className = 'attachment-chip-mount';
+      anchor.replaceWith(wrapper);
+      const root = createRoot(wrapper);
+      roots.push(root);
+      root.render(
+        <AttachmentChip
+          accountSlug={parsed.accountSlug}
+          projectSlug={parsed.projectSlug}
+          objectId={parsed.objectId}
+          href={href}
+          label={anchor.textContent}
+        />,
+      );
+    }
+
+    return () => {
+      // Defer to next tick — React 19 warns if you unmount synchronously in a parent effect cleanup.
+      queueMicrotask(() => { for (const root of roots) root.unmount(); });
+    };
+  }, [html]);
 
   return <div ref={containerRef} className={className} dangerouslySetInnerHTML={{ __html: html }} />;
 }
