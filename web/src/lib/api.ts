@@ -25,6 +25,7 @@ import type {
   JoinResponse,
   OAuthConsentRequest,
   OAuthConsentResponse,
+  ObjectMeta,
 } from '@kilroy/api-types';
 
 function getBase(accountSlug: string, projectSlug: string): string {
@@ -301,4 +302,47 @@ export function oauthConsent(body: OAuthConsentRequest): Promise<OAuthConsentRes
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
+}
+
+// ─── Objects (HEAD /o/:id) ──────────────────────────────────────
+
+// Parses RFC 6266 Content-Disposition. Handles the two forms the server emits:
+//   attachment; filename="report.csv"
+//   attachment; filename*=UTF-8''r%C3%A9sum%C3%A9.pdf
+// `filename*` wins if both are present (per RFC).
+function parseFilenameFromContentDisposition(value: string | null): string | null {
+  if (!value) return null;
+  const starMatch = /filename\*=([^']+)''([^;]+)/i.exec(value);
+  if (starMatch) {
+    try { return decodeURIComponent(starMatch[2]!); } catch { /* fall through */ }
+  }
+  const quoted = /filename="((?:[^"\\]|\\.)*)"/i.exec(value);
+  if (quoted) return quoted[1]!.replace(/\\(.)/g, '$1');
+  const bare = /filename=([^;]+)/i.exec(value);
+  if (bare) return bare[1]!.trim();
+  return null;
+}
+
+export async function headObject(
+  accountSlug: string,
+  projectSlug: string,
+  id: string,
+): Promise<ObjectMeta> {
+  const res = await fetch(`/${accountSlug}/${projectSlug}/o/${id}`, {
+    method: 'HEAD',
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    throw new Error(`Object metadata failed: ${res.status}`);
+  }
+  const etag = res.headers.get('ETag') ?? '';
+  const lastModified = res.headers.get('Last-Modified');
+  return {
+    id,
+    mime: res.headers.get('Content-Type') ?? 'application/octet-stream',
+    size_bytes: Number(res.headers.get('Content-Length') ?? '0'),
+    sha256: etag.replace(/^"|"$/g, ''),
+    filename: parseFilenameFromContentDisposition(res.headers.get('Content-Disposition')),
+    last_modified: lastModified ? new Date(lastModified).toISOString() : new Date(0).toISOString(),
+  };
 }
