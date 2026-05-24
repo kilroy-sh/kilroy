@@ -3283,3 +3283,12 @@ a:hover { color: var(--accent-hover); }
 .table-preview th, .table-preview td { border: 1px solid var(--border, #d8cfc4); padding: 0.25rem 0.5rem; text-align: left; white-space: nowrap; }
 .table-preview th { background: var(--bg-surface, #f5efe6); }
 .table-preview-truncated { padding: 0.5rem; color: var(--text-muted, #8c7e72); font-size: 0.8rem; }
+
+.xlsx-tabs { display: flex; gap: 0.25rem; margin-bottom: 0.5rem; border-bottom: 1px solid var(--border, #d8cfc4); }
+.xlsx-tab {
+  padding: 0.35rem 0.75rem; border: none; background: transparent;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 0.85rem; cursor: pointer;
+  border-bottom: 2px solid transparent; color: var(--text-muted, #8c7e72);
+}
+.xlsx-tab:hover { color: var(--text, #2c2520); }
+.xlsx-tab-active { color: var(--accent, #c8642a); border-bottom-color: var(--accent, #c8642a); }
