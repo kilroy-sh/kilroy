@@ -36,6 +36,14 @@ objectsRouter.put("/upload/:slotId", async (c) => {
   }
 
   const mime = c.req.header("Content-Type") ?? "application/octet-stream";
+  const rawFilename = c.req.header("X-Kilroy-Filename") ?? null;
+  // Defensive: reject CR/LF and limit length to keep storage sane.
+  const filename =
+    rawFilename === null
+      ? null
+      : rawFilename.length > 0 && rawFilename.length <= 255 && !/[\r\n]/.test(rawFilename)
+        ? rawFilename
+        : null;
   const storage = getStorage();
   const objectId = slot.id as string; // slot uuid == object uuid
   const hash = sha256Hex(buf);
@@ -57,9 +65,9 @@ objectsRouter.put("/upload/:slotId", async (c) => {
       throw new Error("Slot already consumed or expired (race)");
     }
     await tx.unsafe(
-      `INSERT INTO objects (id, project_id, mime, size_bytes, sha256, storage_backend, storage_key, created_by_account_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-      [objectId, projectId, mime, String(buf.byteLength), hash, storage.kind, objectId, slot.created_by_account_id],
+      `INSERT INTO objects (id, project_id, mime, size_bytes, sha256, storage_backend, storage_key, created_by_account_id, filename)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [objectId, projectId, mime, String(buf.byteLength), hash, storage.kind, objectId, slot.created_by_account_id, filename],
     );
   });
 
@@ -67,7 +75,7 @@ objectsRouter.put("/upload/:slotId", async (c) => {
 
   const baseUrl = getBaseUrl(c.req.url);
   const url = `${baseUrl}/${c.get("accountSlug")}/${c.get("projectSlug")}/o/${objectId}`;
-  return c.json({ id: objectId, url, sha256: hash, size_bytes: buf.byteLength }, 201);
+  return c.json({ id: objectId, url, sha256: hash, size_bytes: buf.byteLength, filename }, 201);
 });
 
 objectsRouter.get("/:id", async (c) => {

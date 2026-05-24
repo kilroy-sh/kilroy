@@ -197,3 +197,42 @@ describe("GET /o/:id (public access via shared post)", () => {
     expect(res.status).toBe(403);
   });
 });
+
+describe("filename", () => {
+  beforeEach(resetDb);
+
+  it("PUT upload persists X-Kilroy-Filename and returns it", async () => {
+    const slot = await provisionSlot();
+    const app = appWithObjects();
+    const res = await app.request(`/o/upload/${slot}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "text/csv",
+        "X-Kilroy-Filename": "report.csv",
+      },
+      body: "a,b,c\n1,2,3\n",
+    });
+    expect(res.status).toBe(201);
+    const body = await res.json() as any;
+    expect(body.filename).toBe("report.csv");
+
+    const rows = await client.unsafe(
+      `SELECT filename FROM objects WHERE id = $1`,
+      [slot],
+    );
+    expect(rows[0]!.filename).toBe("report.csv");
+  });
+
+  it("PUT upload without X-Kilroy-Filename stores NULL filename", async () => {
+    const slot = await provisionSlot();
+    const app = appWithObjects();
+    const res = await app.request(`/o/upload/${slot}`, {
+      method: "PUT",
+      headers: { "Content-Type": "text/plain" },
+      body: "hi",
+    });
+    expect(res.status).toBe(201);
+    const body = await res.json() as any;
+    expect(body.filename).toBeNull();
+  });
+});

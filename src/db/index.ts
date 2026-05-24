@@ -382,6 +382,11 @@ export async function initDatabase() {
       ON object_upload_slots(project_id, consumed_at);
   `);
 
+  // Migration: add filename column to objects (added 2026-05-24, for attachments UI)
+  await client.unsafe(`
+    ALTER TABLE objects ADD COLUMN IF NOT EXISTS filename TEXT;
+  `);
+
   // Restore default notice level for runtime queries
   await client.unsafe(`SET client_min_messages TO notice`);
 }

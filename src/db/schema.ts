@@ -114,6 +114,7 @@ export const objects = pgTable(
     storageBackend: text("storage_backend", { enum: ["postgres", "s3"] }).notNull(),
     storageKey: text("storage_key").notNull(),
     createdByAccountId: text("created_by_account_id").references(() => accounts.id),
+    filename: text("filename"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [index("idx_objects_project_id").on(table.projectId)],
