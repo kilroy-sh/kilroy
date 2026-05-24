@@ -109,3 +109,36 @@ describe("POST /o/upload/:slotId", () => {
     expect(res.status).toBe(413);
   });
 });
+
+async function uploadFixture(app: ReturnType<typeof appWithObjects>) {
+  const slot = await provisionSlot();
+  const res = await app.request(`/o/upload/${slot}`, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain" },
+    body: "hello world",
+  });
+  return await res.json() as { id: string; url: string; sha256: string };
+}
+
+describe("GET /o/:id (member auth)", () => {
+  beforeEach(resetDb);
+
+  it("returns bytes with correct headers for a member", async () => {
+    const app = appWithObjects();
+    const created = await uploadFixture(app);
+
+    const res = await app.request(`/o/${created.id}`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toBe("text/plain");
+    expect(res.headers.get("Content-Length")).toBe("11");
+    expect(res.headers.get("ETag")).toBe(`"${created.sha256}"`);
+    expect(res.headers.get("Cache-Control")).toContain("immutable");
+    expect(await res.text()).toBe("hello world");
+  });
+
+  it("returns 404 for unknown object id", async () => {
+    const app = appWithObjects();
+    const res = await app.request(`/o/${uuidv7()}`);
+    expect(res.status).toBe(404);
+  });
+});

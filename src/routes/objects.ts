@@ -69,3 +69,37 @@ objectsRouter.post("/upload/:slotId", async (c) => {
   const url = `${baseUrl}/${c.get("accountSlug")}/${c.get("projectSlug")}/o/${objectId}`;
   return c.json({ id: objectId, url, sha256: hash, size_bytes: buf.byteLength }, 201);
 });
+
+objectsRouter.get("/:id", async (c) => {
+  const id = c.req.param("id");
+  const objectProjectId = c.get("projectId");
+
+  const rows = await client.unsafe(
+    `SELECT id, project_id, mime, size_bytes, sha256, storage_backend, storage_key
+     FROM objects WHERE id = $1`,
+    [id],
+  );
+  const obj = rows[0];
+  if (!obj) return c.text("Not found", 404);
+  if (obj.project_id !== objectProjectId) {
+    // Member of a different project shouldn't be able to read this object
+    // through this project's URL. Public-share logic comes in Task 8.
+    return c.text("Not found", 404);
+  }
+
+  const storage =
+    obj.storage_backend === "postgres"
+      ? new (await import("../storage/postgres")).PostgresStorage()
+      : new (await import("../storage/s3")).S3Storage();
+
+  const bytes = await storage.get(obj.storage_key as string);
+  return new Response(bytes, {
+    status: 200,
+    headers: {
+      "Content-Type": obj.mime as string,
+      "Content-Length": String(obj.size_bytes),
+      "ETag": `"${obj.sha256}"`,
+      "Cache-Control": "public, max-age=31536000, immutable",
+    },
+  });
+});
