@@ -3277,3 +3277,9 @@ a:hover { color: var(--accent-hover); }
 .attachment-modal-actions { display: flex; gap: 0.5rem; }
 .attachment-modal-body { flex: 1; overflow: auto; padding: 1rem; min-height: 0; }
 .attachment-loading { padding: 2rem; text-align: center; color: var(--text-muted, #8c7e72); }
+
+.table-preview-wrapper { overflow: auto; }
+.table-preview { border-collapse: collapse; font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 0.85rem; }
+.table-preview th, .table-preview td { border: 1px solid var(--border, #d8cfc4); padding: 0.25rem 0.5rem; text-align: left; white-space: nowrap; }
+.table-preview th { background: var(--bg-surface, #f5efe6); }
+.table-preview-truncated { padding: 0.5rem; color: var(--text-muted, #8c7e72); font-size: 0.8rem; }
