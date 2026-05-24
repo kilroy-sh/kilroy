@@ -46,3 +46,34 @@ describe("PostgresStorage", () => {
     expect(new PostgresStorage().kind).toBe("postgres");
   });
 });
+
+import { S3Storage } from "../src/storage/s3";
+
+const hasS3 = Boolean(process.env.KILROY_S3_BUCKET && process.env.KILROY_S3_PREFIX);
+const s3describe = hasS3 ? describe : describe.skip;
+
+s3describe("S3Storage (requires KILROY_S3_BUCKET, KILROY_S3_PREFIX, AWS_* envs)", () => {
+  it("round-trips bytes via put/get", async () => {
+    const storage = new S3Storage();
+    const key = `kilroy-test/${uuidv7()}`;
+    await storage.put(key, new Uint8Array([9, 8, 7]), "application/octet-stream");
+    const out = await storage.get(key);
+    expect(Array.from(out)).toEqual([9, 8, 7]);
+  });
+
+  it("reports kind = 's3'", () => {
+    expect(new S3Storage().kind).toBe("s3");
+  });
+
+  it("throws on construction-time prefix access if KILROY_S3_PREFIX is unset", async () => {
+    const original = process.env.KILROY_S3_PREFIX;
+    delete process.env.KILROY_S3_PREFIX;
+    try {
+      const storage = new S3Storage();
+      await expect(storage.put("k", new Uint8Array([1]), "application/octet-stream"))
+        .rejects.toThrow(/KILROY_S3_PREFIX/);
+    } finally {
+      process.env.KILROY_S3_PREFIX = original;
+    }
+  });
+});
