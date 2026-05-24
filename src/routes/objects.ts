@@ -119,8 +119,10 @@ async function handleGetOrHead(c: Context<Env>, includeBody: boolean) {
     "Last-Modified": new Date(obj.created_at as string | Date).toUTCString(),
     "Cache-Control": "public, max-age=31536000, immutable",
   };
-  if (obj.filename) {
-    // T1 sanitizer already rejected `"` and `\` at input, so no escape needed.
+  if (obj.filename && !/["\\\r\n\x00-\x1F\x7F]/.test(obj.filename as string)) {
+    // T1 input sanitizer normally guarantees this is safe to interpolate, but
+    // we guard at emit time too — if a future write path skips the sanitizer,
+    // we'd rather drop the header than emit a malformed/injected one.
     headers["Content-Disposition"] = `attachment; filename="${obj.filename}"`;
   }
 
