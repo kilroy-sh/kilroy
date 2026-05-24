@@ -349,6 +349,39 @@ export async function initDatabase() {
   const { migrateSharingModel } = await import("./migrate-sharing");
   await migrateSharingModel();
 
+  // Object store: metadata, bytes-blob (Postgres backend), and single-use upload slots.
+  await client.unsafe(`
+    CREATE TABLE IF NOT EXISTS objects (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES projects(id),
+      mime TEXT NOT NULL,
+      size_bytes TEXT NOT NULL,
+      sha256 TEXT NOT NULL,
+      storage_backend TEXT NOT NULL CHECK (storage_backend IN ('postgres','s3')),
+      storage_key TEXT NOT NULL,
+      created_by_account_id TEXT REFERENCES accounts(id),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_objects_project_id ON objects(project_id);
+
+    CREATE TABLE IF NOT EXISTS object_bytes (
+      object_id TEXT PRIMARY KEY REFERENCES objects(id) ON DELETE CASCADE,
+      bytes BYTEA NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS object_upload_slots (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES projects(id),
+      created_by_account_id TEXT REFERENCES accounts(id),
+      expires_at TIMESTAMPTZ NOT NULL,
+      consumed_at TIMESTAMPTZ,
+      object_id TEXT REFERENCES objects(id),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_slots_project_unconsumed
+      ON object_upload_slots(project_id, consumed_at);
+  `);
+
   // Restore default notice level for runtime queries
   await client.unsafe(`SET client_min_messages TO notice`);
 }

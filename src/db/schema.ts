@@ -100,3 +100,46 @@ export const comments = pgTable(
     index("idx_comments_post_created").on(table.postId, table.createdAt),
   ]
 );
+
+export const objects = pgTable(
+  "objects",
+  {
+    id: text("id").primaryKey(),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id),
+    mime: text("mime").notNull(),
+    sizeBytes: text("size_bytes").notNull(), // text to avoid bigint serialization headaches
+    sha256: text("sha256").notNull(),
+    storageBackend: text("storage_backend", { enum: ["postgres", "s3"] }).notNull(),
+    storageKey: text("storage_key").notNull(),
+    createdByAccountId: text("created_by_account_id").references(() => accounts.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("idx_objects_project_id").on(table.projectId)],
+);
+
+export const objectBytes = pgTable("object_bytes", {
+  objectId: text("object_id")
+    .primaryKey()
+    .references(() => objects.id, { onDelete: "cascade" }),
+  // bytea — Drizzle doesn't have a first-class bytea helper, so we use customType in the raw SQL.
+});
+
+export const objectUploadSlots = pgTable(
+  "object_upload_slots",
+  {
+    id: text("id").primaryKey(), // slot uuid v7
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id),
+    createdByAccountId: text("created_by_account_id").references(() => accounts.id),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    consumedAt: timestamp("consumed_at", { withTimezone: true }),
+    objectId: text("object_id").references(() => objects.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_slots_project_unconsumed").on(table.projectId, table.consumedAt),
+  ],
+);
