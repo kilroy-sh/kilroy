@@ -356,6 +356,21 @@ describe("kilroy_delete_post", () => {
   });
 });
 
+// ─── kilroy_get_upload_file_command ──────────────────────────
+
+describe("kilroy_get_upload_file_command", () => {
+  beforeEach(setupMcp);
+
+  it("returns curl that includes X-Kilroy-Filename placeholder", async () => {
+    const { data } = await callTool("kilroy_get_upload_file_command", {
+      project: TEST_PROJECT,
+    });
+
+    expect(data.slots).toHaveLength(1);
+    expect(data.slots[0].upload_curl).toContain("X-Kilroy-Filename: <filename>");
+  });
+});
+
 // ─── url injection ────────────────────────────────────────────
 
 describe("MCP responses include url", () => {

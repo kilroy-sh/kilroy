@@ -65,4 +65,18 @@ describe("POST /api/o/slots", () => {
     });
     expect(res.status).toBe(400);
   });
+
+  it("upload_curl includes X-Kilroy-Filename placeholder", async () => {
+    const app = createTestApp();
+    const res = await app.request("/api/o/slots", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+
+    expect(res.status).toBe(201);
+    const body = await res.json() as any;
+    expect(body.slots).toHaveLength(1);
+    expect(body.slots[0].upload_curl).toContain("X-Kilroy-Filename: <filename>");
+  });
 });

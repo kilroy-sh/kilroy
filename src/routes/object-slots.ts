@@ -42,7 +42,7 @@ objectSlotsRouter.post("/", async (c) => {
     slots.push({
       id,
       url: objectUrl,
-      upload_curl: `curl -X PUT --data-binary @<file> -H 'Content-Type: <mime>' '${uploadUrl}'`,
+      upload_curl: `curl -X PUT --data-binary @<file> -H 'Content-Type: <mime>' -H 'X-Kilroy-Filename: <filename>' '${uploadUrl}'`,
       expires_at: expiresAt.toISOString(),
     });
   }
