@@ -37,11 +37,15 @@ objectsRouter.put("/upload/:slotId", async (c) => {
 
   const mime = c.req.header("Content-Type") ?? "application/octet-stream";
   const rawFilename = c.req.header("X-Kilroy-Filename") ?? null;
-  // Defensive: reject CR/LF and limit length to keep storage sane.
+  // Defensive: reject C0 controls / DEL (HTTP-header-unsafe), NUL (Postgres
+  // TEXT-unsafe), and `"` / `\` (Content-Disposition quoted-string unsafe).
+  // Also bound length to keep storage sane.
   const filename =
     rawFilename === null
       ? null
-      : rawFilename.length > 0 && rawFilename.length <= 255 && !/[\r\n]/.test(rawFilename)
+      : rawFilename.length > 0 &&
+          rawFilename.length <= 255 &&
+          !/[\x00-\x1F\x7F"\\]/.test(rawFilename)
         ? rawFilename
         : null;
   const storage = getStorage();

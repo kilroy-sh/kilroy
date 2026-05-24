@@ -235,4 +235,39 @@ describe("filename", () => {
     const body = await res.json() as any;
     expect(body.filename).toBeNull();
   });
+
+  it("X-Kilroy-Filename rejects header-unsafe and Postgres-unsafe characters", async () => {
+    const cases: Array<{ name: string; input: string }> = [
+      { name: "empty", input: "" },
+      { name: "too long", input: "a".repeat(256) },
+      { name: "contains CR", input: "a\rb.txt" },
+      { name: "contains LF", input: "a\nb.txt" },
+      { name: "contains NUL", input: "a\x00b.txt" },
+      { name: "contains double quote", input: 'a"b.txt' },
+      { name: "contains backslash", input: "a\\b.txt" },
+      { name: "contains DEL", input: "a\x7Fb.txt" },
+    ];
+    const app = appWithObjects();
+    for (const { name, input } of cases) {
+      const slot = await provisionSlot();
+      // Some inputs (NUL/CR/LF/DEL) are rejected by the WHATWG Headers
+      // constructor before they can reach our code — that's also a valid
+      // rejection of the input. Build the Request manually and treat a
+      // TypeError from Headers as success for those cases.
+      let res: Response;
+      try {
+        res = await app.request(`/o/upload/${slot}`, {
+          method: "PUT",
+          headers: { "Content-Type": "text/plain", "X-Kilroy-Filename": input },
+          body: "x",
+        });
+      } catch (e) {
+        expect(e, `case: ${name}`).toBeInstanceOf(TypeError);
+        continue;
+      }
+      expect(res.status, `case: ${name}`).toBe(201);
+      const body = await res.json() as any;
+      expect(body.filename, `case: ${name}`).toBeNull();
+    }
+  });
 });
