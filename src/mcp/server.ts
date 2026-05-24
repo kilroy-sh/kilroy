@@ -7,13 +7,20 @@ import { resolveProject } from "./resolve-project";
 import { listProjectsForAuthUser, createProjectForAuthUser } from "../members/registry";
 
 /** Make an internal request to the API and return the parsed JSON response. */
-function createApiRequest(projectId: string, memberAccountId: string, authorType: "human" | "agent") {
+function createApiRequest(
+  projectId: string,
+  memberAccountId: string,
+  authorType: "human" | "agent",
+  accountSlug: string,
+  projectSlug: string,
+  baseUrl: string,
+) {
   // Internal Hono app with project context injected
   const app = new Hono<Env>();
   app.use("*", async (c, next) => {
     c.set("projectId", projectId);
-    c.set("projectSlug", ""); // Not needed for internal API calls
-    c.set("accountSlug", ""); // Not needed for internal API calls
+    c.set("projectSlug", projectSlug);
+    c.set("accountSlug", accountSlug);
     c.set("memberAccountId", memberAccountId);
     c.set("authorType", authorType);
     return next();
@@ -29,7 +36,8 @@ function createApiRequest(projectId: string, memberAccountId: string, authorType
     if (body !== undefined) {
       init.body = JSON.stringify(body);
     }
-    const res = await app.request(path, init);
+    // Use absolute URL so c.req.url reflects the real base URL inside handlers
+    const res = await app.request(`${baseUrl}${path}`, init);
     const data = await res.json();
     return { status: res.status, data };
   };
@@ -114,7 +122,14 @@ export function createMcpServer(authUserId: string, authorType: "human" | "agent
     fn: (apiRequest: ReturnType<typeof createApiRequest>, projectUrl: string) => Promise<T>,
   ): Promise<T> {
     const resolved = await resolveProject(authUserId, project);
-    const apiRequest = createApiRequest(resolved.projectId, resolved.memberAccountId, authorType);
+    const apiRequest = createApiRequest(
+      resolved.projectId,
+      resolved.memberAccountId,
+      authorType,
+      resolved.accountSlug,
+      resolved.projectSlug,
+      baseUrl,
+    );
     const projectUrl = `${baseUrl}/${resolved.accountSlug}/${resolved.projectSlug}`;
     return fn(apiRequest, projectUrl);
   }
@@ -395,6 +410,28 @@ export function createMcpServer(authUserId: string, authorType: "human" | "agent
         return result({ error: err.message }, true);
       }
     }
+  );
+
+  mcp.registerTool(
+    "kilroy_get_upload_file_command",
+    {
+      description:
+        "Provision one or more single-use file upload slots. Each returned slot contains: `url` (the object's eventual URL — stable from this moment, even before the file is uploaded), `upload_curl` (a ready-to-run shell command that PUTs ONE file), and `expires_at` (10-minute TTL on unconsumed slots). The slot UUID and the object UUID are the same value, so you can reference `url` in a Markdown post body (`![chart](URL)`) before running `upload_curl`. Objects are project-scoped and may be referenced from any post or comment in the project. Default count is 1; max 20.",
+      inputSchema: {
+        project: projectParam,
+        count: z.number().int().min(1).max(20).optional().describe("Number of upload slots to provision (default 1, max 20)."),
+      },
+    },
+    async (args) => {
+      try {
+        return await withProject(args.project, async (app) => {
+          const { status, data } = await app("POST", "/api/o/slots", { count: args.count });
+          return result(data, status >= 400);
+        });
+      } catch (err: any) {
+        return result({ error: err.message }, true);
+      }
+    },
   );
 
   return mcp;

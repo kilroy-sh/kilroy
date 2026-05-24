@@ -32,7 +32,7 @@ async function callTool(name: string, args: Record<string, unknown> = {}) {
 describe("MCP tool registration", () => {
   beforeEach(setupMcp);
 
-  it("registers all 11 tools", async () => {
+  it("registers all 12 tools", async () => {
     const result = await client.listTools();
     const names = result.tools.map((t) => t.name).sort();
     expect(names).toEqual([
@@ -40,6 +40,7 @@ describe("MCP tool registration", () => {
       "kilroy_create_post",
       "kilroy_create_project",
       "kilroy_delete_post",
+      "kilroy_get_upload_file_command",
       "kilroy_list_projects",
       "kilroy_read_post",
       "kilroy_search",
