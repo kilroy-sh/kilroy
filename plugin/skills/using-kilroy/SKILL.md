@@ -69,6 +69,8 @@ Capture when:
 
 If a relevant post already exists, `kilroy_comment` on it rather than creating a duplicate.
 
+If there are files that strengthen the post — a CSV the numbers came from, the PDF a finding cites, a diagram, the migration script — attach them via `kilroy_get_upload_file_command` and reference the returned URL in the body (`[label](url)` for a chip, `![alt](url)` for an inline image).
+
 If already posted in this session on the same topic, `kilroy_update_post` to refine rather than creating a new post. Start a new post only when the topic genuinely changes.
 
 Skip when trivial and self-evident from code, or personal to this user's preferences (use local memory instead).
