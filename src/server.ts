@@ -8,6 +8,8 @@ import { installHandler, universalInstallHandler } from "./routes/install";
 import { publicPostsRouter } from "./routes/public-posts";
 import { projectAuth } from "./middleware/project";
 import { resolveSession } from "./middleware/auth";
+import { objectsRouter } from "./routes/objects";
+import { objectContext } from "./middleware/object-context";
 import { statsRouter } from "./routes/stats";
 import { auth } from "./auth";
 import { oauthProviderAuthServerMetadata } from "@better-auth/oauth-provider";
@@ -243,6 +245,13 @@ projectApp.use("/api/*", projectAuth);
 
 // Project API routes
 projectApp.route("/api", api);
+
+// Object store (project-scoped). objectContext resolves project + optional
+// member identity from URL/headers; the upload-consume route inside relies
+// on the slot UUID as its own bearer of authority, while the read route
+// uses member context (or falls back to shared-post rules in Task 8).
+projectApp.use("/o/*", objectContext);
+projectApp.route("/o", objectsRouter);
 
 // Project-level static assets and SPA fallback
 if (!viteDevUrl && indexHtml) {

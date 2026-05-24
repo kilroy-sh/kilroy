@@ -1,0 +1,71 @@
+import { Hono } from "hono";
+import type { Env } from "../types";
+import { client } from "../db";
+import { getStorage } from "../storage";
+import { sha256Hex } from "../lib/sha256";
+import { getBaseUrl } from "../lib/url";
+
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+
+export const objectsRouter = new Hono<Env>();
+
+// Upload consumption — the slot UUID IS the eventual object UUID, so the
+// returned URL is stable from the moment the slot was provisioned.
+// The slot row carries the uploader's account id (set at provision time);
+// no member credentials are required here — the slot is the bearer.
+objectsRouter.post("/upload/:slotId", async (c) => {
+  const slotId = c.req.param("slotId");
+  const projectId = c.get("projectId");
+
+  const slotRows = await client.unsafe(
+    `SELECT id, project_id, created_by_account_id, consumed_at, expires_at
+     FROM object_upload_slots WHERE id = $1`,
+    [slotId],
+  );
+  const slot = slotRows[0];
+  if (!slot) return c.text("Unknown upload slot", 404);
+  if (slot.project_id !== projectId) return c.text("Unknown upload slot", 404);
+  if (slot.consumed_at !== null) return c.text("Slot already consumed", 410);
+  if (new Date(slot.expires_at as string).getTime() < Date.now()) {
+    return c.text("Slot expired", 410);
+  }
+
+  const buf = new Uint8Array(await c.req.raw.arrayBuffer());
+  if (buf.byteLength > MAX_UPLOAD_BYTES) {
+    return c.text(`Body exceeds ${MAX_UPLOAD_BYTES} bytes`, 413);
+  }
+
+  const mime = c.req.header("Content-Type") ?? "application/octet-stream";
+  const storage = getStorage();
+  const objectId = slot.id as string; // slot uuid == object uuid
+  const hash = sha256Hex(buf);
+
+  // Atomically mark the slot consumed AND insert object metadata. The slot
+  // update uses `consumed_at IS NULL` so concurrent uploads to the same slot
+  // can't both succeed. Storage put happens AFTER commit; if it fails the
+  // metadata row is orphaned (no bytes), but the slot is gone — an
+  // observable, non-replayable failure rather than a silent inconsistency.
+  await client.begin(async (tx) => {
+    const updated = await tx.unsafe(
+      `UPDATE object_upload_slots
+       SET consumed_at = now()
+       WHERE id = $1 AND consumed_at IS NULL AND expires_at > now()
+       RETURNING id`,
+      [slotId],
+    );
+    if (updated.length === 0) {
+      throw new Error("Slot already consumed or expired (race)");
+    }
+    await tx.unsafe(
+      `INSERT INTO objects (id, project_id, mime, size_bytes, sha256, storage_backend, storage_key, created_by_account_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [objectId, projectId, mime, String(buf.byteLength), hash, storage.kind, objectId, slot.created_by_account_id],
+    );
+  });
+
+  await storage.put(objectId, buf, mime);
+
+  const baseUrl = getBaseUrl(c.req.url);
+  const url = `${baseUrl}/${c.get("accountSlug")}/${c.get("projectSlug")}/o/${objectId}`;
+  return c.json({ id: objectId, url, sha256: hash, size_bytes: buf.byteLength }, 201);
+});
