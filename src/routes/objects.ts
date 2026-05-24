@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import type { Context } from "hono";
 import type { Env } from "../types";
 import { client } from "../db";
 import { getStorage } from "../storage";
@@ -82,12 +83,12 @@ objectsRouter.put("/upload/:slotId", async (c) => {
   return c.json({ id: objectId, url, sha256: hash, size_bytes: buf.byteLength, filename }, 201);
 });
 
-objectsRouter.get("/:id", async (c) => {
+async function handleGetOrHead(c: Context<Env>, includeBody: boolean) {
   const id = c.req.param("id");
   const projectId = c.get("projectId");
 
   const rows = await client.unsafe(
-    `SELECT id, project_id, mime, size_bytes, sha256, storage_backend, storage_key
+    `SELECT id, project_id, mime, size_bytes, sha256, storage_backend, storage_key, filename, created_at
      FROM objects WHERE id = $1`,
     [id],
   );
@@ -111,19 +112,30 @@ objectsRouter.get("/:id", async (c) => {
     if (ref.length === 0) return c.text("Forbidden", 403);
   }
 
+  const headers: Record<string, string> = {
+    "Content-Type": obj.mime as string,
+    "Content-Length": String(obj.size_bytes),
+    "ETag": `"${obj.sha256}"`,
+    "Last-Modified": new Date(obj.created_at as string | Date).toUTCString(),
+    "Cache-Control": "public, max-age=31536000, immutable",
+  };
+  if (obj.filename) {
+    // T1 sanitizer already rejected `"` and `\` at input, so no escape needed.
+    headers["Content-Disposition"] = `attachment; filename="${obj.filename}"`;
+  }
+
+  if (!includeBody) {
+    return new Response(null, { status: 200, headers });
+  }
+
   const storage =
     obj.storage_backend === "postgres"
       ? new (await import("../storage/postgres")).PostgresStorage()
       : new (await import("../storage/s3")).S3Storage();
 
   const bytes = await storage.get(obj.storage_key as string);
-  return new Response(bytes.buffer as ArrayBuffer, {
-    status: 200,
-    headers: {
-      "Content-Type": obj.mime as string,
-      "Content-Length": String(obj.size_bytes),
-      "ETag": `"${obj.sha256}"`,
-      "Cache-Control": "public, max-age=31536000, immutable",
-    },
-  });
-});
+  return new Response(bytes.buffer as ArrayBuffer, { status: 200, headers });
+}
+
+objectsRouter.get("/:id", (c) => handleGetOrHead(c, true));
+objectsRouter.on("HEAD", "/:id", (c) => handleGetOrHead(c, false));

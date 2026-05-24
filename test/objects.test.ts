@@ -198,6 +198,82 @@ describe("GET /o/:id (public access via shared post)", () => {
   });
 });
 
+describe("HEAD /o/:id", () => {
+  beforeEach(resetDb);
+
+  it("returns headers for a member, no body", async () => {
+    const app = appWithObjects();
+    const slot = await provisionSlot();
+    const putRes = await app.request(`/o/upload/${slot}`, {
+      method: "PUT",
+      headers: { "Content-Type": "text/csv", "X-Kilroy-Filename": "report.csv" },
+      body: "a,b\n1,2\n",
+    });
+    expect(putRes.status).toBe(201);
+    const id = (await putRes.json() as any).id;
+
+    const res = await app.request(`/o/${id}`, { method: "HEAD" });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toBe("text/csv");
+    expect(res.headers.get("Content-Length")).toBe("8");
+    expect(res.headers.get("ETag")).toMatch(/^"[a-f0-9]{64}"$/);
+    expect(res.headers.get("Content-Disposition")).toBe('attachment; filename="report.csv"');
+    expect(res.headers.get("Last-Modified")).toBeTruthy();
+    const body = await res.text();
+    expect(body).toBe(""); // HEAD never returns a body
+  });
+
+  it("returns 404 for unknown id", async () => {
+    const app = appWithObjects();
+    const res = await app.request(`/o/019e0000-0000-7000-8000-000000000000`, {
+      method: "HEAD",
+    });
+    expect(res.status).toBe(404);
+  });
+
+  it("omits Content-Disposition when filename is null", async () => {
+    const app = appWithObjects();
+    const slot = await provisionSlot();
+    await app.request(`/o/upload/${slot}`, {
+      method: "PUT",
+      headers: { "Content-Type": "text/plain" },
+      body: "hi",
+    });
+    const res = await app.request(`/o/${slot}`, { method: "HEAD" });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Disposition")).toBeNull();
+  });
+
+  it("GET /o/:id also emits Content-Disposition when filename is set", async () => {
+    const app = appWithObjects();
+    const slot = await provisionSlot();
+    await app.request(`/o/upload/${slot}`, {
+      method: "PUT",
+      headers: { "Content-Type": "text/csv", "X-Kilroy-Filename": "data.csv" },
+      body: "x",
+    });
+    const res = await app.request(`/o/${slot}`);
+    expect(res.headers.get("Content-Disposition")).toBe('attachment; filename="data.csv"');
+  });
+
+  it("HEAD returns 403 for anonymous when no shared post references the object", async () => {
+    const memberApp = appWithObjects();
+    const created = await uploadFixture(memberApp);
+    await createPostWithObject(created.url, { shared: false });
+    const res = await anonymousApp().request(`/o/${created.id}`, { method: "HEAD" });
+    expect(res.status).toBe(403);
+  });
+
+  it("HEAD allows anonymous when object is referenced from a shared post", async () => {
+    const memberApp = appWithObjects();
+    const created = await uploadFixture(memberApp);
+    await createPostWithObject(created.url, { shared: true });
+    const res = await anonymousApp().request(`/o/${created.id}`, { method: "HEAD" });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("ETag")).toBe(`"${created.sha256}"`);
+  });
+});
+
 describe("filename", () => {
   beforeEach(resetDb);
 

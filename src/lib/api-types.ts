@@ -314,3 +314,27 @@ export type OAuthConsentResponse = {
   url?: string;
   redirectTo?: string;
 };
+
+// ─── Objects (file uploads) ─────────────────────────────────────
+
+// Assembled client-side from HEAD response headers (or the same headers on a
+// GET response). There's no JSON endpoint that returns this shape directly.
+export interface ObjectMeta {
+  id: string;
+  mime: string;
+  size_bytes: number;
+  sha256: string;        // unquoted (ETag value with surrounding quotes stripped)
+  filename: string | null;
+  last_modified: string; // ISO 8601 (from Last-Modified, second precision)
+}
+
+export interface UploadSlot {
+  id: string;
+  url: string;
+  upload_curl: string;
+  expires_at: string;
+}
+
+export interface ProvisionSlotsResponse {
+  slots: UploadSlot[];
+}
