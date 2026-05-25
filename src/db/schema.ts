@@ -55,9 +55,6 @@ export const posts = pgTable(
       .references(() => projects.id),
     title: text("title").notNull(),
     topic: text("topic"),
-    status: text("status", { enum: ["active", "archived", "obsolete"] })
-      .notNull()
-      .default("active"),
     tags: text("tags"),
     body: text("body").notNull(),
     authorAccountId: text("author_account_id").references(() => accounts.id),
@@ -72,7 +69,6 @@ export const posts = pgTable(
   },
   (table) => [
     index("idx_posts_project_id").on(table.projectId),
-    index("idx_posts_status").on(table.status),
     index("idx_posts_updated_at").on(table.updatedAt),
   ]
 );
