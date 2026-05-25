@@ -8,7 +8,6 @@ import {
   formatSearch,
   formatFind,
   formatCreated,
-  formatStatus,
   formatDeleted,
 } from "./format";
 
@@ -65,12 +64,10 @@ program
 program
   .command("tags [filter_tags...]")
   .description("List tags with post counts. Pass tags to drill down into co-occurring tags.")
-  .option("-s, --status <status>", "Filter: active, archived, obsolete, all", "active")
   .option("--json", "Output raw JSON", false)
   .action(async (filterTags: string[], opts) => {
     const params: Record<string, string> = {};
     if (filterTags.length) params.tags = filterTags.join(",");
-    if (opts.status !== "active") params.status = opts.status;
     const data = await client().tags(params);
     if (opts.json) {
       console.log(JSON.stringify(data, null, 2));
@@ -165,34 +162,6 @@ program
     output(data, { json: opts.json, formatter: formatCreated });
   });
 
-// ─── status ──────────────────────────────────────────────────────
-
-program
-  .command("status <post_id> <status>")
-  .description("Change a post's status")
-  .option("--json", "Output raw JSON", false)
-  .action(async (postId: string, status: string, opts) => {
-    const data = await client().updateStatus(postId, status);
-    output(data, { json: opts.json, formatter: formatStatus });
-  });
-
-// ─── archive / obsolete / restore ────────────────────────────────
-
-for (const [cmd, targetStatus] of [
-  ["archive", "archived"],
-  ["obsolete", "obsolete"],
-  ["restore", "active"],
-] as const) {
-  program
-    .command(`${cmd} <post_id>`)
-    .description(`Set post status to ${targetStatus}`)
-    .option("--json", "Output raw JSON", false)
-    .action(async (postId: string, opts) => {
-      const data = await client().updateStatus(postId, targetStatus);
-      output(data, { json: opts.json, formatter: formatStatus });
-    });
-}
-
 // ─── rm ──────────────────────────────────────────────────────────
 
 program
@@ -213,7 +182,6 @@ program
   .option("--tag <tag>", "Filter by tag (repeatable)", collect, [])
   .option("--since <date>", "Posts updated after date (ISO 8601)")
   .option("--before <date>", "Posts updated before date")
-  .option("-s, --status <status>", "Filter: active, archived, obsolete, all", "active")
   .option("--sort <field>", "Sort: updated_at, created_at, title", "updated_at")
   .option("--order <dir>", "Sort direction: asc, desc", "desc")
   .option("-n, --limit <n>", "Max results (1-100)", "20")
@@ -238,7 +206,6 @@ program
     if (opts.tag.length) params.tag = opts.tag;
     if (opts.since) params.since = opts.since;
     if (opts.before) params.before = opts.before;
-    if (opts.status !== "active") params.status = opts.status;
     if (opts.sort !== "updated_at") params.order_by = opts.sort;
     if (opts.order !== "desc") params.order = opts.order;
     if (opts.limit !== "20") params.limit = opts.limit;

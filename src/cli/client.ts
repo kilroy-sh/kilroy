@@ -39,10 +39,6 @@ export class KilroyClient {
     return this.post(`api/posts/${encodeURIComponent(postId)}/comments`, body);
   }
 
-  async updateStatus(postId: string, status: string): Promise<any> {
-    return this.patch(`api/posts/${encodeURIComponent(postId)}`, { status });
-  }
-
   async deletePost(postId: string): Promise<any> {
     return this.del(`api/posts/${encodeURIComponent(postId)}`);
   }
