@@ -368,16 +368,6 @@ a:hover { color: var(--accent-hover); }
   font-family: var(--font-mono);
 }
 
-.card-archived,
-.card-obsolete {
-  opacity: 0.55;
-}
-
-.card-archived:hover,
-.card-obsolete:hover {
-  opacity: 0.85;
-}
-
 .folder-card {
   border-left: 3px solid var(--accent);
 }
