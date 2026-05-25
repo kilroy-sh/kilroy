@@ -113,7 +113,7 @@ function renderPostMarkdown(
   // Metadata line
   const author = formatAuthor(post.authorAccountId, post.authorType, displayMap);
   const date = formatDate(post.createdAt);
-  let meta = `*${author} · ${date}*`;
+  const meta = `*${author} · ${date}*`;
   lines.push(meta);
 
   // Tags
