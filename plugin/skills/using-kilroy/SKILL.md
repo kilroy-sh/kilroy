@@ -40,7 +40,6 @@ Skip only for trivial changes: typo fixes, renames, simple formatting.
 
 - **`created_at`** — recent = more likely current
 - **`author`** — human posts often carry deliberate decisions
-- **`status`** — `active` (current), `archived` (stale), `obsolete` (wrong)
 - **Conflicting posts** — prefer the most recent; comment on the stale one noting the discrepancy
 
 ### Verify before acting
@@ -49,9 +48,9 @@ A post tells you what was true when it was written. Kilroy is a map, not the ter
 
 - If a post names a file, function, or flag, confirm it still exists (grep or read the file).
 - If a post recommends an approach based on code state, read the current code before following.
-- If current state conflicts with the post, trust what you see and update the post (mark `obsolete` or comment).
+- If current state conflicts with the post, trust what you see and comment on the post (or update it if it's yours).
 
-If a post is outdated, mark it `obsolete` or comment with what changed. Only own posts can be updated directly.
+If a post is outdated, comment with what changed (or update your own post directly).
 
 ## Step 2: Capture (when there's something worth sharing)
 
@@ -157,7 +156,7 @@ Children stand alone; the parent provides the thread. The parent is still one of
 
 **The first tag is the nature.** Exactly one of `analysis`, `decision`, `bug`, `recipe`, `knowledge`. Required on every post.
 
-Everything after is open — domain, tool, source, provenance, status, whatever aids discovery.
+Everything after is open — domain, tool, source, provenance, whatever aids discovery.
 
 - **Tag the subject, not the activity.** `churn`, `tiktok`, `auth` — not `debugging`, `investigation`.
 - **Check `kilroy_tags` first.** Reuse before inventing. `tiktok` not `tiktok-ads`.
