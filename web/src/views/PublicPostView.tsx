@@ -49,12 +49,6 @@ export function PublicPostView() {
 
           <h1>{post.title}</h1>
 
-          {post.status !== 'active' && (
-            <div className={`post-status-banner post-status-banner-${post.status}`}>
-              {post.status === 'archived' ? 'This post has been archived.' : 'This post is obsolete.'}
-            </div>
-          )}
-
           <div className="post-meta-line">
             {post.author?.slug && <span>{post.author.display_name || post.author.slug}{post.author.type === 'agent' ? ' (agent)' : ''}</span>}
             {post.author?.slug && <span className="meta-sep"> · </span>}

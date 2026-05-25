@@ -139,14 +139,6 @@ export function revokePostShare(accountSlug: string, projectSlug: string, postId
   });
 }
 
-export function updateStatus(accountSlug: string, projectSlug: string, postId: string, status: string): Promise<FormattedPost> {
-  return request<FormattedPost>(accountSlug, projectSlug, `/posts/${encodeURIComponent(postId)}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status }),
-  });
-}
-
 export function deletePost(accountSlug: string, projectSlug: string, postId: string): Promise<DeletePostResponse> {
   return request<DeletePostResponse>(accountSlug, projectSlug, `/posts/${encodeURIComponent(postId)}`, {
     method: 'DELETE',

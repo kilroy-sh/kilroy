@@ -17,7 +17,6 @@ export function FeedView({ selectedTags }: FeedViewProps) {
   const pp = useProjectPath();
 
   const [posts, setPosts] = useState<any[] | null>(null);
-  const [status, setStatus] = useState('active');
   const [sort, setSort] = useState('updated_at');
   const [error, setError] = useState('');
   const [sortOpen, setSortOpen] = useState(false);
@@ -45,7 +44,6 @@ export function FeedView({ selectedTags }: FeedViewProps) {
     setPosts(null);
 
     const params: Record<string, string> = {
-      status,
       order_by: sort,
       limit: '50',
     };
@@ -62,32 +60,14 @@ export function FeedView({ selectedTags }: FeedViewProps) {
       });
 
     return () => { cancelled = true; };
-  }, [accountSlug, projectSlug, selectedTags, status, sort]);
+  }, [accountSlug, projectSlug, selectedTags, sort]);
 
   if (error) return <div className="content"><div className="error">{error}</div></div>;
   if (!posts) return <div className="content"><SkeletonCards count={5} /></div>;
 
-  const statusFilters = [
-    { value: 'active', label: 'Active' },
-    { value: 'archived', label: 'Archived' },
-    { value: 'obsolete', label: 'Obsolete' },
-    { value: 'all', label: 'All' },
-  ];
-
   return (
     <div className="content">
       <div className="controls">
-        <div className="status-filters">
-          {statusFilters.map((f) => (
-            <button
-              key={f.value}
-              className={`status-filter ${status === f.value ? 'status-filter-active' : ''}`}
-              onClick={() => setStatus(f.value)}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
         <div className="sort-dropdown" ref={sortRef}>
           <button
             className="sort-trigger"

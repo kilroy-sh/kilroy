@@ -7,7 +7,6 @@ interface Post {
   id: string;
   title: string;
   topic: string;
-  status: string;
 }
 
 interface TreeNode {
@@ -65,12 +64,12 @@ async function fetchAllPosts(accountSlug: string, projectSlug: string, signal?: 
   let cursor: string | undefined;
 
   do {
-    const params: Record<string, string> = { recursive: 'true', status: 'all', limit: '100' };
+    const params: Record<string, string> = { recursive: 'true', limit: '100' };
     if (cursor) params.cursor = cursor;
     const data = await browse(accountSlug, projectSlug, params, signal ? { signal } : undefined);
 
     for (const p of data.posts || []) {
-      allPosts.push({ id: p.id, title: p.title, topic: p.topic || '', status: p.status });
+      allPosts.push({ id: p.id, title: p.title, topic: p.topic || '' });
     }
 
     cursor = data.has_more ? data.next_cursor : undefined;
@@ -210,7 +209,6 @@ export function TopicTree({ activePostId }: TopicTreeProps) {
                 <span key={i} className={`tree-indent ${pIsLast ? '' : 'tree-indent-line'}`} />
               ))}
               <span className={`tree-branch ${isLast ? 'tree-branch-last' : ''}`} />
-              <span className={`tree-status-dot status-dot-${post.status}`} />
               <span className="tree-post-name">{post.title}</span>
             </div>
           );

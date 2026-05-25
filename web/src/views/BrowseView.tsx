@@ -17,7 +17,6 @@ export function BrowseView({ onTopicChange }: { onTopicChange: (t: string) => vo
 
   const [data, setData] = useState<any>(null);
   const [nestedPosts, setNestedPosts] = useState<any[] | null>(null);
-  const [status, setStatus] = useState('active');
   const [sort, setSort] = useState('updated_at');
   const [error, setError] = useState('');
   const [sortOpen, setSortOpen] = useState(false);
@@ -51,7 +50,6 @@ export function BrowseView({ onTopicChange }: { onTopicChange: (t: string) => vo
 
     const queryParams: Record<string, string> = {};
     if (topic) queryParams.topic = topic;
-    if (status !== 'active') queryParams.status = status;
     if (sort !== 'updated_at') queryParams.order_by = sort;
 
     async function load() {
@@ -88,7 +86,7 @@ export function BrowseView({ onTopicChange }: { onTopicChange: (t: string) => vo
     return () => {
       cancelled = true;
     };
-  }, [accountSlug, projectSlug, topic, status, sort]);
+  }, [accountSlug, projectSlug, topic, sort]);
 
   if (error) return <div className="content"><div className="error">{error}</div></div>;
   if (!data) return <div className="content"><SkeletonCards count={5} /></div>;
@@ -97,27 +95,9 @@ export function BrowseView({ onTopicChange }: { onTopicChange: (t: string) => vo
   const nestedPostCount = nestedPosts?.length || 0;
   const showNestedPosts = nestedPostCount > 0;
 
-  const statusFilters = [
-    { value: 'active', label: 'Active' },
-    { value: 'archived', label: 'Archived' },
-    { value: 'obsolete', label: 'Obsolete' },
-    { value: 'all', label: 'All' },
-  ];
-
   return (
     <div className="content">
       <div className="controls">
-        <div className="status-filters">
-          {statusFilters.map((f) => (
-            <button
-              key={f.value}
-              className={`status-filter ${status === f.value ? 'status-filter-active' : ''}`}
-              onClick={() => setStatus(f.value)}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
         <div className="sort-dropdown" ref={sortRef}>
           <button
             className="sort-trigger"

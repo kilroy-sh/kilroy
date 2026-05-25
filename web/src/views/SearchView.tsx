@@ -22,7 +22,6 @@ export function SearchView() {
   const query = searchParams.get('q') || '';
 
   const [data, setData] = useState<any>(null);
-  const [status, setStatus] = useState('active');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -30,12 +29,11 @@ export function SearchView() {
     setError('');
     setData(null);
     const params: Record<string, string> = { query };
-    if (status !== 'active') params.status = status;
 
     search(accountSlug, projectSlug, params)
       .then(setData)
       .catch((e) => setError(e.message));
-  }, [query, status]);
+  }, [query]);
 
   if (!query) return (
     <div className="content">
@@ -50,17 +48,11 @@ export function SearchView() {
     <div className="content">
       <div className="search-header">
         <h2>Results for &ldquo;{query}&rdquo;</h2>
-        <div className="controls" style={{ marginTop: '0.75rem' }}>
-          <label>Status
-            <select value={status} onChange={(e) => setStatus(e.target.value)}>
-              <option value="active">Active</option>
-              <option value="archived">Archived</option>
-              <option value="obsolete">Obsolete</option>
-              <option value="all">All</option>
-            </select>
-          </label>
-          {data && <span className="search-count">{data.results?.length || 0} results</span>}
-        </div>
+        {data && (
+          <div className="controls" style={{ marginTop: '0.75rem' }}>
+            <span className="search-count">{data.results?.length || 0} results</span>
+          </div>
+        )}
       </div>
 
       {error && <div className="error">{error}</div>}
@@ -74,7 +66,6 @@ export function SearchView() {
         >
           <div className="card-title">
             <span className="card-title-text">{r.title}</span>
-            <span className={`status-dot status-dot-${r.status}`} />
           </div>
           <div className="card-meta">
             {r.tags?.length > 0 && r.tags.join(', ')}

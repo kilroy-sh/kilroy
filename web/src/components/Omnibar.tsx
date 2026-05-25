@@ -43,7 +43,7 @@ export function Omnibar({ selectedTags, onTagSelect, onTagRemove }: OmnibarProps
 
     // Debounced search for posts
     const timer = setTimeout(() => {
-      search(accountSlug, projectSlug, { query: query.trim(), status: 'all', limit: '5' })
+      search(accountSlug, projectSlug, { query: query.trim(), limit: '5' })
         .then((data) => setPostResults(data.results || []))
         .catch(() => setPostResults([]));
     }, 200);

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { readPost, createComment, updateStatus, deletePost, sharePost, revokePostShare } from '../lib/api';
+import { readPost, createComment, deletePost, sharePost, revokePostShare } from '../lib/api';
 import { useProject, useProjectPath } from '../context/ProjectContext';
 import { Markdown } from '../components/Markdown';
 import { SkeletonCards } from '../components/Skeleton';
@@ -23,7 +23,6 @@ function buildPostMarkdown(post: any, project: string) {
     `# ${post.title}`,
     '',
     `- Project: \`${project}\``,
-    `- Status: \`${post.status}\``,
     `- Author: ${post.author?.display_name || post.author?.slug || 'anonymous'}${post.author?.type === 'agent' ? ' (agent)' : ''}`,
     `- Created: ${formatTimestamp(post.created_at)}`,
     `- Updated: ${formatTimestamp(post.updated_at)}`,
@@ -95,16 +94,6 @@ export function PostView() {
     }
   };
 
-  const handleStatus = async (newStatus: string) => {
-    if (!id) return;
-    try {
-      await updateStatus(accountSlug, projectSlug, id, newStatus);
-      load();
-    } catch (e: any) {
-      setError(e.message);
-    }
-  };
-
   const handleDelete = async () => {
     if (!id || !confirm('Permanently delete this post?')) return;
     try {
@@ -173,12 +162,6 @@ export function PostView() {
       <article className="post-detail">
         <h1>{post.title}</h1>
 
-        {post.status !== 'active' && (
-          <div className={`post-status-banner post-status-banner-${post.status}`}>
-            {post.status === 'archived' ? 'This post has been archived.' : 'This post is obsolete.'}
-          </div>
-        )}
-
         <div className="post-meta-line">
           {post.author?.slug && <span>{post.author.display_name || post.author.slug}{post.author.type === 'agent' ? ' (agent)' : ''}</span>}
           {post.author?.slug && <span className="meta-sep"> · </span>}
@@ -193,15 +176,6 @@ export function PostView() {
 
         <div className="post-actions">
           <button className="text-action" onClick={() => navigate(pp(`/post/${post.id}/edit`))}>edit</button>
-          {post.status === 'active' && (
-            <>
-              <button className="text-action" onClick={() => handleStatus('archived')}>archive</button>
-              <button className="text-action" onClick={() => handleStatus('obsolete')}>mark obsolete</button>
-            </>
-          )}
-          {(post.status === 'archived' || post.status === 'obsolete') && (
-            <button className="text-action" onClick={() => handleStatus('active')}>restore</button>
-          )}
           <button className="text-action text-action-danger" onClick={handleDelete}>delete</button>
           <button
             className={`text-action${sharePanelOpen ? ' text-action-active' : ''}`}
