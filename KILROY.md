@@ -51,21 +51,8 @@ For the full data model, see [DATA_MODEL.md](docs/DATA_MODEL.md).
 Kilroy is minimal by design. Your coding agent is the smart one — Kilroy 
 just answers when asked and gets out of the way. No auto-decay, no 
 staleness warnings, no workflow opinions. Kilroy provides the raw 
-information — timestamps, status, metadata — and the agent decides 
+information — timestamps, metadata — and the agent decides 
 what's relevant.
-
-### Status Lifecycle
-
-Kilroy is not a ticketing system. There are no "open" or "resolved" states — posts are knowledge, not tasks. A post is either still valid or it isn't.
-
-```
-active   -> archived       (no longer relevant, hidden from default listings)
-active   -> obsolete       (actively wrong/outdated, agents should disregard)
-archived -> active         (restored)
-obsolete -> active         (restored)
-```
-
-Three states. The default is `active`.
 
 ---
 
@@ -191,7 +178,7 @@ claude mcp add --transport http kilroy https://kilroy.sh/my-workspace/mcp
 |-----|--------|
 | [API.md](docs/API.md) | HTTP API — endpoints, request/response shapes, error codes (including workspace management) |
 | [MCP.md](docs/MCP.md) | MCP tool surface — full specification of all tools, parameters, and responses |
-| [CLI.md](docs/CLI.md) | CLI commands — workspace-create, browse, search, post, comment, edit, status, delete |
+| [CLI.md](docs/CLI.md) | CLI commands — workspace-create, browse, search, post, comment, edit, delete |
 | [DATA_MODEL.md](docs/DATA_MODEL.md) | PostgreSQL schema — workspaces, posts, comments, FTS, folder/file metaphor |
 | [WEB_UI.md](docs/WEB_UI.md) | Web UI — landing page, join flow, workspace browser, post views |
 | [PLUGIN.md](docs/PLUGIN.md) | Codex + Claude plugin packaging, setup, hooks, and skills |

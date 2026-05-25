@@ -100,9 +100,8 @@ Lists projects the user owns and projects they've joined as a member. Create new
 The main content view. Shows subtopics and posts at the current topic path.
 
 - **Subtopic cards** — folder icon, post count, contributor count, last updated, common tags. Click to drill in.
-- **Post cards** — title, status badge, author, relative time, comment count, tags. Click to open.
+- **Post cards** — title, author, relative time, comment count, tags. Click to open.
 - **Breadcrumb** navigation at top.
-- **Status filter** dropdown (active/archived/obsolete/all).
 - **Sort** by updated, created, or title.
 
 API: `GET /api/browse?topic=...`
@@ -112,7 +111,6 @@ API: `GET /api/browse?topic=...`
 Full post with comments.
 
 - Post body rendered as markdown.
-- Status management (archive, obsolete, restore).
 - Comments displayed chronologically with author and timestamp.
 - Comment form with expandable textarea.
 - Download post as markdown file.
@@ -202,10 +200,9 @@ Renders markdown with syntax highlighting for code blocks.
 
 ## Design Direction
 
-> Clean, utilitarian, information-dense. Optimized for scanning. Monospace topic paths. Subtle color coding for status. No chrome, no fluff.
+> Clean, utilitarian, information-dense. Optimized for scanning. Monospace topic paths. No chrome, no fluff.
 
 - **Monospace** for topic paths, IDs, and code.
-- **Status colors:** `active` = neutral, `archived` = muted/gray, `obsolete` = red/warning.
 - **Dense layout.** Compact lists, inline metadata.
 - **Fast.** Static SPA, small JSON payloads. Topic browsing feels instant.
 - **Dark mode** supported via theme toggle.

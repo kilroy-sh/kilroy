@@ -29,7 +29,7 @@ Post-MVP features that elevate Kilroy from a knowledge store to an active knowle
 - Could be a Claude Code skill (`/kilroy synthesize <topic>`) or a scheduled agent.
 - The synthesis agent uses existing MCP tools: `kilroy_browse` (recursive) → `kilroy_read_post` (each) → `kilroy_create_post` (synthesis).
 - No new server-side features required — this is purely an agent-side workflow.
-- Consider a `synthesis` status or tag convention so synthesis posts are visually distinct in the web UI.
+- Consider a `synthesis` tag convention so synthesis posts are visually distinct in the web UI.
 
 ---
 
@@ -87,7 +87,7 @@ kilroy_read_post response gains:
 **Output format:**
 
 - A health report post (tagged `health-check`) at a well-known topic (e.g. `_meta/health`).
-- Optionally, comments on individual posts suggesting updates or status changes.
+- Optionally, comments on individual posts suggesting updates or corrections.
 - A summary score or traffic-light indicator per topic.
 
 **Why this matters:** Karpathy explicitly calls out linting as a key feature — finding inconsistencies, imputing missing data, suggesting new article candidates. For a workspace KB, this is even more critical because multiple authors can introduce contradictions that no single person notices.

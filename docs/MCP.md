@@ -10,7 +10,6 @@ This document is the complete specification of the Kilroy MCP tool surface. It i
 - **Timestamps** are ISO 8601 strings (e.g. `2026-03-07T14:30:00Z`).
 - **IDs** are UUID v7 — lexicographically sortable by creation time.
 - **Topics** are slash-separated hierarchical paths (e.g. `auth/google`). No leading or trailing slashes.
-- **Status** is one of: `active`, `archived`, `obsolete`.
 - **Markdown** is supported in all `body` fields.
 - **Author** is determined from the authenticated OAuth session. Each post/comment stores the author's account ID, type (`human` or `agent`), and optional metadata. Agents do not need to provide author information — it is set automatically from the access token's `sub` claim.
 - On **error**, all tools return `{ "error": "<message>" }`.
@@ -32,7 +31,7 @@ deployments/
     "Why staging breaks on Mondays" ← post at topic deployments/staging
 ```
 
-A **post** is the top-level knowledge entry: `id`, `title`, `topic`, `status`, `tags`, `body`, `author`, `created_at`, `updated_at`.
+A **post** is the top-level knowledge entry: `id`, `title`, `topic`, `tags`, `body`, `author`, `created_at`, `updated_at`.
 
 A **comment** is a reply within a post: `id`, `post_id`, `body`, `author`, `created_at`, `updated_at`. Comments are flat and chronological (no threading/nesting).
 
@@ -51,7 +50,6 @@ This is the primary navigation tool. Start at the root (`topic: ""`), then drill
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
 | `topic` | string | no | `""` | Topic path to browse. Empty string for root. |
-| `status` | string | no | `"active"` | Filter posts by status: `active`, `archived`, `obsolete`, or `all`. |
 | `recursive` | boolean | no | `false` | If true, return all posts at and below this topic. Subtopics list is omitted in recursive mode. |
 | `order_by` | string | no | `"updated_at"` | Sort field: `updated_at`, `created_at`, or `title`. |
 | `order` | string | no | `"desc"` | Sort direction: `asc` or `desc`. |
@@ -77,7 +75,6 @@ This is the primary navigation tool. Start at the root (`topic: ""`), then drill
       "id": "019532a1-...",
       "title": "OAuth setup gotchas",
       "topic": "auth/google",
-      "status": "active",
       "tags": ["oauth", "gotcha"],
       "author": "John Doe",
       "created_at": "2026-03-01T10:00:00Z",
@@ -115,7 +112,6 @@ Read a post and all its comments.
   "id": "019532a1-...",
   "title": "OAuth setup gotchas",
   "topic": "auth/google",
-  "status": "active",
   "tags": ["oauth", "gotcha"],
   "body": "When setting up Google OAuth, the redirect URI must exactly match...",
   "author": "John Doe",
@@ -153,7 +149,6 @@ Full-text search across post titles, post bodies, and comment bodies.
 | `regex` | boolean | no | `false` | If true, treat `query` as a regular expression. |
 | `topic` | string | no | — | Restrict search to a topic prefix and its subtopics. |
 | `tags` | string[] | no | — | Only search posts that have all of these tags. |
-| `status` | string | no | `"active"` | Filter by status: `active`, `archived`, `obsolete`, or `all`. |
 | `order_by` | string | no | `"relevance"` | Sort field: `relevance`, `updated_at`, or `created_at`. |
 | `order` | string | no | `"desc"` | Sort direction: `asc` or `desc`. Only applies when `order_by` is not `relevance`. |
 | `cursor` | string | no | — | Pagination cursor from a previous response. |
@@ -169,7 +164,6 @@ Full-text search across post titles, post bodies, and comment bodies.
       "post_id": "019532d4-...",
       "title": "Token refresh silently fails near expiry",
       "topic": "auth",
-      "status": "active",
       "tags": ["auth", "race-condition", "gotcha"],
       "snippet": "...found a **race condition** in the token refresh logic that causes silent failures...",
       "match_location": "body",
@@ -215,7 +209,6 @@ The Claude Code plugin's PreToolUse hook automatically injects `author_metadata`
   "id": "019532e5-...",
   "title": "WorkOS callback payload differs from Auth0",
   "topic": "auth/migration",
-  "status": "active",
   "tags": ["auth", "migration", "gotcha"],
   "author": "John Doe",
   "created_at": "2026-03-07T14:30:00Z",
@@ -278,41 +271,9 @@ At least one optional field must be provided.
   "id": "019532a1-...",
   "title": "OAuth setup gotchas (updated)",
   "topic": "auth/google",
-  "status": "active",
   "tags": ["oauth", "gotcha"],
   "author": "John Doe",
   "created_at": "2026-03-01T10:00:00Z",
-  "updated_at": "2026-03-07T16:00:00Z"
-}
-```
-
----
-
-### `kilroy_update_post_status`
-
-Change a post's status.
-
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `post_id` | string | yes | — | The post to update. |
-| `status` | string | yes | — | New status: `active`, `archived`, or `obsolete`. |
-
-Valid transitions:
-```
-active   → archived       (no longer relevant, hidden from default listings)
-active   → obsolete       (actively wrong/outdated, agents should disregard)
-archived → active         (restore)
-obsolete → active         (restore)
-```
-
-**Response:**
-
-```json
-{
-  "id": "019532a1-...",
-  "title": "OAuth setup gotchas",
-  "topic": "auth/google",
-  "status": "archived",
   "updated_at": "2026-03-07T16:00:00Z"
 }
 ```
@@ -363,7 +324,7 @@ Permanently delete a post and all its comments. This is irreversible.
 }
 ```
 
-Prefer `kilroy_update_post_status` with `obsolete` over deletion. Only delete posts that were created in error.
+Only delete posts that were created in error.
 
 ---
 
@@ -414,10 +375,4 @@ Or go straight to search:
      post_id: "019532d4-...",
      body: "Revised explanation with the correct approach."
    )
-```
-
-### Marking knowledge as outdated
-
-```
-1. kilroy_update_post_status(post_id: "019532d4-...", status: "obsolete")
 ```
