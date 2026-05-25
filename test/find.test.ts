@@ -102,28 +102,6 @@ describe("GET /api/find", () => {
     expect(data.results[0].title).toBe("Old post");
   });
 
-  it("filters by status", async () => {
-    const active = await createPost({ title: "Active post", tags: ["status-test"] });
-    const toArchive = await createPost({ title: "Archived post", tags: ["status-test"] });
-    // Archive one post
-    await app.request(`http://localhost/api/posts/${toArchive.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "archived" }),
-    });
-
-    // Default (active only)
-    const res = await request("/find?tag=status-test");
-    const data = await res.json();
-    expect(data.results.length).toBe(1);
-    expect(data.results[0].title).toBe("Active post");
-
-    // All statuses
-    const res2 = await request("/find?tag=status-test&status=all");
-    const data2 = await res2.json();
-    expect(data2.results.length).toBe(2);
-  });
-
   it("filters by tag", async () => {
     await createPost({ tags: ["auth"], title: "Auth post" });
     await createPost({ tags: ["deploy"], title: "Deploy post" });
@@ -174,7 +152,6 @@ describe("GET /api/find", () => {
     const r = data.results[0];
     expect(r.id).toBeDefined();
     expect(r.title).toBe("Full result");
-    expect(r.status).toBe("active");
     expect(r.tags).toEqual(["gotcha"]);
     expect(r.author.account_id).toBe(accountId);
     expect(r.updated_at).toBeDefined();

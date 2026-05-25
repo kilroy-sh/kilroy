@@ -9,7 +9,6 @@ findRouter.get("/", async (c) => {
   const tags = c.req.queries("tag") || [];
   const since = c.req.query("since");
   const before = c.req.query("before");
-  const status = c.req.query("status") || "active";
   const orderBy = c.req.query("order_by") || "updated_at";
   const order = c.req.query("order") || "desc";
   const limit = Math.min(Math.max(parseInt(c.req.query("limit") || "20"), 1), 100);
@@ -46,11 +45,6 @@ findRouter.get("/", async (c) => {
     params.push(before);
   }
 
-  if (status !== "all") {
-    conditions.push(`status = $${paramIdx++}`);
-    params.push(status);
-  }
-
   const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
   // Sort
@@ -80,7 +74,6 @@ findRouter.get("/", async (c) => {
   const results = paged.map((row: any) => ({
     id: row.id,
     title: row.title,
-    status: row.status,
     tags: row.tags ? JSON.parse(row.tags) : [],
     author: {
       account_id: row.author_account_id,

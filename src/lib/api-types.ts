@@ -17,7 +17,6 @@ export type FormattedShare = {
 export type FormattedPost = {
   id: string;
   title: string;
-  status: string;
   tags: string[];
   author: FormattedAuthor;
   share: FormattedShare;
@@ -50,7 +49,6 @@ export type ReadPostResponse = FormattedPost & {
 export type SearchResultItem = {
   post_id: string;
   title: string;
-  status: string;
   tags: string[];
   snippet: string | null;
   match_location: string | null;
@@ -77,7 +75,6 @@ export type BrowsePost = {
   id: string;
   title: string;
   topic: string;
-  status: string;
   tags: string[];
   updated_at: string;
   created_at?: string;
@@ -140,7 +137,6 @@ export type ProjectInfoResponse = {
 export type FindResultItem = {
   id: string;
   title: string;
-  status: string;
   tags: string[];
   author: {
     account_id: string | null;

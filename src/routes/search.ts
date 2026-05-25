@@ -8,7 +8,6 @@ searchRouter.get("/", async (c) => {
   const query = c.req.query("query");
   const regex = c.req.query("regex") === "true";
   const tagsParam = c.req.query("tags");
-  const status = c.req.query("status") || "active";
   const orderBy = c.req.query("order_by") || "relevance";
   const limit = Math.min(Math.max(parseInt(c.req.query("limit") || "20"), 1), 100);
   const cursor = c.req.query("cursor");
@@ -17,14 +16,14 @@ searchRouter.get("/", async (c) => {
 
   // No query: list mode — return all posts sorted by date
   if (!query) {
-    return listPosts(c, { projectId, tagsParam, status, orderBy: orderBy === "relevance" ? "updated_at" : orderBy, limit, cursor });
+    return listPosts(c, { projectId, tagsParam, orderBy: orderBy === "relevance" ? "updated_at" : orderBy, limit, cursor });
   }
 
   if (regex) {
-    return regexSearch(c, { query, projectId, tagsParam, status, orderBy, limit, cursor });
+    return regexSearch(c, { query, projectId, tagsParam, orderBy, limit, cursor });
   }
 
-  return ftsSearch(c, { query, projectId, tagsParam, status, orderBy, limit, cursor });
+  return ftsSearch(c, { query, projectId, tagsParam, orderBy, limit, cursor });
 });
 
 async function ftsSearch(
@@ -33,13 +32,12 @@ async function ftsSearch(
     query: string;
     projectId: string;
     tagsParam?: string;
-    status: string;
     orderBy: string;
     limit: number;
     cursor?: string;
   }
 ) {
-  const { query, projectId, tagsParam, status, orderBy, limit, cursor } = opts;
+  const { query, projectId, tagsParam, orderBy, limit, cursor } = opts;
   const tsquery = toTsquery(query);
 
   // Search posts using tsvector
@@ -119,19 +117,12 @@ async function ftsSearch(
   }
 
   const placeholders = postIds.map((_, i) => `$${i + 1}`).join(",");
-  let postQuery = `SELECT * FROM posts WHERE id IN (${placeholders}) AND project_id = $${postIds.length + 1}`;
+  const postQuery = `SELECT * FROM posts WHERE id IN (${placeholders}) AND project_id = $${postIds.length + 1}`;
   const params: any[] = [...postIds, projectId];
-  let paramIdx = postIds.length + 2;
-
-  if (status !== "all") {
-    postQuery += ` AND status = $${paramIdx++}`;
-    params.push(status);
-  }
 
   const matchedPosts = await client.unsafe(postQuery, params) as Array<{
     id: string;
     title: string;
-    status: string;
     tags: string | null;
     updated_at: Date;
     created_at: Date;
@@ -153,7 +144,6 @@ async function ftsSearch(
     return {
       post_id: p.id,
       title: p.title,
-      status: p.status,
       tags: p.tags ? JSON.parse(p.tags) : [],
       snippet: match.snippet,
       match_location: match.match_location,
@@ -185,7 +175,6 @@ async function ftsSearch(
   const cleanResults = paged.map((r, i) => ({
     post_id: r.post_id,
     title: r.title,
-    status: r.status,
     tags: r.tags,
     snippet: r.snippet,
     match_location: r.match_location,
@@ -208,23 +197,16 @@ async function regexSearch(
     query: string;
     projectId: string;
     tagsParam?: string;
-    status: string;
     orderBy: string;
     limit: number;
     cursor?: string;
   }
 ) {
-  const { query, projectId, tagsParam, status, orderBy, limit, cursor } = opts;
+  const { query, projectId, tagsParam, orderBy, limit, cursor } = opts;
 
   // PostgreSQL native regex with ~* (case-insensitive)
-  let postQuery = `SELECT * FROM posts WHERE project_id = $1 AND (title ~* $2 OR body ~* $3)`;
+  const postQuery = `SELECT * FROM posts WHERE project_id = $1 AND (title ~* $2 OR body ~* $3)`;
   const params: any[] = [projectId, query, query];
-  let paramIdx = 4;
-
-  if (status !== "all") {
-    postQuery += ` AND status = $${paramIdx++}`;
-    params.push(status);
-  }
 
   let matchedPosts = await client.unsafe(postQuery, params) as any[];
 
@@ -241,13 +223,8 @@ async function regexSearch(
 
   if (commentOnlyIds.length > 0) {
     const placeholders = commentOnlyIds.map((_, i) => `$${i + 1}`).join(",");
-    let extraQuery = `SELECT * FROM posts WHERE id IN (${placeholders}) AND project_id = $${commentOnlyIds.length + 1}`;
+    const extraQuery = `SELECT * FROM posts WHERE id IN (${placeholders}) AND project_id = $${commentOnlyIds.length + 1}`;
     const extraParams: any[] = [...commentOnlyIds, projectId];
-    let extraIdx = commentOnlyIds.length + 2;
-    if (status !== "all") {
-      extraQuery += ` AND status = $${extraIdx++}`;
-      extraParams.push(status);
-    }
     const extraPosts = await client.unsafe(extraQuery, extraParams) as any[];
     matchedPosts.push(...extraPosts);
   }
@@ -287,7 +264,6 @@ async function regexSearch(
     return {
       post_id: p.id,
       title: p.title,
-      status: p.status,
       tags: p.tags ? JSON.parse(p.tags) : [],
       snippet,
       match_location: matchLocation,
@@ -314,7 +290,6 @@ async function regexSearch(
   const cleanResults = paged.map((r: any, i: number) => ({
     post_id: r.post_id,
     title: r.title,
-    status: r.status,
     tags: r.tags,
     snippet: r.snippet,
     match_location: r.match_location,
@@ -336,22 +311,15 @@ async function listPosts(
   opts: {
     projectId: string;
     tagsParam?: string;
-    status: string;
     orderBy: string;
     limit: number;
     cursor?: string;
   }
 ) {
-  const { projectId, tagsParam, status, orderBy, limit, cursor } = opts;
+  const { projectId, tagsParam, orderBy, limit, cursor } = opts;
 
-  let query = `SELECT * FROM posts WHERE project_id = $1`;
+  const query = `SELECT * FROM posts WHERE project_id = $1`;
   const params: any[] = [projectId];
-  let paramIdx = 2;
-
-  if (status !== "all") {
-    query += ` AND status = $${paramIdx++}`;
-    params.push(status);
-  }
 
   const posts = await client.unsafe(query, params) as any[];
 
@@ -413,7 +381,6 @@ async function listPosts(
     return {
       post_id: p.id,
       title: p.title,
-      status: p.status,
       tags: p.tags ? JSON.parse(p.tags) : [],
       snippet: null,
       match_location: null,

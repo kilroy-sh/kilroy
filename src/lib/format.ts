@@ -19,7 +19,6 @@ export type {
 export function formatPost(post: {
   id: string;
   title: string;
-  status: string;
   tags: string | null;
   authorAccountId: string | null;
   authorType: string;
@@ -32,7 +31,6 @@ export function formatPost(post: {
   return {
     id: post.id,
     title: post.title,
-    status: post.status,
     tags: post.tags ? JSON.parse(post.tags) : [],
     author: {
       account_id: post.authorAccountId,

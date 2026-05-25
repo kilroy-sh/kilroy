@@ -6,16 +6,9 @@ export const tagsRouter = new Hono<Env>();
 
 tagsRouter.get("/", async (c) => {
   const projectId = c.get("projectId");
-  const status = c.req.query("status") || "active";
   const filterTags = c.req.query("tags")?.split(",").map((t) => t.trim()).filter(Boolean) || [];
 
-  let statusCondition = "";
   const params: any[] = [projectId];
-
-  if (status !== "all") {
-    params.push(status);
-    statusCondition = `AND status = $${params.length}`;
-  }
 
   if (filterTags.length > 0) {
     // Faceted drill-down: find tags that co-occur with the filter tags
@@ -29,7 +22,6 @@ tagsRouter.get("/", async (c) => {
         SELECT id, tags
         FROM posts
         WHERE project_id = $1
-          ${statusCondition}
           AND tags IS NOT NULL AND tags != ''
           AND ${tagConditions}
       )
@@ -48,7 +40,6 @@ tagsRouter.get("/", async (c) => {
     SELECT tag, count(*)::int as count
     FROM posts, jsonb_array_elements_text(tags::jsonb) AS tag
     WHERE project_id = $1
-      ${statusCondition}
       AND tags IS NOT NULL AND tags != ''
     GROUP BY tag
     ORDER BY count DESC, tag ASC

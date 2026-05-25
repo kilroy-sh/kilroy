@@ -81,7 +81,6 @@ describe("POST /api/posts", () => {
     const post = await res.json();
     expect(post.id).toMatch(/^[0-9a-f-]+$/);
     expect(post.title).toBe("OAuth gotcha");
-    expect(post.status).toBe("active");
     expect(post.tags).toEqual(["oauth", "gotcha"]);
     expect(post.author.account_id).toBe(testAccountId);
     expect(post.author.type).toBe("agent");
@@ -334,86 +333,6 @@ describe("GET /api/search", () => {
   });
 });
 
-// ─── PATCH /api/posts/:id ──────────────────────────────────────
-
-describe("PATCH /api/posts/:id", () => {
-  beforeEach(setup);
-
-  it("archives an active post", async () => {
-    const post = await createPost();
-    const res = await app.request(`/api/posts/${post.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "archived" }),
-    });
-
-    expect(res.status).toBe(200);
-    expect((await res.json()).status).toBe("archived");
-  });
-
-  it("marks active post as obsolete", async () => {
-    const post = await createPost();
-    const res = await app.request(`/api/posts/${post.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "obsolete" }),
-    });
-
-    expect(res.status).toBe(200);
-    expect((await res.json()).status).toBe("obsolete");
-  });
-
-  it("restores archived post to active", async () => {
-    const post = await createPost();
-
-    // Archive first
-    await app.request(`/api/posts/${post.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "archived" }),
-    });
-
-    // Restore
-    const res = await app.request(`/api/posts/${post.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "active" }),
-    });
-
-    expect(res.status).toBe(200);
-    expect((await res.json()).status).toBe("active");
-  });
-
-  it("rejects invalid transition (archived -> obsolete)", async () => {
-    const post = await createPost();
-
-    await app.request(`/api/posts/${post.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "archived" }),
-    });
-
-    const res = await app.request(`/api/posts/${post.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "obsolete" }),
-    });
-
-    expect(res.status).toBe(409);
-    expect((await res.json()).code).toBe("INVALID_TRANSITION");
-  });
-
-  it("returns 404 for non-existent post", async () => {
-    const res = await app.request("/api/posts/nonexistent", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "archived" }),
-    });
-
-    expect(res.status).toBe(404);
-  });
-});
-
 // ─── PATCH /api/posts/:id (content editing) ────────────────────
 
 describe("PATCH /api/posts/:id (content editing)", () => {
@@ -471,20 +390,6 @@ describe("PATCH /api/posts/:id (content editing)", () => {
     expect((await res.json()).tags).toEqual([]);
   });
 
-  it("updates status and content together", async () => {
-    const post = await createPost();
-    const res = await app.request(`/api/posts/${post.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: "New", status: "archived" }),
-    });
-
-    expect(res.status).toBe(200);
-    const updated = await res.json();
-    expect(updated.title).toBe("New");
-    expect(updated.status).toBe("archived");
-  });
-
   it("rejects when no fields provided", async () => {
     const post = await createPost();
     const res = await app.request(`/api/posts/${post.id}`, {
@@ -521,26 +426,6 @@ describe("PATCH /api/posts/:id (content editing)", () => {
     expect((await res.json()).code).toBe("INVALID_INPUT");
   });
 
-  it("allows editing posts in any status", async () => {
-    const post = await createPost();
-
-    // Archive the post
-    await app.request(`/api/posts/${post.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "archived" }),
-    });
-
-    // Edit title on archived post
-    const res = await app.request(`/api/posts/${post.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: "Edited while archived" }),
-    });
-
-    expect(res.status).toBe(200);
-  });
-
   it("returns full post shape in response", async () => {
     const post = await createPost();
     const res = await app.request(`/api/posts/${post.id}`, {
@@ -553,7 +438,6 @@ describe("PATCH /api/posts/:id (content editing)", () => {
     const updated = await res.json();
     expect(updated.id).toBeTruthy();
     expect(updated.title).toBeTruthy();
-    expect(updated.status).toBeTruthy();
     expect(updated.tags).toBeDefined();
     expect(updated.author).toBeDefined();
     expect(updated.author.account_id).toBe(testAccountId);
@@ -561,30 +445,6 @@ describe("PATCH /api/posts/:id (content editing)", () => {
     expect(updated.updated_at).toBeTruthy();
   });
 
-  it("rejects content update with invalid status transition", async () => {
-    const post = await createPost();
-
-    // Archive the post first
-    await app.request(`/api/posts/${post.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "archived" }),
-    });
-
-    // Try to change title and do invalid transition (archived -> obsolete)
-    const res = await app.request(`/api/posts/${post.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: "New", status: "obsolete" }),
-    });
-
-    expect(res.status).toBe(409);
-
-    // Verify title was NOT changed (atomic rejection)
-    const readRes = await app.request(`/api/posts/${post.id}`);
-    const readPost = await readRes.json();
-    expect(readPost.title).not.toBe("New");
-  });
 });
 
 // ─── PATCH /api/posts/:id (author matching) ─────────────────────
