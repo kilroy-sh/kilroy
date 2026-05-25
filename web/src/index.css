@@ -3126,7 +3126,7 @@ a:hover { color: var(--accent-hover); }
 .attachment-chip:hover .attachment-chip-icon { color: var(--accent, #c8642a); }
 .attachment-chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 24ch; }
 .attachment-chip-meta { color: var(--text-muted, #8c7e72); font-size: 0.75rem; }
-.attachment-chip-error { border-color: var(--status-obsolete, #d97757); opacity: 0.7; }
+.attachment-chip-error { border-color: #d97757; opacity: 0.7; }
 
 .attachment-modal-backdrop {
   position: fixed; inset: 0; background: rgba(44, 37, 32, 0.55);
