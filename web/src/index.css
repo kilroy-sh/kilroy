@@ -13,9 +13,7 @@
   --text-terminal: #e0e0e0;
   --border: #E2D9CE;
   --border-subtle: #EBE3D9;
-  --status-active: #5A8A3C;
-  --status-archived: #8C7E72;
-  --status-obsolete: #C44B3F;
+  --danger: #C44B3F;
   --tag-bg: rgba(200, 100, 42, 0.08);
   --tag-text: #C8642A;
   --code-inline-bg: rgba(200, 100, 42, 0.09);
@@ -370,16 +368,6 @@ a:hover { color: var(--accent-hover); }
   font-family: var(--font-mono);
 }
 
-.card-archived,
-.card-obsolete {
-  opacity: 0.55;
-}
-
-.card-archived:hover,
-.card-obsolete:hover {
-  opacity: 0.85;
-}
-
 .folder-card {
   border-left: 3px solid var(--accent);
 }
@@ -392,50 +380,6 @@ a:hover { color: var(--accent-hover); }
 
 .card-animate {
   animation: fadeUp 0.25s ease both;
-}
-
-/* Status */
-.status-dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  margin-right: 0.35rem;
-  vertical-align: middle;
-}
-
-.status-dot-active { background: var(--status-active); }
-.status-dot-archived { background: var(--status-archived); }
-.status-dot-obsolete { background: var(--status-obsolete); }
-
-.status {
-  font-size: 0.75rem;
-  padding: 0.1rem 0.5rem;
-  border-radius: 3px;
-  font-weight: 500;
-}
-
-.status-active { background: rgba(90, 138, 60, 0.15); color: var(--status-active); }
-.status-archived { background: rgba(140, 126, 114, 0.15); color: var(--status-archived); }
-.status-obsolete { background: rgba(196, 75, 63, 0.15); color: var(--status-obsolete); }
-
-/* Post status banners */
-.post-status-banner {
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
-  padding: 0.5rem 0.75rem;
-  border-radius: 6px;
-  margin-bottom: 1rem;
-}
-
-.post-status-banner-archived {
-  background: rgba(140, 126, 114, 0.1);
-  color: var(--status-archived);
-}
-
-.post-status-banner-obsolete {
-  background: rgba(196, 75, 63, 0.1);
-  color: var(--status-obsolete);
 }
 
 /* Post detail */
@@ -553,7 +497,7 @@ a:hover { color: var(--accent-hover); }
 }
 
 .text-action-danger:hover {
-  color: var(--status-obsolete);
+  color: var(--danger);
 }
 
 .post-body {
@@ -1043,38 +987,6 @@ a:hover { color: var(--accent-hover); }
   background: var(--bg-hover);
 }
 
-.status-filters {
-  display: flex;
-  gap: 2px;
-  background: var(--bg-inset);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 2px;
-}
-
-.status-filter {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.02em;
-  padding: 0.25rem 0.6rem;
-  border: none;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--text-dim);
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.status-filter:hover {
-  color: var(--text-muted);
-}
-
-.status-filter-active {
-  background: var(--bg-surface);
-  color: var(--text);
-  box-shadow: 0 1px 2px rgba(44, 37, 32, 0.08);
-}
-
 .browse-section-heading {
   font-family: var(--font-mono);
   font-size: 0.72rem;
@@ -1230,7 +1142,7 @@ a:hover { color: var(--accent-hover); }
 
 /* Error */
 .error {
-  color: var(--status-obsolete);
+  color: var(--danger);
   font-size: 0.9rem;
   padding: 1rem 0;
 }
@@ -1614,7 +1526,7 @@ a:hover { color: var(--accent-hover); }
 }
 
 .stats-error {
-  color: var(--status-obsolete);
+  color: var(--danger);
   margin-bottom: 1.5rem;
 }
 
@@ -1653,9 +1565,7 @@ a:hover { color: var(--accent-hover); }
   --text-terminal: #e0e0e0;
   --border: #3A3430;
   --border-subtle: #302C29;
-  --status-active: #7EBF5E;
-  --status-archived: #8C8078;
-  --status-obsolete: #E06050;
+  --danger: #E06050;
   --tag-bg: rgba(224, 144, 80, 0.1);
   --tag-text: #E09050;
   --code-inline-bg: rgba(224, 144, 80, 0.14);
@@ -1713,7 +1623,7 @@ a:hover { color: var(--accent-hover); }
     position: static !important;
   }
   .post-actions, .comments-divider, .comments-heading,
-  .comment, .comment-form, .post-status-banner { display: none !important; }
+  .comment, .comment-form { display: none !important; }
   .content {
     max-width: 100%;
     padding: 0;
@@ -2207,7 +2117,7 @@ a:hover { color: var(--accent-hover); }
   top: calc(100% + 0.4rem);
   left: 0;
   font-size: 0.82rem;
-  color: var(--status-obsolete);
+  color: var(--danger);
 }
 
 .onboarding-preview {
@@ -2889,16 +2799,6 @@ a:hover { color: var(--accent-hover); }
   min-width: 0;
 }
 
-/* Status dot before posts */
-.tree-status-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--text-dim);
-  flex-shrink: 0;
-  margin-right: 0.3rem;
-}
-
 /* Post count */
 .tree-count {
   margin-left: auto;
@@ -3045,27 +2945,6 @@ a:hover { color: var(--accent-hover); }
   justify-content: space-between;
   margin-bottom: 16px;
   gap: 12px;
-}
-
-.feed-status-filters {
-  display: flex;
-  gap: 4px;
-}
-
-.feed-status-btn {
-  padding: 4px 12px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: none;
-  color: var(--text-muted);
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.feed-status-btn.active {
-  background: var(--text);
-  color: var(--bg);
-  border-color: var(--text);
 }
 
 .feed-sort-select {
@@ -3247,7 +3126,7 @@ a:hover { color: var(--accent-hover); }
 .attachment-chip:hover .attachment-chip-icon { color: var(--accent, #c8642a); }
 .attachment-chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 24ch; }
 .attachment-chip-meta { color: var(--text-muted, #8c7e72); font-size: 0.75rem; }
-.attachment-chip-error { border-color: var(--status-obsolete, #d97757); opacity: 0.7; }
+.attachment-chip-error { border-color: #d97757; opacity: 0.7; }
 
 .attachment-modal-backdrop {
   position: fixed; inset: 0; background: rgba(44, 37, 32, 0.55);

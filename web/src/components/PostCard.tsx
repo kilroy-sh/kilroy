@@ -12,13 +12,12 @@ export function PostCard({ post, onClick, showTopic, className, style }: PostCar
   const p = post;
   return (
     <div
-      className={`card${p.status !== 'active' ? ` card-${p.status}` : ''}${className ? ` ${className}` : ''}`}
+      className={`card${className ? ` ${className}` : ''}`}
       onClick={onClick}
       style={style}
     >
       <div className="card-title">
         <span className="card-title-text">{p.title}</span>
-        {p.status !== 'active' && <span className={`status-dot status-dot-${p.status}`} />}
       </div>
       <div className="card-meta">
         {showTopic && <>{p.topic || '/'} · </>}

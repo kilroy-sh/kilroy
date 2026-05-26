@@ -143,7 +143,6 @@ export async function initDatabase() {
       project_id TEXT NOT NULL REFERENCES projects(id),
       title TEXT NOT NULL,
       topic TEXT NOT NULL,
-      status TEXT NOT NULL DEFAULT 'active',
       tags TEXT,
       body TEXT NOT NULL,
       author TEXT,
@@ -215,7 +214,6 @@ export async function initDatabase() {
   // Indexes
   await client.unsafe(`
     CREATE INDEX IF NOT EXISTS idx_posts_project_id ON posts(project_id);
-    CREATE INDEX IF NOT EXISTS idx_posts_status ON posts(status);
     CREATE INDEX IF NOT EXISTS idx_posts_updated_at ON posts(updated_at);
     CREATE INDEX IF NOT EXISTS idx_comments_post_created ON comments(post_id, created_at);
     CREATE INDEX IF NOT EXISTS idx_posts_search ON posts USING GIN(search_vector);

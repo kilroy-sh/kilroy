@@ -102,7 +102,6 @@ postsRouter.post("/", async (c) => {
     id,
     projectId,
     title: body.title,
-    status: "active" as const,
     tags: body.tags ? JSON.stringify(body.tags) : null,
     body: body.body,
     authorAccountId: memberAccountId,
@@ -231,18 +230,17 @@ postsRouter.patch("/:id/comments/:commentId", async (c) => {
   }, display));
 });
 
-// PATCH /posts/:id — Update post content and/or status
+// PATCH /posts/:id — Update post content
 postsRouter.patch("/:id", async (c) => {
   const postId = c.req.param("id");
   const body = await c.req.json();
 
   const hasContent = body.title !== undefined ||
     body.body !== undefined || body.tags !== undefined;
-  const hasStatus = body.status !== undefined;
 
-  if (!hasContent && !hasStatus) {
+  if (!hasContent) {
     return c.json(
-      { error: "At least one field required: title, body, tags, or status", code: "INVALID_INPUT" },
+      { error: "At least one field required: title, body, or tags", code: "INVALID_INPUT" },
       400
     );
   }
@@ -255,15 +253,6 @@ postsRouter.patch("/:id", async (c) => {
         400
       );
     }
-  }
-
-  // Validate status enum if provided
-  const validStatuses = ["active", "archived", "obsolete"];
-  if (hasStatus && !validStatuses.includes(body.status)) {
-    return c.json(
-      { error: `Invalid status: ${body.status}. Must be one of: ${validStatuses.join(", ")}`, code: "INVALID_INPUT" },
-      400
-    );
   }
 
   const projectId = c.get("projectId");
@@ -283,22 +272,6 @@ postsRouter.patch("/:id", async (c) => {
     );
   }
 
-  // Validate status transition if status is being changed
-  if (hasStatus && body.status !== post.status) {
-    const validTransitions: Record<string, string[]> = {
-      active: ["archived", "obsolete"],
-      archived: ["active"],
-      obsolete: ["active"],
-    };
-
-    if (!validTransitions[post.status]?.includes(body.status)) {
-      return c.json(
-        { error: `Invalid transition: ${post.status} -> ${body.status}`, code: "INVALID_TRANSITION" },
-        409
-      );
-    }
-  }
-
   // Build update set
   const now = new Date();
   const updates: Record<string, any> = { updatedAt: now };
@@ -306,7 +279,6 @@ postsRouter.patch("/:id", async (c) => {
   if (body.title !== undefined) updates.title = body.title;
   if (body.body !== undefined) updates.body = body.body;
   if (body.tags !== undefined) updates.tags = body.tags.length > 0 ? JSON.stringify(body.tags) : null;
-  if (hasStatus) updates.status = body.status;
 
   // Trigger auto-updates search_vector when title or body changes
   await db.update(posts).set(updates).where(eq(posts.id, postId));

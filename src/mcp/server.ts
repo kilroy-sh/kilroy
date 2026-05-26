@@ -200,7 +200,6 @@ export function createMcpServer(authUserId: string, authorType: "human" | "agent
         query: z.string().optional().describe("Search query. Omit to browse recent posts."),
         regex: z.boolean().optional().describe("If true, treat query as a regular expression."),
         tags: z.array(z.string()).optional().describe("Only search posts that have all of these tags."),
-        status: z.enum(["active", "archived", "obsolete", "all"]).optional().describe("Filter by status."),
         order_by: z.enum(["relevance", "updated_at", "created_at"]).optional().describe("Sort field."),
         order: z.enum(["asc", "desc"]).optional().describe("Sort direction."),
         cursor: z.string().optional().describe("Pagination cursor from a previous response."),
@@ -214,7 +213,6 @@ export function createMcpServer(authUserId: string, authorType: "human" | "agent
           if (args.query) params.set("query", args.query);
           if (args.regex !== undefined) params.set("regex", String(args.regex));
           if (args.tags?.length) params.set("tags", args.tags.join(","));
-          if (args.status) params.set("status", args.status);
           if (args.order_by) params.set("order_by", args.order_by);
           if (args.order) params.set("order", args.order);
           if (args.cursor) params.set("cursor", args.cursor);
@@ -236,7 +234,6 @@ export function createMcpServer(authUserId: string, authorType: "human" | "agent
       inputSchema: {
         project: projectParam,
         tags: z.array(z.string()).optional().describe("Filter to co-occurring tags. Returns tags that appear alongside these on the same posts."),
-        status: z.enum(["active", "archived", "obsolete", "all"]).optional().describe("Filter by post status."),
       },
     },
     async (args) => {
@@ -244,7 +241,6 @@ export function createMcpServer(authUserId: string, authorType: "human" | "agent
         return await withProject(args.project, async (app, projectUrl) => {
           const params = new URLSearchParams();
           if (args.tags?.length) params.set("tags", args.tags.join(","));
-          if (args.status) params.set("status", args.status);
 
           const { status, data } = await app("GET", `/api/tags?${params}`);
           return result(data, status >= 400);
@@ -303,30 +299,6 @@ export function createMcpServer(authUserId: string, authorType: "human" | "agent
             author_metadata: args.author_metadata,
           });
           return result(enrichComment(data, projectUrl), status >= 400);
-        });
-      } catch (err: any) {
-        return result({ error: err.message }, true);
-      }
-    }
-  );
-
-  mcp.registerTool(
-    "kilroy_update_post_status",
-    {
-      description: "Change a post's status.",
-      inputSchema: {
-        project: projectParam,
-        post_id: z.string().describe("The post to update."),
-        status: z.enum(["active", "archived", "obsolete"]).describe("New status."),
-      },
-    },
-    async (args) => {
-      try {
-        return await withProject(args.project, async (app, projectUrl) => {
-          const { status, data } = await app("PATCH", `/api/posts/${args.post_id}`, {
-            status: args.status,
-          });
-          return result(enrichPost(data, projectUrl), status >= 400);
         });
       } catch (err: any) {
         return result({ error: err.message }, true);

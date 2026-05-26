@@ -242,54 +242,6 @@ describe("CLI integration tests", () => {
     });
   });
 
-  describe("kilroy status", () => {
-    it("archives a post", async () => {
-      const post = await apiPost("/posts", {
-        title: "Status test",
-        body: "body",
-        tags: ["cli-test"],
-      });
-
-      const { stdout, code } = await cli("archive", post.id, "--json");
-      expect(code).toBe(0);
-      const data = JSON.parse(stdout);
-      expect(data.status).toBe("archived");
-
-      await apiDelete(`/posts/${post.id}`);
-    });
-
-    it("restores an archived post", async () => {
-      const post = await apiPost("/posts", {
-        title: "Restore test",
-        body: "body",
-        tags: ["cli-test"],
-      });
-
-      await cli("archive", post.id);
-      const { stdout, code } = await cli("restore", post.id, "--json");
-      expect(code).toBe(0);
-      const data = JSON.parse(stdout);
-      expect(data.status).toBe("active");
-
-      await apiDelete(`/posts/${post.id}`);
-    });
-
-    it("changes status with status command", async () => {
-      const post = await apiPost("/posts", {
-        title: "Explicit status",
-        body: "body",
-        tags: ["cli-test"],
-      });
-
-      const { stdout, code } = await cli("status", post.id, "obsolete", "--json");
-      expect(code).toBe(0);
-      const data = JSON.parse(stdout);
-      expect(data.status).toBe("obsolete");
-
-      await apiDelete(`/posts/${post.id}`);
-    });
-  });
-
   describe("kilroy rm", () => {
     it("deletes a post", async () => {
       const post = await apiPost("/posts", {

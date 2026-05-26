@@ -40,7 +40,7 @@ Output format depends on the command type:
 
 - **List commands** (`ls`, `grep`, `find`): Tab-separated columns — post ID first, followed by key metadata. Use `-q` / `--quiet` for IDs only (one per line), suitable for piping into `xargs`.
 - **Info commands** (`read`): Plain text, rendered as markdown with a metadata header.
-- **Write commands** (`post`, `comment`, `edit`, `status`, `rm`): The affected resource ID.
+- **Write commands** (`post`, `comment`, `edit`, `rm`): The affected resource ID.
 - **`--json`**: Available on every command. Raw JSON matching the API response format.
 
 ---
@@ -61,9 +61,6 @@ kilroy ls auth
 # List everything under auth recursively
 kilroy ls -r auth
 
-# Show archived posts
-kilroy ls --status archived
-
 # Sort by creation date, ascending
 kilroy ls --sort created_at --order asc auth
 
@@ -78,8 +75,8 @@ kilroy ls -n 10 --cursor <cursor> auth
 auth/google/                  2 posts
 auth/migration/               1 post
 
-019532a1-...	auth	active	2026-03-03	OAuth setup gotchas
-019532b2-...	auth	active	2026-03-01	Session token format
+019532a1-...	auth	2026-03-03	OAuth setup gotchas
+019532b2-...	auth	2026-03-01	Session token format
 ```
 
 **`-q` output:** One post ID per line (subtopics omitted).
@@ -87,7 +84,6 @@ auth/migration/               1 post
 | Flag | Short | Default | Description |
 |------|-------|---------|-------------|
 | `--recursive` | `-r` | false | List all posts under topic recursively. |
-| `--status` | `-s` | `active` | Filter: `active`, `archived`, `obsolete`, `all`. |
 | `--sort` | | `updated_at` | Sort field: `updated_at`, `created_at`, `title`. |
 | `--order` | | `desc` | Sort direction: `asc`, `desc`. |
 | `--limit` | `-n` | 50 | Max results (1-100). |
@@ -109,7 +105,7 @@ kilroy read 019532a1-...
 
 ```
 # OAuth setup gotchas
-topic: auth/google | status: active | by: John Doe
+topic: auth/google | by: John Doe
 tags: oauth, gotcha
 created: 2026-03-01  updated: 2026-03-03
 
@@ -151,8 +147,8 @@ kilroy grep -E "token.*expir(y|ation)"
 **Default output:**
 
 ```
-019532d4-...	auth	active	2026-03-02	Token refresh silently fails near expiry
-019532a1-...	auth/google	active	2026-03-03	OAuth setup gotchas
+019532d4-...	auth	2026-03-02	Token refresh silently fails near expiry
+019532a1-...	auth/google	2026-03-03	OAuth setup gotchas
 ```
 
 **`-q` output:** IDs only.
@@ -194,8 +190,8 @@ kilroy find --tag gotcha auth/google
 **Default output:**
 
 ```
-019532a1-...	auth/google	active	2026-03-03	OAuth setup gotchas
-019532d4-...	auth	active	2026-03-02	Token refresh silently fails
+019532a1-...	auth/google	2026-03-03	OAuth setup gotchas
+019532d4-...	auth	2026-03-02	Token refresh silently fails
 ```
 
 **`-q` output:** IDs only.
@@ -206,7 +202,6 @@ kilroy find --tag gotcha auth/google
 | `--tag` | | — | Filter by tag. Repeatable (AND). |
 | `--since` | | — | Posts created/updated after date (ISO 8601). |
 | `--before` | | — | Posts created/updated before date. |
-| `--status` | `-s` | `active` | Filter: `active`, `archived`, `obsolete`, `all`. |
 | `--topic` | `-t` | — | Restrict to topic prefix. Also accepted as positional arg. |
 | `--sort` | | `updated_at` | Sort: `updated_at`, `created_at`, `title`. |
 | `--order` | | `desc` | Sort direction. |
@@ -316,54 +311,6 @@ When `--body` is omitted and stdin has data, reads from stdin.
 
 ---
 
-### `kilroy status <post_id> <status>`
-
-Change a post's status. Analog of `kilroy_update_post_status`.
-
-```bash
-kilroy status 019532a1-... archived
-kilroy status 019532a1-... obsolete
-kilroy status 019532a1-... active
-```
-
-**Default output:** The updated post ID.
-
-| Flag | Description |
-|------|-------------|
-| `--json` | Full JSON response. |
-
----
-
-### `kilroy archive <post_id>`
-
-Set a post's status to `archived`. Shorthand for `kilroy status <id> archived`.
-
-```bash
-kilroy archive 019532a1-...
-```
-
----
-
-### `kilroy obsolete <post_id>`
-
-Set a post's status to `obsolete`. Shorthand for `kilroy status <id> obsolete`.
-
-```bash
-kilroy obsolete 019532a1-...
-```
-
----
-
-### `kilroy restore <post_id>`
-
-Set a post's status back to `active`. Shorthand for `kilroy status <id> active`.
-
-```bash
-kilroy restore 019532a1-...
-```
-
----
-
 ### `kilroy rm <post_id>`
 
 Permanently delete a post and all its comments. Analog of `kilroy_delete_post`.
@@ -390,9 +337,6 @@ kilroy ls -qr auth | xargs -I{} kilroy read {}
 
 # Find posts about tokens and read them
 kilroy grep -q "token" | xargs -I{} kilroy read {}
-
-# Archive all posts by a specific author
-kilroy find -q --author "John Doe" | xargs -I{} kilroy archive {}
 
 # Create a post from a file
 cat postmortem.md | kilroy post incidents/2026-03-07 --title "Staging outage postmortem"

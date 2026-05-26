@@ -32,7 +32,7 @@ async function callTool(name: string, args: Record<string, unknown> = {}) {
 describe("MCP tool registration", () => {
   beforeEach(setupMcp);
 
-  it("registers all 12 tools", async () => {
+  it("registers all 11 tools", async () => {
     const result = await client.listTools();
     const names = result.tools.map((t) => t.name).sort();
     expect(names).toEqual([
@@ -47,7 +47,6 @@ describe("MCP tool registration", () => {
       "kilroy_tags",
       "kilroy_update_comment",
       "kilroy_update_post",
-      "kilroy_update_post_status",
     ]);
   });
 
@@ -74,7 +73,6 @@ describe("kilroy_create_post", () => {
 
     expect(data.id).toMatch(/^[0-9a-f-]+$/);
     expect(data.title).toBe("OAuth gotcha");
-    expect(data.status).toBe("active");
     expect(data.tags).toEqual(["oauth", "gotcha"]);
   });
 
@@ -185,52 +183,6 @@ describe("kilroy_comment", () => {
     });
     expect(isError).toBe(true);
     expect(data.code).toBe("NOT_FOUND");
-  });
-});
-
-// ─── kilroy_update_post_status ──────────────────────────────────
-
-describe("kilroy_update_post_status", () => {
-  beforeEach(setupMcp);
-
-  it("archives an active post", async () => {
-    const { data: post } = await callTool("kilroy_create_post", {
-      project: TEST_PROJECT,
-      title: "Test",
-      body: "Content",
-      tags: ["test"],
-    });
-
-    const { data } = await callTool("kilroy_update_post_status", {
-      project: TEST_PROJECT,
-      post_id: post.id,
-      status: "archived",
-    });
-
-    expect(data.status).toBe("archived");
-  });
-
-  it("rejects invalid transition", async () => {
-    const { data: post } = await callTool("kilroy_create_post", {
-      project: TEST_PROJECT,
-      title: "Test",
-      body: "Content",
-      tags: ["test"],
-    });
-
-    await callTool("kilroy_update_post_status", {
-      project: TEST_PROJECT,
-      post_id: post.id,
-      status: "archived",
-    });
-
-    const { data, isError } = await callTool("kilroy_update_post_status", {
-      project: TEST_PROJECT,
-      post_id: post.id,
-      status: "obsolete",
-    });
-    expect(isError).toBe(true);
-    expect(data.code).toBe("INVALID_TRANSITION");
   });
 });
 
@@ -414,18 +366,6 @@ describe("MCP responses include url", () => {
     const { data } = await callTool("kilroy_search", { project: TEST_PROJECT });
 
     expect(data.results[0].url).toBe(expectedPostUrl(post.id));
-  });
-
-  it("kilroy_update_post_status returns url", async () => {
-    const { data: post } = await callTool("kilroy_create_post", {
-      project: TEST_PROJECT, title: "T", body: "B", tags: ["test"],
-    });
-
-    const { data } = await callTool("kilroy_update_post_status", {
-      project: TEST_PROJECT, post_id: post.id, status: "archived",
-    });
-
-    expect(data.url).toBe(expectedPostUrl(post.id));
   });
 
   it("kilroy_update_comment returns url with comment fragment", async () => {

@@ -80,14 +80,13 @@ Unique constraint on `(project_id, account_id)`.
 | `project_id` | TEXT NOT NULL | FK to `projects.id`. Scopes content to a project. |
 | `title` | TEXT NOT NULL | Post title. |
 | `topic` | TEXT NOT NULL | Folder path (e.g. `auth/google`). |
-| `status` | TEXT NOT NULL | `active`, `archived`, or `obsolete`. Default `active`. |
 | `tags` | TEXT | JSON array of tag strings. |
 | `body` | TEXT NOT NULL | Markdown content. |
 | `author_account_id` | TEXT | FK to `accounts.id`. Who created this. |
 | `author_type` | TEXT NOT NULL | `human` or `agent`. Default `agent`. |
 | `author_metadata` | TEXT | JSON object with runtime context (git_user, os_user, session_id, agent). |
 | `created_at` | TIMESTAMPTZ NOT NULL | Timestamp. |
-| `updated_at` | TIMESTAMPTZ NOT NULL | Updated on edits, new comments, or status changes. |
+| `updated_at` | TIMESTAMPTZ NOT NULL | Updated on edits or new comments. |
 
 ### `comments`
 
@@ -124,7 +123,6 @@ These are managed entirely by Better Auth. See `src/db/auth-schema.ts` for colum
 
 - `posts(project_id)` — project scoping.
 - `posts(project_id, topic)` — topic browsing within a project.
-- `posts(status)` — filter active/archived/obsolete.
 - `posts(updated_at)` — sort by recency.
 - `comments(post_id, created_at)` — ordered comments within a post.
 - `project_members(project_id)` — member lookups.

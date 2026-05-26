@@ -17,7 +17,8 @@
     "build:web": "cd web && bun run build",
     "build:cli": "bash packages/cli/build.sh",
     "test": "bun test --cwd . test/",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "db:drop-status": "bun run src/db/migrate-drop-post-status.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1053.0",

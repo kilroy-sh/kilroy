@@ -90,7 +90,6 @@ function renderPostMarkdown(
   post: {
     title: string;
     topic: string | null;
-    status: string;
     tags: string | null;
     body: string;
     authorAccountId: string | null;
@@ -114,7 +113,7 @@ function renderPostMarkdown(
   // Metadata line
   const author = formatAuthor(post.authorAccountId, post.authorType, displayMap);
   const date = formatDate(post.createdAt);
-  let meta = `*${author} · ${post.status} · ${date}*`;
+  const meta = `*${author} · ${date}*`;
   lines.push(meta);
 
   // Tags

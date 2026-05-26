@@ -29,10 +29,10 @@ export function formatBrowse(data: any): { default: string; quiet: string } {
     if (data.posts?.length) lines.push("");
   }
 
-  // Posts as TSV: id \t topic \t status \t date \t title
+  // Posts as TSV: id \t topic \t date \t title
   for (const p of data.posts || []) {
     const date = p.updated_at?.slice(0, 10) || "";
-    lines.push(`${p.id}\t${p.topic}\t${p.status}\t${date}\t${p.title}`);
+    lines.push(`${p.id}\t${p.topic}\t${date}\t${p.title}`);
     ids.push(p.id);
   }
 
@@ -53,7 +53,7 @@ export function formatSearch(data: any): { default: string; quiet: string } {
 
   for (const r of data.results || []) {
     const date = r.updated_at?.slice(0, 10) || "";
-    lines.push(`${r.post_id}\t${r.topic}\t${r.status}\t${date}\t${r.title}`);
+    lines.push(`${r.post_id}\t${r.topic}\t${date}\t${r.title}`);
     ids.push(r.post_id);
   }
 
@@ -74,7 +74,7 @@ export function formatFind(data: any): { default: string; quiet: string } {
 
   for (const r of data.results || []) {
     const date = r.updated_at?.slice(0, 10) || "";
-    lines.push(`${r.id}\t${r.topic}\t${r.status}\t${date}\t${r.title}`);
+    lines.push(`${r.id}\t${r.topic}\t${date}\t${r.title}`);
     ids.push(r.id);
   }
 
@@ -98,7 +98,6 @@ export function formatPost(data: any): { default: string; quiet: string } {
 
   const meta: string[] = [];
   if (data.topic) meta.push(`topic: ${data.topic}`);
-  meta.push(`status: ${data.status}`);
   if (data.author) meta.push(`by: ${data.author}`);
   lines.push(meta.join(" | "));
 
@@ -126,10 +125,6 @@ export function formatPost(data: any): { default: string; quiet: string } {
 // ─── Write formatters (ID output) ──────────────────────────────
 
 export function formatCreated(data: any): { default: string; quiet: string } {
-  return { default: data.id, quiet: data.id };
-}
-
-export function formatStatus(data: any): { default: string; quiet: string } {
   return { default: data.id, quiet: data.id };
 }
 
