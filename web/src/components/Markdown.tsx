@@ -7,6 +7,7 @@ import { getHighlighter, resolveLang } from '../lib/shiki/highlighter';
 import { parseObjectUrl } from '../lib/objectUrl';
 import { AttachmentChip } from './AttachmentChip';
 import { MarkdownImage } from './MarkdownImage';
+import { MarkdownObjectEmbed } from './MarkdownObjectEmbed';
 
 type MathToken = {
   type: 'mathInline' | 'mathBlock';
@@ -164,6 +165,21 @@ function buildMarked(highlighter: HighlighterCore | null) {
         );
       },
       image({ href, title, text }) {
+        const parsed = parseObjectUrl(href);
+        if (parsed) {
+          // Image-syntax pointing at a Kilroy object: dispatch by mime at
+          // mount time. HTML → sandboxed widget, image/* → inline <img>,
+          // anything else → fall back to a chip.
+          return (
+            `<span class="kilroy-object-embed-placeholder"` +
+            ` data-href="${escapeHtml(href)}"` +
+            ` data-account="${escapeHtml(parsed.accountSlug)}"` +
+            ` data-project="${escapeHtml(parsed.projectSlug)}"` +
+            ` data-id="${escapeHtml(parsed.objectId)}"` +
+            ` data-alt="${escapeHtml(text)}"` +
+            ` data-title="${escapeHtml(title ?? '')}"></span>`
+          );
+        }
         return (
           `<span class="kilroy-image-placeholder"` +
           ` data-src="${escapeHtml(href)}"` +
@@ -279,6 +295,9 @@ export function Markdown({ content, className }: { content: string; className?: 
     const imageEls = Array.from(
       container.querySelectorAll<HTMLSpanElement>('.kilroy-image-placeholder'),
     );
+    const objectEmbedEls = Array.from(
+      container.querySelectorAll<HTMLSpanElement>('.kilroy-object-embed-placeholder'),
+    );
     const roots: Root[] = [];
 
     for (const el of attachmentEls) {
@@ -300,6 +319,21 @@ export function Markdown({ content, className }: { content: string; className?: 
       root.render(
         <MarkdownImage
           src={el.dataset.src ?? ''}
+          alt={el.dataset.alt ?? ''}
+          title={el.dataset.title ? el.dataset.title : null}
+        />,
+      );
+      roots.push(root);
+    }
+
+    for (const el of objectEmbedEls) {
+      const root = createRoot(el);
+      root.render(
+        <MarkdownObjectEmbed
+          accountSlug={el.dataset.account ?? ''}
+          projectSlug={el.dataset.project ?? ''}
+          objectId={el.dataset.id ?? ''}
+          href={el.dataset.href ?? ''}
           alt={el.dataset.alt ?? ''}
           title={el.dataset.title ? el.dataset.title : null}
         />,

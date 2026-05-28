@@ -3161,6 +3161,63 @@ a:hover { color: var(--accent-hover); }
 .attachment-modal-body { flex: 1; overflow: auto; padding: 1rem; min-height: 0; }
 .attachment-loading { padding: 2rem; text-align: center; color: var(--text-muted, #8c7e72); }
 
+/* HTML widget embeds (square iframe + expand-to-modal) */
+.widget-embed {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border: 1px solid var(--border, #d8cfc4);
+  border-radius: 8px;
+  background: var(--bg-surface, #f5efe6);
+  overflow: hidden;
+  margin: 1rem 0;
+}
+.widget-embed-frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  background: var(--bg, #faf6f1);
+}
+.widget-embed-expand {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border, #d8cfc4);
+  border-radius: 6px;
+  background: rgba(250, 246, 241, 0.92);
+  color: var(--text-muted, #8c7e72);
+  cursor: pointer;
+  padding: 0;
+  font-size: 1rem;
+  transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
+}
+.widget-embed-expand:hover {
+  border-color: var(--accent, #c8642a);
+  color: var(--accent, #c8642a);
+  background: var(--bg, #faf6f1);
+}
+.widget-embed-frame-modal {
+  /* Square in the modal too — matches the inline aspect ratio, so widgets
+     designed for 1:1 stay 1:1 when expanded. Width is the smaller of
+     `80vh` (viewport-tall ceiling) or `100%` (container-width ceiling); the
+     `aspect-ratio` derives height. `margin: 0 auto` centers it inside the
+     wider AttachmentModal body. */
+  width: min(80vh, 100%);
+  aspect-ratio: 1 / 1;
+  max-width: 100%;
+  max-height: 80vh;
+  margin: 0 auto;
+  border: 0;
+  display: block;
+  background: var(--bg, #faf6f1);
+}
+
 .image-preview { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 100%; }
 .image-preview img { max-width: 100%; max-height: 80vh; object-fit: contain; cursor: zoom-in; display: block; }
 .image-preview-zoomed { align-items: flex-start; justify-content: flex-start; }

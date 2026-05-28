@@ -118,7 +118,17 @@ async function handleGetOrHead(c: Context<Env>, includeBody: boolean) {
     "ETag": `"${obj.sha256}"`,
     "Last-Modified": new Date(obj.created_at as string | Date).toUTCString(),
     "Cache-Control": "public, max-age=31536000, immutable",
+    "X-Content-Type-Options": "nosniff",
   };
+  // HTML objects are user-uploaded and served from the app origin. The CSP
+  // `sandbox` header forces an opaque origin even on direct navigation, so an
+  // uploaded page can't read host cookies/storage. Flags align with the iframe
+  // sandbox attribute used in WidgetEmbed so widget UX (scripts/forms/popups)
+  // is the same in-frame and standalone.
+  const mimeType = (obj.mime as string).toLowerCase();
+  if (mimeType === "text/html" || mimeType.startsWith("text/html;")) {
+    headers["Content-Security-Policy"] = "sandbox allow-scripts allow-forms allow-popups";
+  }
   if (obj.filename && !/["\\\r\n\x00-\x1F\x7F]/.test(obj.filename as string)) {
     // T1 input sanitizer normally guarantees this is safe to interpolate, but
     // we guard at emit time too — if a future write path skips the sanitizer,
