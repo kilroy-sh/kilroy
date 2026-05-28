@@ -6,6 +6,7 @@ import type { HighlighterCore } from 'shiki/core';
 import { getHighlighter, resolveLang } from '../lib/shiki/highlighter';
 import { parseObjectUrl } from '../lib/objectUrl';
 import { AttachmentChip } from './AttachmentChip';
+import { MarkdownImage } from './MarkdownImage';
 
 type MathToken = {
   type: 'mathInline' | 'mathBlock';
@@ -162,6 +163,14 @@ function buildMarked(highlighter: HighlighterCore | null) {
           ` data-label="${escapeHtml(text)}"></span>`
         );
       },
+      image({ href, title, text }) {
+        return (
+          `<span class="kilroy-image-placeholder"` +
+          ` data-src="${escapeHtml(href)}"` +
+          ` data-alt="${escapeHtml(text)}"` +
+          ` data-title="${escapeHtml(title ?? '')}"></span>`
+        );
+      },
     },
   });
 
@@ -264,10 +273,15 @@ export function Markdown({ content, className }: { content: string; className?: 
     // Placeholders are written by the marked link renderer (see buildMarked);
     // they're part of the dangerouslySetInnerHTML payload, so they survive
     // across renders (the inner HTML wrapper is memoized — see below).
-    const placeholders = Array.from(
+    const attachmentEls = Array.from(
       container.querySelectorAll<HTMLSpanElement>('.kilroy-attachment-placeholder'),
     );
-    const roots: Root[] = placeholders.map((el) => {
+    const imageEls = Array.from(
+      container.querySelectorAll<HTMLSpanElement>('.kilroy-image-placeholder'),
+    );
+    const roots: Root[] = [];
+
+    for (const el of attachmentEls) {
       const root = createRoot(el);
       root.render(
         <AttachmentChip
@@ -278,8 +292,20 @@ export function Markdown({ content, className }: { content: string; className?: 
           label={el.dataset.label ?? null}
         />,
       );
-      return root;
-    });
+      roots.push(root);
+    }
+
+    for (const el of imageEls) {
+      const root = createRoot(el);
+      root.render(
+        <MarkdownImage
+          src={el.dataset.src ?? ''}
+          alt={el.dataset.alt ?? ''}
+          title={el.dataset.title ? el.dataset.title : null}
+        />,
+      );
+      roots.push(root);
+    }
 
     return () => {
       for (const root of roots) root.unmount();
