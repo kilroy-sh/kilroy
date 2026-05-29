@@ -55,6 +55,23 @@ a:hover { color: var(--accent-hover); }
   margin: 0 auto;
   padding: 2rem 1.5rem;
   animation: fadeUp 0.15s ease;
+  /* Guard against any child forcing the page wider than the viewport */
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+@media (max-width: 560px) {
+  .content {
+    padding: 1.25rem 1rem;
+  }
+
+  .post-detail h1 {
+    font-size: 1.6rem;
+  }
+
+  .prose {
+    font-size: 1rem;
+  }
 }
 
 
@@ -212,6 +229,23 @@ a:hover { color: var(--accent-hover); }
   padding: 0.15rem 0.4rem;
 }
 
+/* Magnifier — the visible tap target for search (mobile only) */
+.omnibar-search-icon {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  margin: -0.4rem -0.3rem -0.4rem 0;
+  border-radius: 8px;
+  color: var(--text-muted);
+}
+
+.omnibar-search-icon:active {
+  background: var(--bg-hover);
+  color: var(--accent);
+}
+
 .omnibar-input {
   width: 100%;
   padding: 0.6rem 1rem;
@@ -300,6 +334,57 @@ a:hover { color: var(--accent-hover); }
   color: var(--text-dim);
 }
 
+/* Mobile navbar — flow layout so toggle, search, and actions never overlap */
+@media (max-width: 768px) {
+  .omnibar-row {
+    gap: 0.4rem;
+    padding: 0.7rem 0.85rem;
+  }
+
+  /* Pull the absolutely-positioned ends back into the flex flow */
+  .sidebar-toggle-btn,
+  .navbar-brand {
+    position: static;
+    left: auto;
+    flex-shrink: 0;
+  }
+
+  .navbar-actions {
+    position: static;
+    right: auto;
+    flex-shrink: 0;
+    gap: 0.15rem;
+  }
+
+  /* Search bar takes the remaining space and is allowed to shrink */
+  .omnibar-row .omnibar {
+    margin: 0;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .omnibar-resting {
+    padding: 0.55rem 0.75rem;
+    gap: 0.1rem;
+  }
+
+  .omnibar-wordmark {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+
+  /* Swap the keyboard hint for a tappable magnifier on touch */
+  .omnibar-hint kbd {
+    display: none;
+  }
+
+  .omnibar-search-icon {
+    display: flex;
+  }
+}
+
 /* Cards */
 .card {
   background: var(--bg-surface);
@@ -383,6 +468,11 @@ a:hover { color: var(--accent-hover); }
 }
 
 /* Post detail */
+.post-detail {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .post-detail h1 {
   font-family: var(--font-serif);
   font-size: 2rem;
@@ -390,6 +480,7 @@ a:hover { color: var(--accent-hover); }
   line-height: 1.2;
   margin-bottom: 0.75rem;
   letter-spacing: -0.03em;
+  overflow-wrap: break-word;
 }
 
 .post-meta-line {
@@ -398,6 +489,7 @@ a:hover { color: var(--accent-hover); }
   color: var(--text-muted);
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.15rem;
   margin-bottom: 0.5rem;
 }
@@ -415,7 +507,8 @@ a:hover { color: var(--accent-hover); }
 
 .post-actions {
   display: flex;
-  gap: 1rem;
+  flex-wrap: wrap;
+  gap: 0.65rem 1rem;
   margin-top: 0.75rem;
   margin-bottom: 1.75rem;
 }
@@ -510,6 +603,9 @@ a:hover { color: var(--accent-hover); }
 .prose {
   font-size: 1.05rem;
   line-height: 1.8;
+  /* Long URLs / unbroken tokens wrap instead of forcing horizontal scroll */
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .prose h1,
@@ -1321,6 +1417,26 @@ a:hover { color: var(--accent-hover); }
 
 .theme-toggle:hover {
   color: var(--accent);
+}
+
+/* GitHub repo link — Kilroy-branded (campfire accent) */
+.navbar-github {
+  display: flex;
+  align-items: center;
+  padding: 0.25rem;
+  color: var(--accent);
+  line-height: 1;
+  transition: color 0.15s, transform 0.15s;
+}
+
+.navbar-github svg {
+  width: 18px;
+  height: 18px;
+}
+
+.navbar-github:hover {
+  color: var(--accent-hover);
+  transform: translateY(-1px);
 }
 
 /* Account menu */

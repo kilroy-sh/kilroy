@@ -207,6 +207,12 @@ export function Omnibar({ selectedTags, onTagSelect, onTagRemove }: OmnibarProps
             </span>
           )}
           <span className="omnibar-hint">
+            <span className="omnibar-search-icon" aria-label="Search" role="button">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="7" />
+                <line x1="21" y1="21" x2="16.5" y2="16.5" />
+              </svg>
+            </span>
             <kbd>⌘K</kbd>
           </span>
         </div>
