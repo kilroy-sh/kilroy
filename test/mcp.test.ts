@@ -32,7 +32,7 @@ async function callTool(name: string, args: Record<string, unknown> = {}) {
 describe("MCP tool registration", () => {
   beforeEach(setupMcp);
 
-  it("registers all 11 tools", async () => {
+  it("registers all 12 tools", async () => {
     const result = await client.listTools();
     const names = result.tools.map((t) => t.name).sort();
     expect(names).toEqual([
@@ -40,6 +40,7 @@ describe("MCP tool registration", () => {
       "kilroy_create_post",
       "kilroy_create_project",
       "kilroy_delete_post",
+      "kilroy_edit_post",
       "kilroy_get_upload_file_command",
       "kilroy_list_projects",
       "kilroy_read_post",
@@ -381,5 +382,111 @@ describe("MCP responses include url", () => {
     });
 
     expect(data.url).toBe(`${expectedPostUrl(post.id)}#comment-${comment.id}`);
+  });
+});
+
+// ─── kilroy_edit_post ─────────────────────────────────────────
+
+describe("kilroy_edit_post", () => {
+  beforeEach(setupMcp);
+
+  it("applies a find/replace and returns the updated post", async () => {
+    const { data: post } = await callTool("kilroy_create_post", {
+      project: TEST_PROJECT,
+      title: "Edit me",
+      body: "The quick brown fox jumps.",
+      tags: ["test"],
+    });
+
+    const { data, isError } = await callTool("kilroy_edit_post", {
+      project: TEST_PROJECT,
+      post_id: post.id,
+      old_string: "brown fox",
+      new_string: "red panda",
+    });
+
+    expect(isError).toBeFalsy();
+    expect(data.id).toBe(post.id);
+    expect(data.url).toContain(`/post/${post.id}`);
+
+    const { data: reread } = await callTool("kilroy_read_post", {
+      project: TEST_PROJECT,
+      post_id: post.id,
+    });
+    expect(reread.body).toBe("The quick red panda jumps.");
+  });
+
+  it("returns error when old_string is not found", async () => {
+    const { data: post } = await callTool("kilroy_create_post", {
+      project: TEST_PROJECT,
+      title: "Edit me",
+      body: "hello world",
+      tags: ["test"],
+    });
+
+    const { data, isError } = await callTool("kilroy_edit_post", {
+      project: TEST_PROJECT,
+      post_id: post.id,
+      old_string: "goodbye",
+      new_string: "hi",
+    });
+
+    expect(isError).toBe(true);
+    expect(data.code).toBe("NOT_FOUND_IN_BODY");
+  });
+
+  it("returns error when old_string is ambiguous and replace_all is false", async () => {
+    const { data: post } = await callTool("kilroy_create_post", {
+      project: TEST_PROJECT,
+      title: "Edit me",
+      body: "foo bar foo baz foo",
+      tags: ["test"],
+    });
+
+    const { data, isError } = await callTool("kilroy_edit_post", {
+      project: TEST_PROJECT,
+      post_id: post.id,
+      old_string: "foo",
+      new_string: "qux",
+    });
+
+    expect(isError).toBe(true);
+    expect(data.code).toBe("AMBIGUOUS_MATCH");
+  });
+
+  it("replaces all when replace_all is true", async () => {
+    const { data: post } = await callTool("kilroy_create_post", {
+      project: TEST_PROJECT,
+      title: "Edit me",
+      body: "foo bar foo baz foo",
+      tags: ["test"],
+    });
+
+    const { data, isError } = await callTool("kilroy_edit_post", {
+      project: TEST_PROJECT,
+      post_id: post.id,
+      old_string: "foo",
+      new_string: "qux",
+      replace_all: true,
+    });
+
+    expect(isError).toBeFalsy();
+    const { data: reread } = await callTool("kilroy_read_post", {
+      project: TEST_PROJECT,
+      post_id: post.id,
+    });
+    expect(reread.body).toBe("qux bar qux baz qux");
+  });
+
+  it("returns error for non-existent post", async () => {
+    const { data, isError } = await callTool("kilroy_edit_post", {
+      project: TEST_PROJECT,
+      post_id: "nonexistent",
+      old_string: "a",
+      new_string: "b",
+    });
+
+    expect(isError).toBe(true);
+    expect(data.code).toBe("NOT_FOUND");
   });
 });

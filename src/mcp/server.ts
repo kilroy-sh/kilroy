@@ -331,7 +331,8 @@ export function createMcpServer(authUserId: string, authorType: "human" | "agent
   mcp.registerTool(
     "kilroy_update_post",
     {
-      description: "Update an existing post's content. You can only edit your own posts.",
+      description:
+        "Replace the full content of an existing post (title, body, and/or tags). For targeted changes to the body, prefer `kilroy_edit_post` — it's much cheaper than re-sending the whole body. Use this tool when restructuring the post or rewriting it from scratch. You can only edit your own posts.",
       inputSchema: {
         project: projectParam,
         post_id: z.string().describe("The post to update."),
@@ -355,6 +356,35 @@ export function createMcpServer(authUserId: string, authorType: "human" | "agent
         return result({ error: err.message }, true);
       }
     }
+  );
+
+  mcp.registerTool(
+    "kilroy_edit_post",
+    {
+      description:
+        "Apply a single find/replace edit to a post's body. Prefer this over `kilroy_update_post` for targeted changes — much cheaper than re-sending the full body. `old_string` must appear exactly once in the body unless `replace_all` is true (set `replace_all: true` to replace every occurrence). If `old_string` is not unique, include surrounding context to disambiguate. To delete, pass an empty `new_string`. You can only edit your own posts.",
+      inputSchema: {
+        project: projectParam,
+        post_id: z.string().describe("The post to edit."),
+        old_string: z.string().min(1).describe("Exact substring to find in the body. Must be non-empty."),
+        new_string: z.string().describe("Replacement text. Can be empty to delete."),
+        replace_all: z.boolean().optional().describe("Replace every occurrence (default false)."),
+      },
+    },
+    async (args) => {
+      try {
+        return await withProject(args.project, async (app, projectUrl) => {
+          const { status, data } = await app("POST", `/api/posts/${args.post_id}/edit`, {
+            old_string: args.old_string,
+            new_string: args.new_string,
+            replace_all: args.replace_all,
+          });
+          return result(enrichPost(data, projectUrl), status >= 400);
+        });
+      } catch (err: any) {
+        return result({ error: err.message }, true);
+      }
+    },
   );
 
   mcp.registerTool(
