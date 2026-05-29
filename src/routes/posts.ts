@@ -289,6 +289,88 @@ postsRouter.patch("/:id", async (c) => {
   return c.json(formatPost(updated, display, baseUrl));
 });
 
+// POST /posts/:id/edit — Apply a single find/replace to a post body.
+// Sibling to PATCH /:id (which is full-replace). Mirrors the shape of
+// the Edit code tool: old_string must occur exactly once unless
+// replace_all is true; either way zero matches errors so the call is
+// never a silent no-op.
+postsRouter.post("/:id/edit", async (c) => {
+  const postId = c.req.param("id");
+  const body = await c.req.json().catch(() => ({}));
+
+  const oldString = body.old_string;
+  const newString = body.new_string;
+  const replaceAll = body.replace_all === true;
+
+  if (typeof oldString !== "string" || oldString.length === 0) {
+    return c.json(
+      { error: "Field 'old_string' must be a non-empty string", code: "INVALID_INPUT" },
+      400,
+    );
+  }
+  if (typeof newString !== "string") {
+    return c.json(
+      { error: "Field 'new_string' must be a string", code: "INVALID_INPUT" },
+      400,
+    );
+  }
+
+  const projectId = c.get("projectId");
+  const memberAccountId = c.get("memberAccountId");
+  const baseUrl = getBaseUrl(c.req.url);
+
+  const [post] = await db
+    .select()
+    .from(posts)
+    .where(and(eq(posts.id, postId), eq(posts.projectId, projectId)));
+  if (!post) {
+    return c.json({ error: "Post not found", code: "NOT_FOUND" }, 404);
+  }
+
+  if (post.authorAccountId && post.authorAccountId !== memberAccountId) {
+    return c.json(
+      { error: "You can only edit your own posts", code: "AUTHOR_MISMATCH" },
+      403,
+    );
+  }
+
+  const matchCount = post.body.split(oldString).length - 1;
+
+  if (matchCount === 0) {
+    return c.json(
+      { error: `old_string not found in post body`, code: "NOT_FOUND_IN_BODY" },
+      422,
+    );
+  }
+  if (matchCount > 1 && !replaceAll) {
+    return c.json(
+      {
+        error: `old_string appears ${matchCount} times; use replace_all to replace all occurrences or provide more context to make it unique`,
+        code: "AMBIGUOUS_MATCH",
+      },
+      422,
+    );
+  }
+
+  const nextBody = post.body.split(oldString).join(newString);
+
+  if (nextBody.length === 0) {
+    return c.json(
+      { error: "Edit would empty the post body", code: "INVALID_INPUT" },
+      400,
+    );
+  }
+
+  await db
+    .update(posts)
+    .set({ body: nextBody, updatedAt: new Date() })
+    .where(eq(posts.id, postId));
+
+  const [updated] = await db.select().from(posts).where(eq(posts.id, postId));
+  const display = await getAccountDisplay(updated.authorAccountId);
+  return c.json(formatPost(updated, display, baseUrl));
+});
+
 // POST /posts/:id/share — Generate or return an existing public share link
 postsRouter.post("/:id/share", async (c) => {
   const postId = c.req.param("id");

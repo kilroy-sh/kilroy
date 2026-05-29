@@ -482,6 +482,212 @@ describe("PATCH /api/posts/:id (author matching)", () => {
   });
 });
 
+// ─── POST /api/posts/:id/edit (find/replace patch) ──────────────
+
+describe("POST /api/posts/:id/edit", () => {
+  beforeEach(setup);
+
+  it("applies a single find/replace and persists the change", async () => {
+    const post = await createPost({ body: "The quick brown fox jumps over the lazy dog." });
+
+    const res = await app.request(`/api/posts/${post.id}/edit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ old_string: "brown fox", new_string: "red panda" }),
+    });
+
+    expect(res.status).toBe(200);
+    const updated = await res.json();
+    expect(updated.id).toBe(post.id);
+
+    const reread = await (await app.request(`/api/posts/${post.id}`)).json();
+    expect(reread.body).toBe("The quick red panda jumps over the lazy dog.");
+  });
+
+  it("updates updated_at when body changes", async () => {
+    const post = await createPost({ body: "before edit" });
+
+    const res = await app.request(`/api/posts/${post.id}/edit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ old_string: "before", new_string: "after" }),
+    });
+
+    const updated = await res.json();
+    expect(updated.updated_at).not.toBe(post.created_at);
+  });
+
+  it("updates the FTS index when body changes", async () => {
+    const post = await createPost({ body: "marker-alpha is in this post" });
+
+    await app.request(`/api/posts/${post.id}/edit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ old_string: "marker-alpha", new_string: "marker-omega" }),
+    });
+
+    const oldSearch = await (await app.request("/api/search?query=marker-alpha")).json();
+    expect(oldSearch.results).toHaveLength(0);
+
+    const newSearch = await (await app.request("/api/search?query=marker-omega")).json();
+    expect(newSearch.results).toHaveLength(1);
+  });
+
+  it("returns 422 NOT_FOUND_IN_BODY when old_string does not appear", async () => {
+    const post = await createPost({ body: "hello world" });
+
+    const res = await app.request(`/api/posts/${post.id}/edit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ old_string: "goodbye", new_string: "hi" }),
+    });
+
+    expect(res.status).toBe(422);
+    expect((await res.json()).code).toBe("NOT_FOUND_IN_BODY");
+  });
+
+  it("returns 422 AMBIGUOUS_MATCH when old_string appears more than once (default)", async () => {
+    const post = await createPost({ body: "foo bar foo baz foo" });
+
+    const res = await app.request(`/api/posts/${post.id}/edit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ old_string: "foo", new_string: "qux" }),
+    });
+
+    expect(res.status).toBe(422);
+    expect((await res.json()).code).toBe("AMBIGUOUS_MATCH");
+
+    // Body must be unchanged
+    const reread = await (await app.request(`/api/posts/${post.id}`)).json();
+    expect(reread.body).toBe("foo bar foo baz foo");
+  });
+
+  it("replaces all occurrences when replace_all is true", async () => {
+    const post = await createPost({ body: "foo bar foo baz foo" });
+
+    const res = await app.request(`/api/posts/${post.id}/edit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ old_string: "foo", new_string: "qux", replace_all: true }),
+    });
+
+    expect(res.status).toBe(200);
+    const reread = await (await app.request(`/api/posts/${post.id}`)).json();
+    expect(reread.body).toBe("qux bar qux baz qux");
+  });
+
+  it("returns 422 NOT_FOUND_IN_BODY when replace_all matches zero", async () => {
+    const post = await createPost({ body: "hello world" });
+
+    const res = await app.request(`/api/posts/${post.id}/edit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ old_string: "goodbye", new_string: "hi", replace_all: true }),
+    });
+
+    expect(res.status).toBe(422);
+    expect((await res.json()).code).toBe("NOT_FOUND_IN_BODY");
+  });
+
+  it("allows empty new_string (deletion)", async () => {
+    const post = await createPost({ body: "keep this DELETEME and this too" });
+
+    const res = await app.request(`/api/posts/${post.id}/edit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ old_string: " DELETEME", new_string: "" }),
+    });
+
+    expect(res.status).toBe(200);
+    const reread = await (await app.request(`/api/posts/${post.id}`)).json();
+    expect(reread.body).toBe("keep this and this too");
+  });
+
+  it("rejects empty old_string", async () => {
+    const post = await createPost();
+
+    const res = await app.request(`/api/posts/${post.id}/edit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ old_string: "", new_string: "x" }),
+    });
+
+    expect(res.status).toBe(400);
+    expect((await res.json()).code).toBe("INVALID_INPUT");
+  });
+
+  it("rejects missing old_string", async () => {
+    const post = await createPost();
+
+    const res = await app.request(`/api/posts/${post.id}/edit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ new_string: "x" }),
+    });
+
+    expect(res.status).toBe(400);
+    expect((await res.json()).code).toBe("INVALID_INPUT");
+  });
+
+  it("rejects missing new_string", async () => {
+    const post = await createPost();
+
+    const res = await app.request(`/api/posts/${post.id}/edit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ old_string: "x" }),
+    });
+
+    expect(res.status).toBe(400);
+    expect((await res.json()).code).toBe("INVALID_INPUT");
+  });
+
+  it("rejects edit that would empty the body", async () => {
+    const post = await createPost({ body: "onlytext" });
+
+    const res = await app.request(`/api/posts/${post.id}/edit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ old_string: "onlytext", new_string: "" }),
+    });
+
+    expect(res.status).toBe(400);
+    expect((await res.json()).code).toBe("INVALID_INPUT");
+  });
+
+  it("returns 404 for non-existent post", async () => {
+    const res = await app.request(`/api/posts/does-not-exist/edit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ old_string: "a", new_string: "b" }),
+    });
+
+    expect(res.status).toBe(404);
+    expect((await res.json()).code).toBe("NOT_FOUND");
+  });
+
+  it("returns full post shape in response (matches PATCH shape)", async () => {
+    const post = await createPost({ body: "hello world" });
+
+    const res = await app.request(`/api/posts/${post.id}/edit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ old_string: "world", new_string: "kilroy" }),
+    });
+
+    expect(res.status).toBe(200);
+    const updated = await res.json();
+    expect(updated.id).toBeTruthy();
+    expect(updated.title).toBeTruthy();
+    expect(updated.tags).toBeDefined();
+    expect(updated.author).toBeDefined();
+    expect(updated.author.account_id).toBe(testAccountId);
+    expect(updated.created_at).toBeTruthy();
+    expect(updated.updated_at).toBeTruthy();
+  });
+});
+
 // ─── PATCH /api/posts/:id/comments/:commentId ──────────────────
 
 describe("PATCH /api/posts/:id/comments/:commentId", () => {
